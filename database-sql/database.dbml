@@ -1,0 +1,1430 @@
+// Sistema Inga — diagrama ER
+// Pegar en https://dbdiagram.io
+// Docs: https://dbml.dbdiagram.io/docs
+
+Project sistema_inga {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Dos inventarios: almacén crudo vs recetario (insumo ya porcionado).
+    Flujo cocina: requerimiento → salida (foto) → producción → venta resta receta.
+  '''
+}
+
+// =============================================================================
+// AUTH
+// =============================================================================
+
+TableGroup auth {
+  auth_rol
+  auth_permiso
+  auth_rol_permiso
+  auth_usuario
+  auth_usuario_rol
+  auth_sesion
+}
+
+Table auth_rol {
+  id bigint [pk, increment]
+  codigo varchar(50) [not null, unique]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Roles del sistema (admin, cajero, mozo, chef, barman).'
+}
+
+Table auth_permiso {
+  id bigint [pk, increment]
+  codigo varchar(80) [not null, unique]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  modulo varchar(50) [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Permisos por módulo para autorizar acciones en el API.'
+}
+
+Table auth_rol_permiso {
+  id bigint [pk, increment]
+  id_rol bigint [not null]
+  id_permiso bigint [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_rol, id_permiso) [unique]
+  }
+
+  Note: 'Qué permisos tiene cada rol.'
+}
+
+Table auth_usuario {
+  id bigint [pk, increment]
+  username varchar(80) [not null, unique]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  pin_hash varchar(255)
+  nombres varchar(100) [not null]
+  apellidos varchar(100) [not null]
+  telefono varchar(20)
+  id_sucursal_default bigint
+  estado smallint [not null, default: 1]
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Usuarios que entran al sistema (login, PIN de mozo).'
+}
+
+Table auth_usuario_rol {
+  id bigint [pk, increment]
+  id_usuario bigint [not null]
+  id_rol bigint [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_usuario, id_rol) [unique]
+  }
+
+  Note: 'Roles asignados a cada usuario.'
+}
+
+Table auth_sesion {
+  id bigint [pk, increment]
+  id_usuario bigint [not null]
+  refresh_token_hash varchar(255) [not null]
+  ip varchar(45)
+  user_agent varchar(255)
+  fecha_inicio timestamptz [not null, default: `now()`]
+  fecha_expiracion timestamptz [not null]
+  fecha_fin timestamptz
+  estado smallint [not null, default: 1]
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Sesiones activas (refresh token, IP, cierre).'
+}
+
+// =============================================================================
+// GENERAL
+// =============================================================================
+
+TableGroup general {
+  gen_lista
+  gen_lista_opcion
+  gen_condicion_pago
+  gen_pais
+  gen_departamento
+  gen_provincia
+  gen_distrito
+  gen_empresa
+  gen_sucursal
+  gen_almacen
+  gen_estacion
+  gen_correlativo
+  gen_cuenta_bancaria
+  gen_configuracion_sunat
+}
+
+Table gen_lista {
+  id bigint [pk, increment]
+  codigo varchar(50) [not null, unique]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cabecera de catálogos (tipos, estados, medios de pago, etc.).'
+}
+
+Table gen_lista_opcion {
+  id bigint [pk, increment]
+  id_lista bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  valor_entero integer
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_lista, codigo) [unique]
+  }
+
+  Note: 'Valores de cada catálogo (código, nombre y entero usado en las tablas).'
+}
+
+Table gen_condicion_pago {
+  id bigint [pk, increment]
+  codigo varchar(50) [not null, unique]
+  nombre varchar(100) [not null]
+  dias_credito integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Contado o crédito (quincena / 30 días) para compras y convenios.'
+}
+
+Table gen_pais {
+  id bigint [pk, increment]
+  nombre varchar(100) [not null]
+  codigo_iso varchar(10) [not null, unique]
+  estado smallint [not null, default: 1]
+
+  Note: 'País (ubigeo / facturación).'
+}
+
+Table gen_departamento {
+  id bigint [pk, increment]
+  id_pais bigint [not null]
+  nombre varchar(100) [not null]
+  estado smallint [not null, default: 1]
+
+  Note: 'Departamento del ubigeo Perú.'
+}
+
+Table gen_provincia {
+  id bigint [pk, increment]
+  id_departamento bigint [not null]
+  nombre varchar(100) [not null]
+  estado smallint [not null, default: 1]
+
+  Note: 'Provincia del ubigeo Perú.'
+}
+
+Table gen_distrito {
+  id bigint [pk, increment]
+  id_provincia bigint [not null]
+  codigo_ubigeo varchar(6)
+  nombre varchar(100) [not null]
+  estado smallint [not null, default: 1]
+
+  Note: 'Distrito y código ubigeo para empresa, sucursal y personas.'
+}
+
+Table gen_empresa {
+  id bigint [pk, increment]
+  ruc varchar(11) [not null, unique]
+  razon_social varchar(255) [not null]
+  nombre_comercial varchar(255)
+  direccion text
+  id_distrito bigint
+  telefono varchar(20)
+  email varchar(100)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Razón social y RUC del restaurante (Inga).'
+}
+
+Table gen_sucursal {
+  id bigint [pk, increment]
+  id_empresa bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  direccion text
+  telefono varchar(20)
+  id_distrito bigint
+  es_principal boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_empresa, codigo) [unique]
+  }
+
+  Note: 'Local físico; hoy uno, preparado para más sedes.'
+}
+
+Table gen_almacen {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  tipo_almacen smallint [not null, note: '1 crudo, 2 prod. cocina, 3 prod. barra']
+  es_principal boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, codigo) [unique]
+  }
+
+  Note: 'Almacenes crudos (2 físicos) y de producción (cocina / barra).'
+}
+
+Table gen_estacion {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  tipo_estacion smallint [not null, note: '1 cocina, 2 barra, 3 caja']
+  impresora_nombre varchar(100)
+  impresora_ip varchar(45)
+  usa_kds boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, codigo) [unique]
+  }
+
+  Note: 'Impresoras/KDS: cocina (platos), caja (bebidas + boletas), barra (tragos).'
+}
+
+Table gen_correlativo {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  tipo_documento smallint [not null]
+  serie varchar(10) [not null]
+  ultimo_numero bigint [not null, default: 0]
+  longitud integer [not null, default: 8]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, tipo_documento, serie) [unique]
+  }
+
+  Note: 'Series y correlativos de pedidos, salidas, comprobantes, etc.'
+}
+
+Table gen_cuenta_bancaria {
+  id bigint [pk, increment]
+  id_empresa bigint [not null]
+  banco smallint [not null]
+  tipo_cuenta smallint [not null]
+  numero_cuenta varchar(50) [not null]
+  cci varchar(50)
+  titular varchar(255)
+  moneda smallint [not null, default: 1]
+  es_principal boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cuentas bancarias de la empresa (depósitos, pagos a proveedores).'
+}
+
+Table gen_configuracion_sunat {
+  id bigint [pk, increment]
+  id_empresa bigint [not null, unique]
+  proveedor_ose varchar(80)
+  usuario_sol_cifrado text
+  clave_sol_cifrada text
+  certificado_cifrado text
+  id_ambiente smallint [not null, default: 1]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Conexión futura a facturación electrónica (credenciales cifradas).'
+}
+
+// =============================================================================
+// CLIENTES
+// =============================================================================
+
+TableGroup clientes {
+  cli_convenio
+  cli_persona
+  cli_persona_direccion
+  cxc_movimiento
+}
+
+Table cli_convenio {
+  id bigint [pk, increment]
+  codigo varchar(50) [not null, unique]
+  nombre varchar(150) [not null]
+  id_condicion_pago bigint [not null]
+  limite_credito decimal(12,2) [not null, default: 0]
+  corte_quincenal boolean [not null, default: true]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Empresas del consorcio con crédito (GVR, 4G, ApuSalud, Jurisconta).'
+}
+
+Table cli_persona {
+  id bigint [pk, increment]
+  tipo_persona smallint [not null]
+  tipo_documento smallint [not null]
+  num_documento varchar(20) [not null]
+  razon_social varchar(255)
+  nombres varchar(100)
+  apellido_paterno varchar(100)
+  apellido_materno varchar(100)
+  direccion varchar(255)
+  id_distrito bigint
+  telefono varchar(20)
+  email varchar(100)
+  es_cliente boolean [not null, default: false]
+  es_proveedor boolean [not null, default: false]
+  id_convenio bigint
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tipo_documento, num_documento) [unique]
+  }
+
+  Note: 'Clientes, proveedores y consumidores a crédito (ej. Billy Reaño).'
+}
+
+Table cli_persona_direccion {
+  id bigint [pk, increment]
+  id_persona bigint [not null]
+  etiqueta varchar(50) [not null]
+  direccion varchar(255) [not null]
+  id_distrito bigint
+  referencia varchar(255)
+  es_principal boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Direcciones extra de una persona (delivery futuro).'
+}
+
+Table cxc_movimiento {
+  id bigint [pk, increment]
+  id_persona bigint [not null]
+  id_convenio bigint
+  id_pedido bigint
+  id_pago bigint
+  tipo_movimiento smallint [not null, note: '1 cargo, 2 abono, 3 ajuste']
+  monto decimal(12,2) [not null]
+  saldo_resultante decimal(12,2) [not null]
+  anio smallint [not null]
+  mes smallint [not null]
+  quincena smallint [not null, note: '1 = días 1-15, 2 = 16-fin']
+  observacion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cuenta por cobrar: consumo y pagos a quincena/fin de mes por persona.'
+}
+
+// =============================================================================
+// PRODUCTOS / RECETARIO
+// =============================================================================
+
+TableGroup productos {
+  pro_unidad_medida
+  pro_unidad_conversion
+  pro_categoria
+  pro_subcategoria
+  pro_producto
+  pro_receta
+  pro_receta_insumo
+  pro_adicional
+}
+
+Table pro_unidad_medida {
+  id bigint [pk, increment]
+  codigo varchar(20) [not null, unique]
+  codigo_sunat varchar(10)
+  nombre varchar(50) [not null]
+  simbolo varchar(10)
+  es_fraccionable boolean [not null, default: true]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Unidades (kg, g, oz, dash, presa, pote, botella, saco, damajuana).'
+}
+
+Table pro_unidad_conversion {
+  id bigint [pk, increment]
+  id_unidad_origen bigint [not null]
+  id_unidad_destino bigint [not null]
+  factor decimal(18,8) [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_unidad_origen, id_unidad_destino) [unique]
+  }
+
+  Note: 'Pasar de caja→botella, botella→onzas, kg→g, damajuana→ml.'
+}
+
+Table pro_categoria {
+  id bigint [pk, increment]
+  codigo varchar(50) [not null, unique]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  es_carta boolean [not null, default: false]
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Agrupación de carta (entradas, fondos, tragos, etc.).'
+}
+
+Table pro_subcategoria {
+  id bigint [pk, increment]
+  id_categoria bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_categoria, codigo) [unique]
+  }
+
+  Note: 'Subgrupo dentro de la categoría.'
+}
+
+Table pro_producto {
+  id bigint [pk, increment]
+  id_subcategoria bigint [not null]
+  id_unidad_medida bigint [not null]
+  id_estacion bigint
+  id_almacen_stock bigint
+  codigo_interno varchar(50) [not null, unique]
+  nombre varchar(150) [not null]
+  descripcion text
+  tipo_producto smallint [not null, note: '1 crudo, 2 procesado, 3 carta, 4 menú, 5 trago, 6 botella, 7 adicional']
+  precio_venta decimal(12,2) [not null, default: 0]
+  costo_receta_calculado decimal(12,4) [not null, default: 0]
+  afecto_igv boolean [not null, default: true]
+  controla_stock boolean [not null, default: false]
+  disponible_venta boolean [not null, default: true]
+  tiempo_prep_min integer
+  imagen_url varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Ítem único: crudo, procesado, plato, menú, trago, botella o adicional.'
+}
+
+Table pro_receta {
+  id bigint [pk, increment]
+  id_producto bigint [not null]
+  version integer [not null, default: 1]
+  nombre varchar(150)
+  rendimiento_porciones decimal(10,2) [not null, default: 1]
+  vigente boolean [not null, default: true]
+  observacion text
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_producto, version) [unique]
+  }
+
+  Note: 'Receta vigente de un plato o trago (versionable).'
+}
+
+Table pro_receta_insumo {
+  id bigint [pk, increment]
+  id_receta bigint [not null]
+  id_producto_insumo bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  porcentaje_merma decimal(5,2) [not null, default: 0]
+  es_opcional boolean [not null, default: false]
+  grupo_sustitucion integer [note: 'Misma clave = alternativas (pesca del día)']
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Insumos y cantidades de la receta (gramos, onzas, presas, potes).'
+}
+
+Table pro_adicional {
+  id bigint [pk, increment]
+  id_producto bigint [not null]
+  nombre varchar(100) [not null]
+  precio_adicional decimal(12,2) [not null, default: 0]
+  id_producto_insumo bigint
+  cantidad_insumo decimal(14,4) [not null, default: 0]
+  id_unidad_medida bigint
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Extras del plato (precio y, si aplica, insumo extra a descontar).'
+}
+
+// =============================================================================
+// INVENTARIO / PRODUCCIÓN / COMPRAS
+// =============================================================================
+
+TableGroup inventario {
+  alm_producto_stock
+  alm_kardex
+  alm_alerta
+  prod_requerimiento
+  prod_requerimiento_detalle
+  alm_salida
+  alm_salida_detalle
+  alm_salida_evidencia
+  alm_traslado
+  alm_traslado_detalle
+  alm_ajuste
+  alm_ajuste_detalle
+  prod_orden
+  prod_orden_detalle
+  com_compra
+  com_compra_detalle
+}
+
+Table alm_producto_stock {
+  id bigint [pk, increment]
+  id_almacen bigint [not null]
+  id_producto bigint [not null]
+  stock_actual decimal(14,4) [not null, default: 0]
+  stock_minimo decimal(14,4) [not null, default: 0]
+  stock_reservado decimal(14,4) [not null, default: 0]
+  costo_promedio decimal(12,4) [not null, default: 0]
+  alerta_activa boolean [not null, default: false]
+  fecha_ultima_alerta timestamptz
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_almacen, id_producto) [unique]
+  }
+
+  Note: 'Stock actual, mínimo y costo promedio por producto y almacén.'
+}
+
+Table alm_kardex {
+  id bigint [pk, increment]
+  id_almacen bigint [not null]
+  id_producto bigint [not null]
+  tipo_movimiento smallint [not null]
+  signo smallint [not null, note: '1 ingreso, -1 salida']
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  stock_anterior decimal(14,4) [not null]
+  stock_nuevo decimal(14,4) [not null]
+  costo_unitario decimal(12,4)
+  documento_tipo varchar(40) [note: 'COMPRA, SALIDA, PRODUCCION, PEDIDO_DETALLE, TRASLADO, AJUSTE']
+  documento_id bigint
+  observacion text
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Historial de ingresos y salidas (la resta ingreso − venta vive aquí).'
+}
+
+Table alm_alerta {
+  id bigint [pk, increment]
+  id_almacen bigint [not null]
+  id_producto bigint [not null]
+  stock_al_momento decimal(14,4) [not null]
+  stock_minimo decimal(14,4) [not null]
+  vista_chef boolean [not null, default: false]
+  vista_admin boolean [not null, default: false]
+  fecha_creacion timestamptz [not null, default: `now()`]
+
+  Note: 'Aviso de stock bajo para chef y administración.'
+}
+
+Table prod_requerimiento {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  codigo varchar(50) [not null, unique]
+  fecha_necesaria date [not null]
+  id_solicitante bigint
+  observacion text
+  estado_requerimiento smallint [not null, default: 1]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Pedido de crudo del chef (8 patos, arroz, etc.). No entra al recetario.'
+}
+
+Table prod_requerimiento_detalle {
+  id bigint [pk, increment]
+  id_requerimiento bigint [not null]
+  id_producto bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  nota varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Líneas del requerimiento (producto crudo, cantidad, nota de peso).'
+}
+
+Table alm_salida {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  id_almacen_origen bigint [not null]
+  id_requerimiento bigint
+  codigo varchar(50) [not null, unique]
+  destino smallint [not null, note: '1 cocina, 2 barra']
+  observacion text
+  estado_salida smallint [not null, default: 1]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Vale de salida de almacén crudo a cocina o barra (reemplaza el Excel).'
+}
+
+Table alm_salida_detalle {
+  id bigint [pk, increment]
+  id_salida bigint [not null]
+  id_producto bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Productos y cantidades que salieron del almacén.'
+}
+
+Table alm_salida_evidencia {
+  id bigint [pk, increment]
+  id_salida bigint [not null]
+  archivo_url varchar(500) [not null]
+  observacion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+
+  Note: 'Fotos de evidencia cuando administración no está presente.'
+}
+
+Table alm_traslado {
+  id bigint [pk, increment]
+  id_almacen_origen bigint [not null]
+  id_almacen_destino bigint [not null]
+  codigo varchar(50) [not null, unique]
+  motivo varchar(255)
+  estado_traslado smallint [not null, default: 1]
+  observacion text
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Mover stock entre almacenes.'
+}
+
+Table alm_traslado_detalle {
+  id bigint [pk, increment]
+  id_traslado bigint [not null]
+  id_producto bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Detalle de productos del traslado.'
+}
+
+Table alm_ajuste {
+  id bigint [pk, increment]
+  id_almacen bigint [not null]
+  codigo varchar(50) [not null, unique]
+  motivo smallint [not null]
+  observacion text
+  estado_ajuste smallint [not null, default: 1]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Conteo / merma / corrección de inventario.'
+}
+
+Table alm_ajuste_detalle {
+  id bigint [pk, increment]
+  id_ajuste bigint [not null]
+  id_producto bigint [not null]
+  stock_sistema decimal(14,4) [not null]
+  stock_contado decimal(14,4) [not null]
+  diferencia decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Diferencia entre stock del sistema y lo contado.'
+}
+
+Table prod_orden {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  id_almacen_destino bigint [not null]
+  id_requerimiento bigint
+  codigo varchar(50) [not null, unique]
+  tipo_produccion smallint [not null]
+  fecha_produccion date [not null]
+  observacion text
+  estado_orden smallint [not null, default: 1]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Ingreso al recetario de lo ya porcionado (45 presas, 30 potes, N onzas).'
+}
+
+Table prod_orden_detalle {
+  id bigint [pk, increment]
+  id_orden bigint [not null]
+  id_producto bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  costo_unitario decimal(12,4)
+  nota_rendimiento varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cada insumo procesado que entra a stock de cocina o barra.'
+}
+
+Table com_compra {
+  id bigint [pk, increment]
+  id_proveedor bigint [not null]
+  id_almacen_destino bigint [not null]
+  id_condicion_pago bigint [not null]
+  tipo_comprobante smallint [not null]
+  serie_comprobante varchar(10) [not null]
+  num_comprobante varchar(20) [not null]
+  fecha_emision date [not null]
+  fecha_recepcion timestamptz [not null, default: `now()`]
+  monto_subtotal decimal(12,2) [not null, default: 0]
+  monto_igv decimal(12,2) [not null, default: 0]
+  monto_total decimal(12,2) [not null, default: 0]
+  estado_compra smallint [not null, default: 1]
+  observacion text
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_proveedor, tipo_comprobante, serie_comprobante, num_comprobante) [unique]
+  }
+
+  Note: 'Compra semanal a proveedor (ingreso a almacén crudo).'
+}
+
+Table com_compra_detalle {
+  id bigint [pk, increment]
+  id_compra bigint [not null]
+  id_producto bigint [not null]
+  cantidad decimal(14,4) [not null]
+  id_unidad_medida bigint [not null]
+  cantidad_base decimal(14,4)
+  id_unidad_base bigint
+  costo_unitario decimal(12,4) [not null]
+  monto_subtotal decimal(12,2) [not null, default: 0]
+  se_ingresa_kardex boolean [not null, default: true]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Líneas de compra; aquí se convierte caja/saco/damajuana a UM de stock.'
+}
+
+// =============================================================================
+// CAJA / VENTAS
+// =============================================================================
+
+TableGroup ventas {
+  caj_caja
+  caj_turno
+  caj_arqueo_detalle
+  caj_movimiento
+  ven_salon
+  ven_mesa
+  ven_menu_dia
+  ven_menu_dia_item
+  ven_pedido
+  ven_comanda
+  ven_pedido_detalle
+  ven_pedido_detalle_adicional
+  ven_comprobante
+  ven_comprobante_detalle
+  ven_pago
+  kds_ticket
+}
+
+Table caj_caja {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, codigo) [unique]
+  }
+
+  Note: 'Caja física del local.'
+}
+
+Table caj_turno {
+  id bigint [pk, increment]
+  id_caja bigint [not null]
+  id_cajero bigint [not null]
+  monto_apertura decimal(12,2) [not null, default: 0]
+  fecha_apertura timestamptz [not null, default: `now()`]
+  monto_cierre_sistema decimal(12,2) [not null, default: 0]
+  monto_cierre_declarado decimal(12,2)
+  monto_diferencia decimal(12,2)
+  fecha_cierre timestamptz
+  estado_turno smallint [not null, default: 1]
+  observacion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Turno de cajero (apertura, arqueo, cierre y diferencia).'
+}
+
+Table caj_arqueo_detalle {
+  id bigint [pk, increment]
+  id_turno bigint [not null]
+  denominacion decimal(12,2) [not null]
+  cantidad integer [not null, default: 0]
+  monto_subtotal decimal(12,2) [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Conteo de billetes y monedas al cerrar.'
+}
+
+Table caj_movimiento {
+  id bigint [pk, increment]
+  id_turno bigint [not null]
+  tipo_movimiento smallint [not null]
+  monto decimal(12,2) [not null]
+  motivo varchar(255) [not null]
+  id_usuario_autoriza bigint
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Ingresos/egresos de caja que no son una venta (gastos, retiros).'
+}
+
+Table ven_salon {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  codigo varchar(50) [not null]
+  nombre varchar(100) [not null]
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, codigo) [unique]
+  }
+
+  Note: 'Zonas del salón (piso, terraza, etc.).'
+}
+
+Table ven_mesa {
+  id bigint [pk, increment]
+  id_salon bigint [not null]
+  codigo varchar(20) [not null]
+  capacidad_personas integer [not null, default: 2]
+  estado_mesa smallint [not null, default: 1, note: '1 libre, 2 ocupada, 3 por cobrar, 4 inhabilitada']
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_salon, codigo) [unique]
+  }
+
+  Note: 'Mesas (libre, ocupada, por cobrar).'
+}
+
+Table ven_menu_dia {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  fecha date [not null]
+  tipo_menu smallint [not null, default: 1]
+  observacion varchar(255)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_sucursal, fecha, tipo_menu) [unique]
+  }
+
+  Note: 'Carta/menú de un día (base para PDF o QR).'
+}
+
+Table ven_menu_dia_item {
+  id bigint [pk, increment]
+  id_menu_dia bigint [not null]
+  id_producto bigint [not null]
+  precio_venta decimal(12,2)
+  porciones_disponibles decimal(14,4)
+  activo boolean [not null, default: true]
+  orden integer [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_menu_dia, id_producto) [unique]
+  }
+
+  Note: 'Platos del día, precio y cuántas porciones se pueden vender.'
+}
+
+Table ven_pedido {
+  id bigint [pk, increment]
+  id_sucursal bigint [not null]
+  id_mesa bigint
+  id_mozo bigint [not null]
+  id_turno bigint
+  id_persona bigint
+  id_convenio bigint
+  tipo_pedido smallint [not null, default: 1, note: '1 mesa, 2 llevar, 3 delivery']
+  codigo varchar(50) [not null, unique]
+  num_comensales integer [not null, default: 1]
+  monto_subtotal decimal(12,2) [not null, default: 0]
+  monto_descuento decimal(12,2) [not null, default: 0]
+  monto_igv decimal(12,2) [not null, default: 0]
+  monto_total decimal(12,2) [not null, default: 0]
+  monto_pagado decimal(12,2) [not null, default: 0]
+  estado_pedido smallint [not null, default: 1]
+  fecha_apertura timestamptz [not null, default: `now()`]
+  fecha_cierre timestamptz
+  observacion text
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cuenta abierta de la mesa (o para llevar): totales y estado.'
+}
+
+Table ven_comanda {
+  id bigint [pk, increment]
+  id_pedido bigint [not null]
+  id_estacion bigint [not null]
+  numero integer [not null]
+  estado_comanda smallint [not null, default: 1]
+  fecha_envio timestamptz [not null, default: `now()`]
+  fecha_impresion timestamptz
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (id_pedido, id_estacion, numero) [unique]
+  }
+
+  Note: 'Lote enviado a una impresora (cocina, barra o caja).'
+}
+
+Table ven_pedido_detalle {
+  id bigint [pk, increment]
+  id_pedido bigint [not null]
+  id_comanda bigint
+  id_producto bigint [not null]
+  id_receta bigint
+  cantidad decimal(14,4) [not null]
+  precio_unitario decimal(12,2) [not null]
+  monto_descuento decimal(12,2) [not null, default: 0]
+  monto_subtotal decimal(12,2) [not null]
+  tipo_linea smallint [not null, default: 1]
+  estado_preparacion smallint [not null, default: 1]
+  observacion text
+  stock_descontado boolean [not null, default: false]
+  id_usuario_autoriza bigint
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cada plato/trago pedido; al enviarse se descuenta la receta.'
+}
+
+Table ven_pedido_detalle_adicional {
+  id bigint [pk, increment]
+  id_pedido_detalle bigint [not null]
+  id_adicional bigint [not null]
+  precio_adicional decimal(12,2) [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Adicionales elegidos en esa línea (con o sin extra de stock).'
+}
+
+Table ven_comprobante {
+  id bigint [pk, increment]
+  id_pedido bigint [not null]
+  id_persona bigint
+  id_comprobante_origen bigint
+  tipo_comprobante smallint [not null, note: '1 boleta, 2 factura, 3 nota venta, 4 nota crédito']
+  tipo_detalle smallint [not null, default: 1, note: '1 detallado, 2 por consumo']
+  receptor_tipo_doc smallint
+  receptor_num_doc varchar(20)
+  receptor_razon_social varchar(255)
+  serie varchar(10) [not null]
+  correlativo varchar(20) [not null]
+  fecha_emision timestamptz [not null, default: `now()`]
+  monto_gravado decimal(12,2) [not null, default: 0]
+  monto_exonerado decimal(12,2) [not null, default: 0]
+  monto_igv decimal(12,2) [not null, default: 0]
+  monto_total decimal(12,2) [not null, default: 0]
+  hash_qr varchar(255)
+  ruta_pdf varchar(255)
+  ruta_xml varchar(255)
+  estado_sunat smallint [not null, default: 1]
+  sunat_mensaje text
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  indexes {
+    (serie, correlativo, tipo_comprobante) [unique]
+  }
+
+  Note: 'Boleta/factura (detallado o por consumo) e impresión en caja.'
+}
+
+Table ven_comprobante_detalle {
+  id bigint [pk, increment]
+  id_comprobante bigint [not null]
+  id_pedido_detalle bigint
+  descripcion varchar(255) [not null]
+  cantidad decimal(14,4) [not null]
+  unidad varchar(20)
+  precio_unitario decimal(12,2) [not null]
+  monto_total decimal(12,2) [not null]
+  estado smallint [not null, default: 1]
+  fecha_creacion timestamptz [not null, default: `now()`]
+
+  Note: 'Snapshot de ítems del comprobante (SUNAT / PDF).'
+}
+
+Table ven_pago {
+  id bigint [pk, increment]
+  id_pedido bigint [not null]
+  id_turno bigint [not null]
+  id_comprobante bigint
+  id_persona bigint
+  id_convenio bigint
+  medio_pago smallint [not null, note: '1 efectivo, 2 yape, 3 tarjeta, 4 crédito']
+  monto decimal(12,2) [not null]
+  monto_recibido decimal(12,2)
+  vuelto decimal(12,2) [not null, default: 0]
+  num_operacion varchar(50)
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Cobro del pedido: efectivo, Yape, Visa y/o crédito consorcio (mixto).'
+}
+
+Table kds_ticket {
+  id bigint [pk, increment]
+  id_comanda bigint [not null]
+  id_pedido_detalle bigint [not null]
+  id_estacion bigint [not null]
+  estado_kds smallint [not null, default: 1]
+  fecha_envio timestamptz [not null, default: `now()`]
+  fecha_inicio timestamptz
+  fecha_listo timestamptz
+  tiempo_prep_min integer
+  alerta_tiempo boolean [not null, default: false]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint
+  id_usuario_modificacion bigint
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+
+  Note: 'Ticket en pantalla de cocina/barra (tiempos y estado de preparación).'
+}
+
+// =============================================================================
+// RELACIONES
+// =============================================================================
+
+Ref: auth_rol_permiso.id_rol > auth_rol.id
+Ref: auth_rol_permiso.id_permiso > auth_permiso.id
+Ref: auth_usuario.id_sucursal_default > gen_sucursal.id
+Ref: auth_usuario_rol.id_usuario > auth_usuario.id
+Ref: auth_usuario_rol.id_rol > auth_rol.id
+Ref: auth_sesion.id_usuario > auth_usuario.id
+
+Ref: gen_lista_opcion.id_lista > gen_lista.id
+Ref: gen_departamento.id_pais > gen_pais.id
+Ref: gen_provincia.id_departamento > gen_departamento.id
+Ref: gen_distrito.id_provincia > gen_provincia.id
+Ref: gen_empresa.id_distrito > gen_distrito.id
+Ref: gen_sucursal.id_empresa > gen_empresa.id
+Ref: gen_sucursal.id_distrito > gen_distrito.id
+Ref: gen_almacen.id_sucursal > gen_sucursal.id
+Ref: gen_estacion.id_sucursal > gen_sucursal.id
+Ref: gen_correlativo.id_sucursal > gen_sucursal.id
+Ref: gen_cuenta_bancaria.id_empresa > gen_empresa.id
+Ref: gen_configuracion_sunat.id_empresa > gen_empresa.id
+
+Ref: cli_convenio.id_condicion_pago > gen_condicion_pago.id
+Ref: cli_persona.id_distrito > gen_distrito.id
+Ref: cli_persona.id_convenio > cli_convenio.id
+Ref: cli_persona_direccion.id_persona > cli_persona.id
+Ref: cli_persona_direccion.id_distrito > gen_distrito.id
+
+Ref: pro_unidad_conversion.id_unidad_origen > pro_unidad_medida.id
+Ref: pro_unidad_conversion.id_unidad_destino > pro_unidad_medida.id
+Ref: pro_subcategoria.id_categoria > pro_categoria.id
+Ref: pro_producto.id_subcategoria > pro_subcategoria.id
+Ref: pro_producto.id_unidad_medida > pro_unidad_medida.id
+Ref: pro_producto.id_estacion > gen_estacion.id
+Ref: pro_producto.id_almacen_stock > gen_almacen.id
+Ref: pro_receta.id_producto > pro_producto.id
+Ref: pro_receta_insumo.id_receta > pro_receta.id
+Ref: pro_receta_insumo.id_producto_insumo > pro_producto.id
+Ref: pro_receta_insumo.id_unidad_medida > pro_unidad_medida.id
+Ref: pro_adicional.id_producto > pro_producto.id
+Ref: pro_adicional.id_producto_insumo > pro_producto.id
+Ref: pro_adicional.id_unidad_medida > pro_unidad_medida.id
+
+Ref: ven_menu_dia.id_sucursal > gen_sucursal.id
+Ref: ven_menu_dia_item.id_menu_dia > ven_menu_dia.id
+Ref: ven_menu_dia_item.id_producto > pro_producto.id
+
+Ref: alm_producto_stock.id_almacen > gen_almacen.id
+Ref: alm_producto_stock.id_producto > pro_producto.id
+Ref: alm_kardex.id_almacen > gen_almacen.id
+Ref: alm_kardex.id_producto > pro_producto.id
+Ref: alm_kardex.id_unidad_medida > pro_unidad_medida.id
+Ref: alm_alerta.id_almacen > gen_almacen.id
+Ref: alm_alerta.id_producto > pro_producto.id
+
+Ref: prod_requerimiento.id_sucursal > gen_sucursal.id
+Ref: prod_requerimiento.id_solicitante > auth_usuario.id
+Ref: prod_requerimiento_detalle.id_requerimiento > prod_requerimiento.id
+Ref: prod_requerimiento_detalle.id_producto > pro_producto.id
+Ref: prod_requerimiento_detalle.id_unidad_medida > pro_unidad_medida.id
+
+Ref: alm_salida.id_sucursal > gen_sucursal.id
+Ref: alm_salida.id_almacen_origen > gen_almacen.id
+Ref: alm_salida.id_requerimiento > prod_requerimiento.id
+Ref: alm_salida_detalle.id_salida > alm_salida.id
+Ref: alm_salida_detalle.id_producto > pro_producto.id
+Ref: alm_salida_detalle.id_unidad_medida > pro_unidad_medida.id
+Ref: alm_salida_evidencia.id_salida > alm_salida.id
+
+Ref: alm_traslado.id_almacen_origen > gen_almacen.id
+Ref: alm_traslado.id_almacen_destino > gen_almacen.id
+Ref: alm_traslado_detalle.id_traslado > alm_traslado.id
+Ref: alm_traslado_detalle.id_producto > pro_producto.id
+Ref: alm_traslado_detalle.id_unidad_medida > pro_unidad_medida.id
+
+Ref: alm_ajuste.id_almacen > gen_almacen.id
+Ref: alm_ajuste_detalle.id_ajuste > alm_ajuste.id
+Ref: alm_ajuste_detalle.id_producto > pro_producto.id
+Ref: alm_ajuste_detalle.id_unidad_medida > pro_unidad_medida.id
+
+Ref: prod_orden.id_sucursal > gen_sucursal.id
+Ref: prod_orden.id_almacen_destino > gen_almacen.id
+Ref: prod_orden.id_requerimiento > prod_requerimiento.id
+Ref: prod_orden_detalle.id_orden > prod_orden.id
+Ref: prod_orden_detalle.id_producto > pro_producto.id
+Ref: prod_orden_detalle.id_unidad_medida > pro_unidad_medida.id
+
+Ref: com_compra.id_proveedor > cli_persona.id
+Ref: com_compra.id_almacen_destino > gen_almacen.id
+Ref: com_compra.id_condicion_pago > gen_condicion_pago.id
+Ref: com_compra_detalle.id_compra > com_compra.id
+Ref: com_compra_detalle.id_producto > pro_producto.id
+Ref: com_compra_detalle.id_unidad_medida > pro_unidad_medida.id
+Ref: com_compra_detalle.id_unidad_base > pro_unidad_medida.id
+
+Ref: caj_caja.id_sucursal > gen_sucursal.id
+Ref: caj_turno.id_caja > caj_caja.id
+Ref: caj_turno.id_cajero > auth_usuario.id
+Ref: caj_arqueo_detalle.id_turno > caj_turno.id
+Ref: caj_movimiento.id_turno > caj_turno.id
+Ref: caj_movimiento.id_usuario_autoriza > auth_usuario.id
+
+Ref: ven_salon.id_sucursal > gen_sucursal.id
+Ref: ven_mesa.id_salon > ven_salon.id
+Ref: ven_pedido.id_sucursal > gen_sucursal.id
+Ref: ven_pedido.id_mesa > ven_mesa.id
+Ref: ven_pedido.id_mozo > auth_usuario.id
+Ref: ven_pedido.id_turno > caj_turno.id
+Ref: ven_pedido.id_persona > cli_persona.id
+Ref: ven_pedido.id_convenio > cli_convenio.id
+
+Ref: ven_comanda.id_pedido > ven_pedido.id
+Ref: ven_comanda.id_estacion > gen_estacion.id
+Ref: ven_pedido_detalle.id_pedido > ven_pedido.id
+Ref: ven_pedido_detalle.id_comanda > ven_comanda.id
+Ref: ven_pedido_detalle.id_producto > pro_producto.id
+Ref: ven_pedido_detalle.id_receta > pro_receta.id
+Ref: ven_pedido_detalle.id_usuario_autoriza > auth_usuario.id
+Ref: ven_pedido_detalle_adicional.id_pedido_detalle > ven_pedido_detalle.id
+Ref: ven_pedido_detalle_adicional.id_adicional > pro_adicional.id
+
+Ref: ven_comprobante.id_pedido > ven_pedido.id
+Ref: ven_comprobante.id_persona > cli_persona.id
+Ref: ven_comprobante.id_comprobante_origen > ven_comprobante.id
+Ref: ven_comprobante_detalle.id_comprobante > ven_comprobante.id
+Ref: ven_comprobante_detalle.id_pedido_detalle > ven_pedido_detalle.id
+
+Ref: ven_pago.id_pedido > ven_pedido.id
+Ref: ven_pago.id_turno > caj_turno.id
+Ref: ven_pago.id_persona > cli_persona.id
+Ref: ven_pago.id_convenio > cli_convenio.id
+Ref: ven_pago.id_comprobante > ven_comprobante.id
+
+Ref: kds_ticket.id_comanda > ven_comanda.id
+Ref: kds_ticket.id_pedido_detalle > ven_pedido_detalle.id
+Ref: kds_ticket.id_estacion > gen_estacion.id
+
+Ref: cxc_movimiento.id_persona > cli_persona.id
+Ref: cxc_movimiento.id_convenio > cli_convenio.id
+Ref: cxc_movimiento.id_pedido > ven_pedido.id
+Ref: cxc_movimiento.id_pago > ven_pago.id

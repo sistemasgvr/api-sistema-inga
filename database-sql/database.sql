@@ -45,9 +45,9 @@
 --  - El API actualiza stock; kardex es la fuente de verdad de movimientos.
 -- =============================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-SET timezone = 'America/Lima';
+-- Requiere PostgreSQL 12+. Tipos: TIMESTAMPTZ, NUMERIC, IDENTITY.
+-- TIME ZONE solo afecta esta sesión; las columnas TIMESTAMPTZ guardan UTC.
+SET TIME ZONE 'America/Lima';
 
 -- -----------------------------------------------------------------------------
 -- Auditoría: fecha_modificacion automática
@@ -57,7 +57,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    NEW.fecha_modificacion = CURRENT_TIMESTAMP;
+    NEW.fecha_modificacion := CLOCK_TIMESTAMP();
     RETURN NEW;
 END;
 $$;
@@ -1463,18 +1463,23 @@ DECLARE
     t TEXT;
 BEGIN
     FOR t IN
-        SELECT table_name
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND column_name = 'fecha_modificacion'
-          AND table_name NOT LIKE 'pg_%'
+        SELECT c.table_name
+        FROM information_schema.columns c
+        JOIN information_schema.tables tb
+          ON tb.table_schema = c.table_schema
+         AND tb.table_name = c.table_name
+        WHERE c.table_schema = current_schema()
+          AND c.column_name = 'fecha_modificacion'
+          AND tb.table_type = 'BASE TABLE'
     LOOP
+        -- EXECUTE en PL/pgSQL admite una sola sentencia.
+        EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_mod ON %I', t, t);
         EXECUTE format(
-            'DROP TRIGGER IF EXISTS trg_%I_mod ON %I;
-             CREATE TRIGGER trg_%I_mod
+            'CREATE TRIGGER trg_%I_mod
              BEFORE UPDATE ON %I
-             FOR EACH ROW EXECUTE FUNCTION fn_set_fecha_modificacion();',
-            t, t, t, t
+             FOR EACH ROW
+             EXECUTE PROCEDURE fn_set_fecha_modificacion()',
+            t, t
         );
     END LOOP;
 END;
