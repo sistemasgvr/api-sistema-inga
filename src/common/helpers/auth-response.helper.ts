@@ -16,6 +16,7 @@ export function mapListResult<T>(result: AuthListResult<T>, filtros: FiltroPagin
     pagina,
     limite,
     total: Number(result.total ?? 0),
+    resumen: result.resumen ?? null, 
   });
 }
 
