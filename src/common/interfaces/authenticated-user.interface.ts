@@ -1,12 +1,15 @@
 export interface AuthenticatedUser {
   id: number;
-  correo: string;
+  email: string;
+  username: string;
+  nombres: string;
+  apellidos: string;
   permisos: string[];
   sesion: {
     id: number;
     id_usuario: number;
-    nombre_usuario: string;
-    correo: string;
+    username: string;
+    email: string;
     fecha_inicio: string;
   };
 }
