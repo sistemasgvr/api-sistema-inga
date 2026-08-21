@@ -256,6 +256,24 @@ CREATE TABLE IF NOT EXISTS auth_usuario (
     CONSTRAINT fk_usuario_sucursal_default FOREIGN KEY (id_sucursal_default) REFERENCES gen_sucursal (id)
 );
 
+-- Auditoría: FK a auth_usuario (tablas creadas antes por dependencia circular con sucursal).
+ALTER TABLE auth_rol ADD CONSTRAINT fk_auth_rol_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE auth_rol ADD CONSTRAINT fk_auth_rol_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE auth_permiso ADD CONSTRAINT fk_auth_permiso_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE auth_permiso ADD CONSTRAINT fk_auth_permiso_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE auth_rol_permiso ADD CONSTRAINT fk_auth_rol_permiso_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE auth_rol_permiso ADD CONSTRAINT fk_auth_rol_permiso_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_lista ADD CONSTRAINT fk_gen_lista_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_lista ADD CONSTRAINT fk_gen_lista_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_lista_opcion ADD CONSTRAINT fk_gen_lista_opcion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_lista_opcion ADD CONSTRAINT fk_gen_lista_opcion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_condicion_pago ADD CONSTRAINT fk_gen_condicion_pago_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_condicion_pago ADD CONSTRAINT fk_gen_condicion_pago_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_empresa ADD CONSTRAINT fk_gen_empresa_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_empresa ADD CONSTRAINT fk_gen_empresa_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_sucursal ADD CONSTRAINT fk_gen_sucursal_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+ALTER TABLE gen_sucursal ADD CONSTRAINT fk_gen_sucursal_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+
 -- Utilidad: roles asignados a cada usuario.
 CREATE TABLE IF NOT EXISTS auth_usuario_rol (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -268,7 +286,9 @@ CREATE TABLE IF NOT EXISTS auth_usuario_rol (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_auth_usuario_rol UNIQUE (id_usuario, id_rol),
     CONSTRAINT fk_usr_rol_usuario FOREIGN KEY (id_usuario) REFERENCES auth_usuario (id),
-    CONSTRAINT fk_usr_rol_rol FOREIGN KEY (id_rol) REFERENCES auth_rol (id)
+    CONSTRAINT fk_usr_rol_rol FOREIGN KEY (id_rol) REFERENCES auth_rol (id),
+    CONSTRAINT fk_auth_usuario_rol_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_auth_usuario_rol_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: sesiones activas (refresh token, IP, cierre).
@@ -306,7 +326,9 @@ CREATE TABLE IF NOT EXISTS gen_almacen (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_almacen_codigo UNIQUE (id_sucursal, codigo),
-    CONSTRAINT fk_almacen_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_almacen_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gen_almacen_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gen_almacen_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Estaciones de impresión / KDS: COCINA, BARRA, CAJA
@@ -326,7 +348,9 @@ CREATE TABLE IF NOT EXISTS gen_estacion (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_estacion UNIQUE (id_sucursal, codigo),
-    CONSTRAINT fk_estacion_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_estacion_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gen_estacion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gen_estacion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: series y correlativos de pedidos, salidas, comprobantes, etc.
@@ -343,7 +367,9 @@ CREATE TABLE IF NOT EXISTS gen_correlativo (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_correlativo UNIQUE (id_sucursal, tipo_documento, serie),
-    CONSTRAINT fk_correlativo_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_correlativo_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gen_correlativo_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gen_correlativo_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: cuentas bancarias de la empresa (depósitos, pagos a proveedores).
@@ -362,7 +388,9 @@ CREATE TABLE IF NOT EXISTS gen_cuenta_bancaria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cuenta_bancaria_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id)
+    CONSTRAINT fk_cuenta_bancaria_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
+    CONSTRAINT fk_gen_cuenta_bancaria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gen_cuenta_bancaria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Credenciales SUNAT / PSE: guardar cifradas en el API, no en texto plano.
@@ -381,7 +409,9 @@ CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_config_sunat_empresa UNIQUE (id_empresa),
-    CONSTRAINT fk_config_sunat_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id)
+    CONSTRAINT fk_config_sunat_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
+    CONSTRAINT fk_gen_configuracion_sunat_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gen_configuracion_sunat_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -403,7 +433,9 @@ CREATE TABLE IF NOT EXISTS cli_convenio (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_cli_convenio_codigo UNIQUE (codigo),
-    CONSTRAINT fk_convenio_condicion FOREIGN KEY (id_condicion_pago) REFERENCES gen_condicion_pago (id)
+    CONSTRAINT fk_convenio_condicion FOREIGN KEY (id_condicion_pago) REFERENCES gen_condicion_pago (id),
+    CONSTRAINT fk_cli_convenio_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_cli_convenio_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: clientes, proveedores y consumidores a crédito (ej. Billy Reaño).
@@ -430,7 +462,9 @@ CREATE TABLE IF NOT EXISTS cli_persona (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_cli_persona_doc UNIQUE (tipo_documento, num_documento),
     CONSTRAINT fk_persona_distrito FOREIGN KEY (id_distrito) REFERENCES gen_distrito (id),
-    CONSTRAINT fk_persona_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id)
+    CONSTRAINT fk_persona_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id),
+    CONSTRAINT fk_cli_persona_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_cli_persona_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: direcciones extra de una persona (delivery futuro).
@@ -448,7 +482,9 @@ CREATE TABLE IF NOT EXISTS cli_persona_direccion (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_direccion_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
-    CONSTRAINT fk_direccion_distrito FOREIGN KEY (id_distrito) REFERENCES gen_distrito (id)
+    CONSTRAINT fk_direccion_distrito FOREIGN KEY (id_distrito) REFERENCES gen_distrito (id),
+    CONSTRAINT fk_cli_persona_direccion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_cli_persona_direccion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -468,7 +504,9 @@ CREATE TABLE IF NOT EXISTS pro_unidad_medida (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pro_um_codigo UNIQUE (codigo)
+    CONSTRAINT uq_pro_um_codigo UNIQUE (codigo),
+    CONSTRAINT fk_pro_unidad_medida_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_unidad_medida_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- factor: 1 unidad_origen = factor unidades_destino (botella 750 ml = 25.3605 oz)
@@ -486,7 +524,9 @@ CREATE TABLE IF NOT EXISTS pro_unidad_conversion (
     CONSTRAINT uq_pro_um_conversion UNIQUE (id_unidad_origen, id_unidad_destino),
     CONSTRAINT ck_pro_um_conversion_factor CHECK (factor > 0),
     CONSTRAINT fk_conv_origen FOREIGN KEY (id_unidad_origen) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_conv_destino FOREIGN KEY (id_unidad_destino) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_conv_destino FOREIGN KEY (id_unidad_destino) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_pro_unidad_conversion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_unidad_conversion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: agrupación de carta (entradas, fondos, tragos, etc.).
@@ -502,7 +542,9 @@ CREATE TABLE IF NOT EXISTS pro_categoria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pro_categoria_codigo UNIQUE (codigo)
+    CONSTRAINT uq_pro_categoria_codigo UNIQUE (codigo),
+    CONSTRAINT fk_pro_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_categoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: subgrupo dentro de la categoría.
@@ -518,7 +560,9 @@ CREATE TABLE IF NOT EXISTS pro_subcategoria (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_pro_subcategoria UNIQUE (id_categoria, codigo),
-    CONSTRAINT fk_subcategoria_categoria FOREIGN KEY (id_categoria) REFERENCES pro_categoria (id)
+    CONSTRAINT fk_subcategoria_categoria FOREIGN KEY (id_categoria) REFERENCES pro_categoria (id),
+    CONSTRAINT fk_pro_subcategoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_subcategoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_producto (PRODUCTO_TIPO):
@@ -556,7 +600,9 @@ CREATE TABLE IF NOT EXISTS pro_producto (
     CONSTRAINT fk_producto_subcategoria FOREIGN KEY (id_subcategoria) REFERENCES pro_subcategoria (id),
     CONSTRAINT fk_producto_unidad FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
     CONSTRAINT fk_producto_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
-    CONSTRAINT fk_producto_almacen_stock FOREIGN KEY (id_almacen_stock) REFERENCES gen_almacen (id)
+    CONSTRAINT fk_producto_almacen_stock FOREIGN KEY (id_almacen_stock) REFERENCES gen_almacen (id),
+    CONSTRAINT fk_pro_producto_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_producto_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN pro_producto.id_almacen_stock IS
@@ -580,7 +626,9 @@ CREATE TABLE IF NOT EXISTS pro_receta (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_pro_receta_version UNIQUE (id_producto, version),
-    CONSTRAINT fk_receta_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id)
+    CONSTRAINT fk_receta_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
+    CONSTRAINT fk_pro_receta_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_receta_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pro_receta_vigente
@@ -606,7 +654,9 @@ CREATE TABLE IF NOT EXISTS pro_receta_insumo (
     CONSTRAINT ck_receta_insumo_cant CHECK (cantidad > 0),
     CONSTRAINT fk_receta_insumo_receta FOREIGN KEY (id_receta) REFERENCES pro_receta (id),
     CONSTRAINT fk_receta_insumo_producto FOREIGN KEY (id_producto_insumo) REFERENCES pro_producto (id),
-    CONSTRAINT fk_receta_insumo_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_receta_insumo_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_pro_receta_insumo_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_receta_insumo_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN pro_receta_insumo.grupo_sustitucion IS
@@ -628,7 +678,9 @@ CREATE TABLE IF NOT EXISTS pro_adicional (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_adicional_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_adicional_insumo FOREIGN KEY (id_producto_insumo) REFERENCES pro_producto (id),
-    CONSTRAINT fk_adicional_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_adicional_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_pro_adicional_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_adicional_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Menú del día / carta activa (porciones vendibles hoy, PDF/QR posterior)
@@ -645,7 +697,9 @@ CREATE TABLE IF NOT EXISTS ven_menu_dia (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_ven_menu_dia UNIQUE (id_sucursal, fecha, tipo_menu),
-    CONSTRAINT fk_menu_dia_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_menu_dia_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_ven_menu_dia_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_menu_dia_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: platos del día, precio y cuántas porciones se pueden vender.
@@ -664,7 +718,9 @@ CREATE TABLE IF NOT EXISTS ven_menu_dia_item (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_ven_menu_dia_item UNIQUE (id_menu_dia, id_producto),
     CONSTRAINT fk_menu_item_menu FOREIGN KEY (id_menu_dia) REFERENCES ven_menu_dia (id),
-    CONSTRAINT fk_menu_item_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id)
+    CONSTRAINT fk_menu_item_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
+    CONSTRAINT fk_ven_menu_dia_item_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_menu_dia_item_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -690,7 +746,9 @@ CREATE TABLE IF NOT EXISTS alm_producto_stock (
     CONSTRAINT uq_alm_stock UNIQUE (id_almacen, id_producto),
     CONSTRAINT ck_alm_stock_no_neg CHECK (stock_actual >= 0),
     CONSTRAINT fk_stock_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_stock_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id)
+    CONSTRAINT fk_stock_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
+    CONSTRAINT fk_alm_producto_stock_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_producto_stock_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_movimiento (KARDEX_TIPO): ver semilla
@@ -717,7 +775,9 @@ CREATE TABLE IF NOT EXISTS alm_kardex (
     CONSTRAINT ck_kardex_cantidad CHECK (cantidad > 0),
     CONSTRAINT fk_kardex_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
     CONSTRAINT fk_kardex_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_kardex_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_kardex_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_alm_kardex_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_kardex_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN alm_kardex.documento_tipo IS
@@ -755,7 +815,9 @@ CREATE TABLE IF NOT EXISTS prod_requerimiento (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_prod_requerimiento_codigo UNIQUE (codigo),
     CONSTRAINT fk_req_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
-    CONSTRAINT fk_req_solicitante FOREIGN KEY (id_solicitante) REFERENCES auth_usuario (id)
+    CONSTRAINT fk_req_solicitante FOREIGN KEY (id_solicitante) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_prod_requerimiento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_requerimiento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: líneas del requerimiento (producto crudo, cantidad, nota de peso).
@@ -773,7 +835,9 @@ CREATE TABLE IF NOT EXISTS prod_requerimiento_detalle (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_req_det_req FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
     CONSTRAINT fk_req_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_req_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_req_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_prod_requerimiento_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_requerimiento_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Vale de salida de almacén crudo → cocina/barra (reemplaza el Excel + foto)
@@ -795,7 +859,9 @@ CREATE TABLE IF NOT EXISTS alm_salida (
     CONSTRAINT uq_alm_salida_codigo UNIQUE (codigo),
     CONSTRAINT fk_salida_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_salida_almacen FOREIGN KEY (id_almacen_origen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_salida_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id)
+    CONSTRAINT fk_salida_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
+    CONSTRAINT fk_alm_salida_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_salida_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: productos y cantidades que salieron del almacén.
@@ -812,7 +878,9 @@ CREATE TABLE IF NOT EXISTS alm_salida_detalle (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_salida_det_salida FOREIGN KEY (id_salida) REFERENCES alm_salida (id),
     CONSTRAINT fk_salida_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_salida_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_salida_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_alm_salida_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_salida_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: fotos de evidencia cuando administración no está presente.
@@ -824,7 +892,8 @@ CREATE TABLE IF NOT EXISTS alm_salida_evidencia (
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_salida_evidencia FOREIGN KEY (id_salida) REFERENCES alm_salida (id)
+    CONSTRAINT fk_salida_evidencia FOREIGN KEY (id_salida) REFERENCES alm_salida (id),
+    CONSTRAINT fk_alm_salida_evidencia_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: mover stock entre almacenes.
@@ -844,7 +913,9 @@ CREATE TABLE IF NOT EXISTS alm_traslado (
     CONSTRAINT uq_alm_traslado_codigo UNIQUE (codigo),
     CONSTRAINT ck_traslado_distintos CHECK (id_almacen_origen <> id_almacen_destino),
     CONSTRAINT fk_traslado_origen FOREIGN KEY (id_almacen_origen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_traslado_destino FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id)
+    CONSTRAINT fk_traslado_destino FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
+    CONSTRAINT fk_alm_traslado_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_traslado_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: detalle de productos del traslado.
@@ -861,7 +932,9 @@ CREATE TABLE IF NOT EXISTS alm_traslado_detalle (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_traslado_det_traslado FOREIGN KEY (id_traslado) REFERENCES alm_traslado (id),
     CONSTRAINT fk_traslado_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_traslado_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_traslado_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_alm_traslado_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_traslado_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: conteo / merma / corrección de inventario.
@@ -878,7 +951,9 @@ CREATE TABLE IF NOT EXISTS alm_ajuste (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_alm_ajuste_codigo UNIQUE (codigo),
-    CONSTRAINT fk_ajuste_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id)
+    CONSTRAINT fk_ajuste_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
+    CONSTRAINT fk_alm_ajuste_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_ajuste_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: diferencia entre stock del sistema y lo contado.
@@ -897,7 +972,9 @@ CREATE TABLE IF NOT EXISTS alm_ajuste_detalle (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_ajuste_det_ajuste FOREIGN KEY (id_ajuste) REFERENCES alm_ajuste (id),
     CONSTRAINT fk_ajuste_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_ajuste_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_ajuste_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_alm_ajuste_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_ajuste_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -924,7 +1001,9 @@ CREATE TABLE IF NOT EXISTS prod_orden (
     CONSTRAINT uq_prod_orden_codigo UNIQUE (codigo),
     CONSTRAINT fk_prod_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_prod_almacen FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_prod_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id)
+    CONSTRAINT fk_prod_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
+    CONSTRAINT fk_prod_orden_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_orden_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: cada insumo procesado que entra a stock de cocina o barra.
@@ -943,7 +1022,9 @@ CREATE TABLE IF NOT EXISTS prod_orden_detalle (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_prod_det_orden FOREIGN KEY (id_orden) REFERENCES prod_orden (id),
     CONSTRAINT fk_prod_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_prod_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_prod_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_prod_orden_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_orden_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN prod_orden_detalle.nota_rendimiento IS
@@ -977,7 +1058,9 @@ CREATE TABLE IF NOT EXISTS com_compra (
     CONSTRAINT uq_com_compra_comp UNIQUE (id_proveedor, tipo_comprobante, serie_comprobante, num_comprobante),
     CONSTRAINT fk_compra_proveedor FOREIGN KEY (id_proveedor) REFERENCES cli_persona (id),
     CONSTRAINT fk_compra_almacen FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_compra_condicion FOREIGN KEY (id_condicion_pago) REFERENCES gen_condicion_pago (id)
+    CONSTRAINT fk_compra_condicion FOREIGN KEY (id_condicion_pago) REFERENCES gen_condicion_pago (id),
+    CONSTRAINT fk_com_compra_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_com_compra_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: líneas de compra; aquí se convierte caja/saco/damajuana a UM de stock.
@@ -1000,7 +1083,9 @@ CREATE TABLE IF NOT EXISTS com_compra_detalle (
     CONSTRAINT fk_compra_det_compra FOREIGN KEY (id_compra) REFERENCES com_compra (id),
     CONSTRAINT fk_compra_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_compra_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_compra_det_um_base FOREIGN KEY (id_unidad_base) REFERENCES pro_unidad_medida (id)
+    CONSTRAINT fk_compra_det_um_base FOREIGN KEY (id_unidad_base) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_com_compra_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_com_compra_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN com_compra_detalle.cantidad_base IS
@@ -1022,7 +1107,9 @@ CREATE TABLE IF NOT EXISTS caj_caja (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_caj_caja UNIQUE (id_sucursal, codigo),
-    CONSTRAINT fk_caja_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_caja_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_caj_caja_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_caj_caja_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: turno de cajero (apertura, arqueo, cierre y diferencia).
@@ -1044,7 +1131,9 @@ CREATE TABLE IF NOT EXISTS caj_turno (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_turno_caja FOREIGN KEY (id_caja) REFERENCES caj_caja (id),
-    CONSTRAINT fk_turno_cajero FOREIGN KEY (id_cajero) REFERENCES auth_usuario (id)
+    CONSTRAINT fk_turno_cajero FOREIGN KEY (id_cajero) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_caj_turno_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_caj_turno_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_caj_turno_abierto
@@ -1063,7 +1152,9 @@ CREATE TABLE IF NOT EXISTS caj_arqueo_detalle (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_arqueo_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id)
+    CONSTRAINT fk_arqueo_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
+    CONSTRAINT fk_caj_arqueo_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_caj_arqueo_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: ingresos/egresos de caja que no son una venta (gastos, retiros).
@@ -1081,7 +1172,9 @@ CREATE TABLE IF NOT EXISTS caj_movimiento (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_caj_mov_monto CHECK (monto > 0),
     CONSTRAINT fk_caj_mov_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
-    CONSTRAINT fk_caj_mov_autoriza FOREIGN KEY (id_usuario_autoriza) REFERENCES auth_usuario (id)
+    CONSTRAINT fk_caj_mov_autoriza FOREIGN KEY (id_usuario_autoriza) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_caj_movimiento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_caj_movimiento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -1101,7 +1194,9 @@ CREATE TABLE IF NOT EXISTS ven_salon (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_ven_salon UNIQUE (id_sucursal, codigo),
-    CONSTRAINT fk_salon_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id)
+    CONSTRAINT fk_salon_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_ven_salon_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_salon_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- estado_mesa: 1 libre, 2 ocupada, 3 por_cobrar, 4 inhabilitada
@@ -1118,7 +1213,9 @@ CREATE TABLE IF NOT EXISTS ven_mesa (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_ven_mesa UNIQUE (id_salon, codigo),
-    CONSTRAINT fk_mesa_salon FOREIGN KEY (id_salon) REFERENCES ven_salon (id)
+    CONSTRAINT fk_mesa_salon FOREIGN KEY (id_salon) REFERENCES ven_salon (id),
+    CONSTRAINT fk_ven_mesa_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_mesa_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_pedido: 1 mesa, 2 para_llevar, 3 delivery
@@ -1155,7 +1252,9 @@ CREATE TABLE IF NOT EXISTS ven_pedido (
     CONSTRAINT fk_pedido_mozo FOREIGN KEY (id_mozo) REFERENCES auth_usuario (id),
     CONSTRAINT fk_pedido_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
     CONSTRAINT fk_pedido_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
-    CONSTRAINT fk_pedido_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id)
+    CONSTRAINT fk_pedido_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id),
+    CONSTRAINT fk_ven_pedido_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_pedido_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Comanda = lote enviado a una estación (cocina / barra / caja)
@@ -1175,7 +1274,9 @@ CREATE TABLE IF NOT EXISTS ven_comanda (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_ven_comanda UNIQUE (id_pedido, id_estacion, numero),
     CONSTRAINT fk_comanda_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
-    CONSTRAINT fk_comanda_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id)
+    CONSTRAINT fk_comanda_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
+    CONSTRAINT fk_ven_comanda_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_comanda_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_linea: 1 normal, 2 cortesia, 3 anulado
@@ -1206,7 +1307,9 @@ CREATE TABLE IF NOT EXISTS ven_pedido_detalle (
     CONSTRAINT fk_pdet_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
     CONSTRAINT fk_pdet_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_pdet_receta FOREIGN KEY (id_receta) REFERENCES pro_receta (id),
-    CONSTRAINT fk_pdet_autoriza FOREIGN KEY (id_usuario_autoriza) REFERENCES auth_usuario (id)
+    CONSTRAINT fk_pdet_autoriza FOREIGN KEY (id_usuario_autoriza) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_ven_pedido_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_pedido_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: adicionales elegidos en esa línea (con o sin extra de stock).
@@ -1221,7 +1324,9 @@ CREATE TABLE IF NOT EXISTS ven_pedido_detalle_adicional (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_pdet_adic_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
-    CONSTRAINT fk_pdet_adic_adicional FOREIGN KEY (id_adicional) REFERENCES pro_adicional (id)
+    CONSTRAINT fk_pdet_adic_adicional FOREIGN KEY (id_adicional) REFERENCES pro_adicional (id),
+    CONSTRAINT fk_ven_pedido_detalle_adicional_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_pedido_detalle_adicional_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_comprobante: 1 boleta, 2 factura, 3 nota_venta, 4 nota_credito
@@ -1257,7 +1362,9 @@ CREATE TABLE IF NOT EXISTS ven_comprobante (
     CONSTRAINT uq_ven_comprobante UNIQUE (serie, correlativo, tipo_comprobante),
     CONSTRAINT fk_comp_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
     CONSTRAINT fk_comp_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
-    CONSTRAINT fk_comp_origen FOREIGN KEY (id_comprobante_origen) REFERENCES ven_comprobante (id)
+    CONSTRAINT fk_comp_origen FOREIGN KEY (id_comprobante_origen) REFERENCES ven_comprobante (id),
+    CONSTRAINT fk_ven_comprobante_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_comprobante_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: snapshot de ítems del comprobante (SUNAT / PDF).
@@ -1301,7 +1408,9 @@ CREATE TABLE IF NOT EXISTS ven_pago (
     CONSTRAINT fk_pago_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
     CONSTRAINT fk_pago_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
     CONSTRAINT fk_pago_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id),
-    CONSTRAINT fk_pago_comprobante FOREIGN KEY (id_comprobante) REFERENCES ven_comprobante (id)
+    CONSTRAINT fk_pago_comprobante FOREIGN KEY (id_comprobante) REFERENCES ven_comprobante (id),
+    CONSTRAINT fk_ven_pago_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_pago_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -1327,7 +1436,9 @@ CREATE TABLE IF NOT EXISTS kds_ticket (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_kds_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
     CONSTRAINT fk_kds_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
-    CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id)
+    CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
+    CONSTRAINT fk_kds_ticket_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_kds_ticket_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- =============================================================================
@@ -1359,7 +1470,9 @@ CREATE TABLE IF NOT EXISTS cxc_movimiento (
     CONSTRAINT fk_cxc_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
     CONSTRAINT fk_cxc_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id),
     CONSTRAINT fk_cxc_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
-    CONSTRAINT fk_cxc_pago FOREIGN KEY (id_pago) REFERENCES ven_pago (id)
+    CONSTRAINT fk_cxc_pago FOREIGN KEY (id_pago) REFERENCES ven_pago (id),
+    CONSTRAINT fk_cxc_movimiento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_cxc_movimiento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN cxc_movimiento.tipo_movimiento IS '1 cargo (consumo), 2 abono (pago / descuento planilla), 3 ajuste';
