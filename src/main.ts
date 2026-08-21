@@ -56,7 +56,7 @@ async function bootstrap() {
   logger.log(`API iniciada en: http://localhost:${port}`);
   logger.log(`Swagger docs en: http://localhost:${port}/api/docs`);
   logger.log(
-    `Base de datos: ${dbConnected ? 'conectada' : 'sin conexión'} ` +
+    `Base de datos: ${dbConnected ? 'conectada 😊' : 'sin conexión'} ` +
       `(${dbInfo.host}:${dbInfo.port}/${dbInfo.database} | user: ${dbInfo.user})`,
   );
   logger.log('-------------------------------------------');
