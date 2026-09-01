@@ -34,10 +34,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       ? authHeader.slice(7)
       : authHeader;
 
-    const result = await this.db.callFunctionJson<AuthSessionValidateResult>(
-      'auth_validar_sesion',
-      [token],
-    );
+    const result = await this.db.callFunctionJson<AuthSessionValidateResult<{
+      id: number;
+      id_usuario: number;
+      nombre_usuario: string;
+      correo: string;
+      nombres: string;
+      apellidos: string;
+      es_super_admin: boolean;
+      estado: number;
+      fecha_inicio: string;
+    }>>('auth_validar_sesion', [token]);
 
     if (!result.valida || !result.registro) {
       throw new UnauthorizedException('Sesión inválida o expirada');
@@ -51,6 +58,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       id: payload.sub,
       correo: payload.correo,
+      username: result.registro.nombre_usuario,
+      nombres: result.registro.nombres,
+      apellidos: result.registro.apellidos,
+      es_super_admin: result.registro.es_super_admin ?? false,
       permisos: permisosResult.permisos ?? [],
       sesion: result.registro,
     };

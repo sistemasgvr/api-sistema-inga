@@ -14,7 +14,6 @@ export class DatabaseService implements OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     this.pool = this.createPool();
 
-    // Obligatorio con pg: evita que errores en clientes idle derriben el proceso.
     this.pool.on('error', (error) => {
       this.logger.error(
         `Error en conexión idle del pool PostgreSQL: ${error.message}`,
