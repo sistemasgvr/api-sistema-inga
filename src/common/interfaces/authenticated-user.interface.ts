@@ -4,6 +4,7 @@ export interface AuthenticatedUser {
   username: string;
   nombres: string;
   apellidos: string;
+  es_super_admin: boolean; 
   permisos: string[];
   sesion: {
     id: number;

@@ -21,3 +21,42 @@ SET
   descripcion = EXCLUDED.descripcion,
   modulo = EXCLUDED.modulo,
   estado = EXCLUDED.estado;
+
+
+
+INSERT INTO pro_unidad_medida (codigo, codigo_sunat, nombre, simbolo, es_fraccionable) VALUES
+    ('NIU', 'NIU', 'Unidad', 'und', FALSE),
+    ('KG',  'KGM', 'Kilogramo', 'kg', TRUE),
+    ('G',   'GRM', 'Gramo', 'g', TRUE),
+    ('L',   'LTR', 'Litro', 'L', TRUE),
+    ('ML',  'MLT', 'Mililitro', 'ml', TRUE),
+    ('OZ',  NULL,  'Onza', 'oz', TRUE),
+    ('DASH', NULL, 'Dash (~0.5 oz)', 'dash', TRUE),
+    ('PORC', NULL, 'Porción', 'pzc', FALSE),
+    ('PRESA', NULL, 'Presa', 'presa', FALSE),
+    ('POTE', NULL, 'Pote / porción salsa', 'pote', FALSE),
+    ('BOT', NULL,  'Botella', 'bot', FALSE),
+    ('CAJA', NULL, 'Caja', 'caja', FALSE),
+    ('SACO', NULL, 'Saco', 'saco', FALSE),
+    ('PLANCHA', NULL, 'Plancha', 'plancha', FALSE),
+    ('DAMA', NULL, 'Damajuana 3.8 L', 'dama', FALSE)
+ON CONFLICT (codigo) DO NOTHING;
+
+
+
+INSERT INTO pro_unidad_conversion (id_unidad_origen, id_unidad_destino, factor)
+SELECT o.id, d.id, v.factor
+FROM (VALUES
+    ('KG', 'G', 1000),
+    ('L', 'ML', 1000),
+    ('BOT', 'ML', 750),
+    ('BOT', 'OZ', 25.3605),
+    ('OZ', 'ML', 29.5735),
+    ('DASH', 'OZ', 0.5),
+    ('CAJA', 'BOT', 12),
+    ('DAMA', 'ML', 3800),
+    ('DAMA', 'OZ', 128.494)
+) AS v(origen, destino, factor)
+JOIN pro_unidad_medida o ON o.codigo = v.origen
+JOIN pro_unidad_medida d ON d.codigo = v.destino
+ON CONFLICT (id_unidad_origen, id_unidad_destino) DO NOTHING;

@@ -42,6 +42,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig, {
     extraModels: [ApiResponseDto, ApiErrorResponseDto],
   });
+  
+  document.security = [{ bearer: [] }];
+  
   SwaggerModule.setup('api/docs', app, document);
 
   const db = app.get(DatabaseService);
