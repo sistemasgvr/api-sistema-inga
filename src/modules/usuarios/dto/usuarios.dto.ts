@@ -24,10 +24,10 @@ export class CreateUsuarioDto extends AuditoriaDto {
   @MaxLength(100)
   email!: string;
 
-  @ApiProperty({ example: 'MiClave123', minLength: 6 })
+  @ApiProperty({ example: 'MiClave123', minLength: 8 })
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
   @MaxLength(100)
   password!: string;
 
@@ -81,10 +81,10 @@ export class UpdateUsuarioDto extends AuditoriaDto {
   @MaxLength(100)
   email?: string;
 
-  @ApiPropertyOptional({ minLength: 6, maxLength: 100 })
+  @ApiPropertyOptional({ minLength: 8, maxLength: 100 })
   @IsOptional()
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   @MaxLength(100)
   password?: string;
 
