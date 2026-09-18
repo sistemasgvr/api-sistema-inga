@@ -1479,6 +1479,379 @@ CREATE TABLE IF NOT EXISTS cxc_movimiento (
 COMMENT ON COLUMN cxc_movimiento.tipo_movimiento IS '1 cargo (consumo), 2 abono (pago / descuento planilla), 3 ajuste';
 COMMENT ON COLUMN cxc_movimiento.quincena IS '1 = días 1-15, 2 = días 16-fin. Reporte a quincena y a fin de mes.';
 
+
+-- =============================================================================
+-- PLANILLA (M17)
+-- =============================================================================
+-- Alcance deliberadamente mínimo. El cliente fue explícito en la Reunión 2:
+-- "registrar trabajadores, registrar pagos de planilla, nada más. O sea, serían
+-- solamente pagos". NO es un módulo de RRHH: no hay contratos, ni asistencia,
+-- ni cálculo de aportes.
+--
+-- Su propósito real es que el gasto de planilla entre al cuadre de caja y al
+-- cálculo de rentabilidad del dashboard.
+--
+-- Por qué una tabla propia y no reusar cli_persona: un trabajador es personal
+-- interno, no un cliente ni un proveedor. Mezclarlos ensuciaría los buscadores
+-- de compras (M14) y de cobro a crédito (M12), que filtran por es_cliente /
+-- es_proveedor. Tampoco reuso auth_usuario porque no todo trabajador entra al
+-- sistema: el personal de cocina cobra planilla y nunca abre sesión.
+
+-- Utilidad: personal que cobra planilla. Mínimo por diseño.
+CREATE TABLE IF NOT EXISTS pla_trabajador (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_sucursal             BIGINT,
+    nombres                 VARCHAR(100) NOT NULL,
+    apellidos               VARCHAR(100) NOT NULL,
+    num_documento           VARCHAR(20),
+    puesto                  VARCHAR(100),
+    sueldo_referencial      NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_pla_trabajador_doc UNIQUE (num_documento),
+    CONSTRAINT ck_pla_trabajador_sueldo CHECK (sueldo_referencial >= 0),
+    CONSTRAINT fk_pla_trabajador_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_pla_trabajador_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pla_trabajador_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON COLUMN pla_trabajador.sueldo_referencial IS
+    'Monto habitual de la quincena. Solo sugiere el importe al registrar el pago; el pago real puede diferir.';
+COMMENT ON COLUMN pla_trabajador.num_documento IS
+    'Opcional. Unico cuando se informa: evita duplicar al mismo trabajador.';
+
+-- Utilidad: cada pago de planilla. Inga paga dos veces al mes: dia 2 y dia 17.
+CREATE TABLE IF NOT EXISTS pla_pago (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_trabajador           BIGINT       NOT NULL,
+    id_turno                BIGINT,
+    fecha_pago              DATE         NOT NULL,
+    anio                    SMALLINT     NOT NULL,
+    mes                     SMALLINT     NOT NULL,
+    quincena                SMALLINT     NOT NULL,
+    monto                   NUMERIC(12, 2) NOT NULL,
+    medio_pago              SMALLINT     NOT NULL DEFAULT 1,
+    observacion             VARCHAR(255),
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_pla_pago_monto CHECK (monto > 0),
+    CONSTRAINT ck_pla_pago_mes CHECK (mes BETWEEN 1 AND 12),
+    CONSTRAINT ck_pla_pago_quincena CHECK (quincena IN (1, 2)),
+    CONSTRAINT fk_pla_pago_trabajador FOREIGN KEY (id_trabajador) REFERENCES pla_trabajador (id),
+    CONSTRAINT fk_pla_pago_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
+    CONSTRAINT fk_pla_pago_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pla_pago_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+-- Un trabajador no puede tener dos pagos de la misma quincena.
+-- Es indice parcial (no constraint) porque solo aplica a los pagos vigentes:
+-- si uno se anula (estado = 0) debe poder registrarse el corregido.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pla_pago_quincena
+    ON pla_pago (id_trabajador, anio, mes, quincena)
+    WHERE estado = 1;
+
+COMMENT ON COLUMN pla_pago.quincena IS
+    '1 = primera quincena (se paga el dia 17), 2 = segunda (se paga el dia 2 del mes siguiente).';
+COMMENT ON COLUMN pla_pago.medio_pago IS
+    'Catalogo MEDIO_PAGO: 1 efectivo, 2 yape, 3 tarjeta/transferencia. Solo el efectivo afecta el cajon.';
+COMMENT ON COLUMN pla_pago.id_turno IS
+    'Turno de caja contra el que se pago. Obligatorio en la practica si medio_pago = 1 (efectivo), para que el cuadre cierre.';
+
+
+-- =============================================================================
+-- GASTOS ADMINISTRATIVOS (M16)
+-- =============================================================================
+-- Reemplaza la seccion de gastos administrativos del "Excel de flujo de caja
+-- mensual". Son los gastos que NO tienen que ver con preparar comida: alquiler,
+-- luz, agua, internet, arreglos del local, utiles de oficina.
+--
+-- Deliberadamente simple. El cliente pidio: "solo clasificar el gasto e ingresar
+-- el monto, sin un flujo complejo".
+--
+-- NO confundir con el modulo de Gastos Diarios Operativos (M14): aquel registra
+-- la compra de insumos del dia y puede generar deuda a proveedor. Este es el
+-- gasto de estructura del negocio, mensual y sin proveedor a credito.
+
+-- Utilidad: categoria de gasto administrativo. Fijo o variable, con subcategorias.
+CREATE TABLE IF NOT EXISTS gad_categoria (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_categoria_padre      BIGINT,
+    codigo                  VARCHAR(50)  NOT NULL,
+    nombre                  VARCHAR(100) NOT NULL,
+    tipo_gasto              SMALLINT     NOT NULL DEFAULT 1,
+    orden                   INTEGER      NOT NULL DEFAULT 0,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_gad_categoria_codigo UNIQUE (codigo),
+    CONSTRAINT ck_gad_categoria_tipo CHECK (tipo_gasto IN (1, 2)),
+    CONSTRAINT fk_gad_categoria_padre FOREIGN KEY (id_categoria_padre) REFERENCES gad_categoria (id),
+    CONSTRAINT fk_gad_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gad_categoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON COLUMN gad_categoria.tipo_gasto IS
+    '1 = FIJO (se repite cada mes: alquiler, luz, internet), 2 = VARIABLE (puntual: arreglos, utiles).';
+COMMENT ON COLUMN gad_categoria.id_categoria_padre IS
+    'Autorreferencia para subcategorias. NULL = categoria raiz. Solo admito un nivel de anidacion.';
+
+-- Utilidad: cada gasto administrativo registrado.
+CREATE TABLE IF NOT EXISTS gad_gasto (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_categoria            BIGINT       NOT NULL,
+    id_sucursal             BIGINT,
+    id_turno                BIGINT,
+    id_persona              BIGINT,
+    concepto                VARCHAR(255) NOT NULL,
+    monto                   NUMERIC(12, 2) NOT NULL,
+    fecha_gasto             DATE         NOT NULL,
+    anio                    SMALLINT     NOT NULL,
+    mes                     SMALLINT     NOT NULL,
+    medio_pago              SMALLINT     NOT NULL DEFAULT 1,
+    num_comprobante         VARCHAR(50),
+    observacion             VARCHAR(255),
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_gad_gasto_monto CHECK (monto > 0),
+    CONSTRAINT ck_gad_gasto_mes CHECK (mes BETWEEN 1 AND 12),
+    CONSTRAINT fk_gad_gasto_categoria FOREIGN KEY (id_categoria) REFERENCES gad_categoria (id),
+    CONSTRAINT fk_gad_gasto_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gad_gasto_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
+    CONSTRAINT fk_gad_gasto_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
+    CONSTRAINT fk_gad_gasto_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gad_gasto_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON COLUMN gad_gasto.anio IS
+    'Periodo contable, derivado de fecha_gasto. Lo guardo denormalizado para agrupar por mes sin funciones de fecha en cada consulta.';
+COMMENT ON COLUMN gad_gasto.medio_pago IS
+    'Catalogo MEDIO_PAGO: 1 efectivo, 2 yape, 3 tarjeta/transferencia. Solo el efectivo afecta el cajon.';
+COMMENT ON COLUMN gad_gasto.id_turno IS
+    'Turno de caja contra el que se pago. Obligatorio si medio_pago = 1 (efectivo), para que el cuadre del dia cierre.';
+COMMENT ON COLUMN gad_gasto.id_persona IS
+    'Proveedor del servicio, opcional. Util para agrupar los recibos de un mismo proveedor (ej. la inmobiliaria del alquiler).';
+
+CREATE INDEX IF NOT EXISTS ix_gad_gasto_periodo ON gad_gasto (anio, mes, estado);
+CREATE INDEX IF NOT EXISTS ix_gad_gasto_categoria ON gad_gasto (id_categoria, estado);
+
+
+-- =============================================================================
+-- CXP - CUENTAS POR PAGAR A PROVEEDORES (M15)
+-- =============================================================================
+-- Espejo de cxc_movimiento: alla el consorcio le debe a Inga, aca Inga le debe
+-- a sus proveedores. Inga trabaja con 4 proveedores a credito fijos (pollo,
+-- pescado, verduras y carnes) y les abona semanalmente.
+--
+-- Mantengo la misma forma que cxc_movimiento a proposito (tipo_movimiento,
+-- monto, saldo_resultante, periodo) para que quien entienda uno entienda el
+-- otro sin releer. Las dos diferencias son deliberadas:
+--
+--   1. NO uso 'quincena'. El corte de CxC es quincenal porque se descuenta de
+--      planilla; el de proveedores es SEMANAL. Por eso guardo 'semana' en su
+--      lugar, para poder agrupar los abonos como realmente se hacen.
+--
+--   2. Agrego id_gasto_diario. Cuando M14 registre una compra a credito,
+--      generara aqui el cargo automatico y esa columna lo enlaza. Queda NULL
+--      mientras M14 no exista y para los cargos que se carguen a mano.
+
+-- Utilidad: movimientos de deuda con proveedores (cargos y abonos).
+CREATE TABLE IF NOT EXISTS cxp_movimiento (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_persona              BIGINT       NOT NULL,
+    id_gasto_diario         BIGINT,
+    id_turno                BIGINT,
+    tipo_movimiento         SMALLINT     NOT NULL,
+    monto                   NUMERIC(12, 2) NOT NULL,
+    saldo_resultante        NUMERIC(12, 2) NOT NULL,
+    medio_pago              SMALLINT,
+    fecha_movimiento        DATE         NOT NULL,
+    anio                    SMALLINT     NOT NULL,
+    mes                     SMALLINT     NOT NULL,
+    semana                  SMALLINT     NOT NULL,
+    num_comprobante         VARCHAR(50),
+    observacion             VARCHAR(255),
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_cxp_tipo CHECK (tipo_movimiento IN (1, 2, 3)),
+    CONSTRAINT ck_cxp_monto CHECK (monto > 0),
+    CONSTRAINT ck_cxp_mes CHECK (mes BETWEEN 1 AND 12),
+    CONSTRAINT ck_cxp_semana CHECK (semana BETWEEN 1 AND 53),
+    CONSTRAINT fk_cxp_movimiento_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
+    CONSTRAINT fk_cxp_movimiento_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
+    CONSTRAINT fk_cxp_movimiento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_cxp_movimiento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON COLUMN cxp_movimiento.tipo_movimiento IS
+    '1 cargo (compra a credito: aumenta lo que debemos), 2 abono (pago al proveedor: reduce), 3 ajuste.';
+COMMENT ON COLUMN cxp_movimiento.saldo_resultante IS
+    'Saldo del proveedor despues de aplicar este movimiento. Lo calcula el backend, nunca llega del front.';
+COMMENT ON COLUMN cxp_movimiento.semana IS
+    'Semana ISO del anio (1-53). El corte con proveedores es semanal, no quincenal como en CxC.';
+COMMENT ON COLUMN cxp_movimiento.id_gasto_diario IS
+    'Enlace al gasto de M14 que genero el cargo automatico. NULL en cargos cargados a mano y mientras M14 no exista.';
+COMMENT ON COLUMN cxp_movimiento.medio_pago IS
+    'Solo en abonos. Catalogo MEDIO_PAGO: 1 efectivo, 2 yape, 3 tarjeta/transferencia.';
+COMMENT ON COLUMN cxp_movimiento.id_turno IS
+    'Turno de caja del abono. Obligatorio si medio_pago = 1 (efectivo), para que el cuadre del dia cierre.';
+
+CREATE INDEX IF NOT EXISTS ix_cxp_movimiento_persona ON cxp_movimiento (id_persona, estado);
+CREATE INDEX IF NOT EXISTS ix_cxp_movimiento_periodo ON cxp_movimiento (anio, mes, estado);
+
+
+-- =============================================================================
+-- GASTOS DIARIOS OPERATIVOS (M14)
+-- =============================================================================
+-- Reemplaza el Excel de "Egresos Caja Dia y Noche" y la hoja fisica de
+-- "Requerimiento Diario". Es el registro agil de las compras del dia ligadas a
+-- la cocina: muchos items chicos y variados, sin comprobante formal.
+--
+-- NO confundir con com_compra (la compra formal semanal a proveedor, con
+-- comprobante y condicion de pago, que ingresa stock al almacen crudo). Este
+-- modulo existe para el CUADRE DE CAJA del dia, no para mover inventario.
+--
+-- Por que una lista maestra propia (gdo_insumo) y no pro_producto:
+-- el cliente pidio que estos items NO tengan unidad de medida fija ("Sal" se
+-- compra en kg un dia y en paquete otro). pro_producto exige id_unidad_medida
+-- obligatorio y ademas es el catalogo de la carta, con precio de venta,
+-- estacion y control de stock. Mezclarlos ensuciaria el buscador de la carta
+-- con 200 insumos que nunca se venden.
+
+-- Utilidad: categorias de la hoja fisica de requerimiento diario.
+CREATE TABLE IF NOT EXISTS gdo_categoria (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    codigo                  VARCHAR(50)  NOT NULL,
+    nombre                  VARCHAR(100) NOT NULL,
+    orden                   INTEGER      NOT NULL DEFAULT 0,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_gdo_categoria_codigo UNIQUE (codigo),
+    CONSTRAINT fk_gdo_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gdo_categoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+-- Utilidad: lista maestra de insumos frecuentes. Sin unidad de medida fija.
+CREATE TABLE IF NOT EXISTS gdo_insumo (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_categoria            BIGINT       NOT NULL,
+    id_proveedor_habitual   BIGINT,
+    nombre                  VARCHAR(150) NOT NULL,
+    precio_referencial      NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_gdo_insumo_nombre UNIQUE (id_categoria, nombre),
+    CONSTRAINT ck_gdo_insumo_precio CHECK (precio_referencial >= 0),
+    CONSTRAINT fk_gdo_insumo_categoria FOREIGN KEY (id_categoria) REFERENCES gdo_categoria (id),
+    CONSTRAINT fk_gdo_insumo_proveedor FOREIGN KEY (id_proveedor_habitual) REFERENCES cli_persona (id),
+    CONSTRAINT fk_gdo_insumo_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gdo_insumo_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON TABLE gdo_insumo IS
+    'Lista maestra de insumos frecuentes del dia a dia. Sin unidad de medida fija: se elige al registrar cada compra.';
+COMMENT ON COLUMN gdo_insumo.precio_referencial IS
+    'Ultimo precio pagado o precio habitual. Solo sugiere el importe al registrar; el precio real puede variar cada dia.';
+COMMENT ON COLUMN gdo_insumo.id_proveedor_habitual IS
+    'A quien se le suele comprar. Al marcar la linea como credito, se preselecciona este proveedor.';
+
+-- Utilidad: cabecera del gasto diario. Una por dia y sucursal.
+CREATE TABLE IF NOT EXISTS gdo_gasto_dia (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_sucursal             BIGINT,
+    id_turno                BIGINT,
+    fecha_gasto             DATE         NOT NULL,
+    anio                    SMALLINT     NOT NULL,
+    mes                     SMALLINT     NOT NULL,
+    total_efectivo          NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    total_yape              NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    total_credito           NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    total_general           NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    observacion             VARCHAR(255),
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_gdo_dia_mes CHECK (mes BETWEEN 1 AND 12),
+    CONSTRAINT fk_gdo_dia_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gdo_dia_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
+    CONSTRAINT fk_gdo_dia_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gdo_dia_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+-- Un solo registro de gasto por dia y sucursal. Indice parcial (no constraint)
+-- porque solo aplica a los vigentes: si uno se anula, debe poder rehacerse.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_gdo_gasto_dia
+    ON gdo_gasto_dia (fecha_gasto, COALESCE(id_sucursal, 0))
+    WHERE estado = 1;
+
+COMMENT ON TABLE gdo_gasto_dia IS
+    'Cabecera del dia: agrupa todas las compras rapidas de esa jornada. Replica la hoja diaria de egresos.';
+COMMENT ON COLUMN gdo_gasto_dia.total_efectivo IS
+    'Totales denormalizados, recalculados por el backend en cada cambio de linea. Evitan re-sumar el detalle en cada consulta del listado.';
+
+-- Utilidad: cada item comprado en el dia.
+CREATE TABLE IF NOT EXISTS gdo_gasto_detalle (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_gasto_dia            BIGINT       NOT NULL,
+    id_insumo               BIGINT       NOT NULL,
+    id_unidad_medida        BIGINT,
+    id_proveedor            BIGINT,
+    id_cxp_movimiento       BIGINT,
+    cantidad                NUMERIC(14, 4) NOT NULL,
+    precio_unitario         NUMERIC(12, 2) NOT NULL,
+    subtotal                NUMERIC(12, 2) NOT NULL,
+    forma_pago              SMALLINT     NOT NULL DEFAULT 1,
+    observacion             VARCHAR(255),
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_gdo_detalle_cantidad CHECK (cantidad > 0),
+    CONSTRAINT ck_gdo_detalle_precio CHECK (precio_unitario >= 0),
+    CONSTRAINT ck_gdo_detalle_forma CHECK (forma_pago IN (1, 2, 3)),
+    CONSTRAINT fk_gdo_detalle_dia FOREIGN KEY (id_gasto_dia) REFERENCES gdo_gasto_dia (id),
+    CONSTRAINT fk_gdo_detalle_insumo FOREIGN KEY (id_insumo) REFERENCES gdo_insumo (id),
+    CONSTRAINT fk_gdo_detalle_unidad FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
+    CONSTRAINT fk_gdo_detalle_proveedor FOREIGN KEY (id_proveedor) REFERENCES cli_persona (id),
+    CONSTRAINT fk_gdo_detalle_cxp FOREIGN KEY (id_cxp_movimiento) REFERENCES cxp_movimiento (id),
+    CONSTRAINT fk_gdo_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_gdo_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+COMMENT ON COLUMN gdo_gasto_detalle.forma_pago IS
+    '1 contado efectivo (sale del cajon), 2 contado Yape, 3 credito (genera deuda al proveedor en CxP).';
+COMMENT ON COLUMN gdo_gasto_detalle.id_proveedor IS
+    'Obligatorio cuando forma_pago = 3: la deuda tiene que quedar a nombre de alguien.';
+COMMENT ON COLUMN gdo_gasto_detalle.id_cxp_movimiento IS
+    'Cargo generado en CxP cuando la linea es a credito. Permite revertirlo si la linea se anula.';
+COMMENT ON COLUMN gdo_gasto_detalle.id_unidad_medida IS
+    'Se elige al momento de la compra, no viene del insumo: el mismo producto se compra en kg un dia y en paquete otro.';
+
+CREATE INDEX IF NOT EXISTS ix_gdo_detalle_dia ON gdo_gasto_detalle (id_gasto_dia, estado);
+CREATE INDEX IF NOT EXISTS ix_gdo_gasto_dia_fecha ON gdo_gasto_dia (fecha_gasto DESC, estado);
+
 -- =============================================================================
 -- ÍNDICES
 -- =============================================================================
@@ -1530,18 +1903,77 @@ WHERE s.estado = 1
   AND p.controla_stock = TRUE
   AND s.stock_actual <= s.stock_minimo;
 
-CREATE OR REPLACE VIEW vw_cxc_saldo_persona AS
+-- Saldo deudor por cliente del consorcio. Espejo de vw_cxp_saldo_proveedor.
+--
+-- Positivo = esa persona nos debe. La rehice para que tenga la misma forma que
+-- la de proveedores: antes solo devolvia el saldo, y las pantallas necesitan
+-- ademas el documento, los totales y cuando fue el ultimo abono.
+--
+-- Como es un cambio de columnas, va con DROP: CREATE OR REPLACE VIEW no permite
+-- agregar columnas al medio.
+--
+-- Incluye a los clientes en cero a proposito: la pantalla de convenios muestra
+-- la lista completa, y el filtro de "solo con deuda" se aplica despues.
+DROP VIEW IF EXISTS vw_cxc_saldo_persona;
+CREATE VIEW vw_cxc_saldo_persona AS
 SELECT
     p.id AS id_persona,
-    COALESCE(p.nombres || ' ' || p.apellido_paterno, p.razon_social) AS nombre,
+    COALESCE(
+        NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),
+        p.razon_social
+    ) AS nombre,
+    p.num_documento,
     p.id_convenio,
     c.nombre AS convenio,
-    COALESCE(SUM(CASE WHEN m.tipo_movimiento = 1 THEN m.monto WHEN m.tipo_movimiento = 2 THEN -m.monto ELSE m.monto END), 0) AS saldo
+    c.limite_credito,
+    COALESCE(SUM(
+        CASE
+            WHEN m.tipo_movimiento = 1 THEN m.monto
+            WHEN m.tipo_movimiento = 2 THEN -m.monto
+            ELSE m.monto
+        END
+    ), 0) AS saldo,
+    COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 1), 0) AS total_cargos,
+    COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 2), 0) AS total_abonos,
+    MAX(m.fecha_creacion) FILTER (WHERE m.tipo_movimiento = 2) AS ultimo_abono
 FROM cli_persona p
 LEFT JOIN cli_convenio c ON c.id = p.id_convenio
 LEFT JOIN cxc_movimiento m ON m.id_persona = p.id AND m.estado = 1
-WHERE p.es_cliente = TRUE
-GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.id_convenio, c.nombre;
+WHERE p.es_cliente = TRUE AND p.estado = 1
+GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento,
+         p.id_convenio, c.nombre, c.limite_credito;
+
+-- Saldo deudor por proveedor. Espejo de vw_cxc_saldo_persona.
+--
+-- Positivo = le debemos a ese proveedor. La resta va al reves que en CxC:
+-- alla el cargo es lo que el cliente consume, aca el cargo es lo que nosotros
+-- compramos a credito, y el abono es lo que le pagamos.
+--
+-- Solo lista proveedores (es_proveedor = TRUE) e incluye a los que estan en
+-- cero: el dashboard necesita mostrar la lista completa, no solo a quienes
+-- tienen deuda hoy.
+CREATE OR REPLACE VIEW vw_cxp_saldo_proveedor AS
+SELECT
+    p.id AS id_persona,
+    COALESCE(
+        NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),
+        p.razon_social
+    ) AS nombre,
+    p.num_documento,
+    COALESCE(SUM(
+        CASE
+            WHEN m.tipo_movimiento = 1 THEN m.monto
+            WHEN m.tipo_movimiento = 2 THEN -m.monto
+            ELSE m.monto
+        END
+    ), 0) AS saldo,
+    COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 1), 0) AS total_cargos,
+    COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 2), 0) AS total_abonos,
+    MAX(m.fecha_movimiento) FILTER (WHERE m.tipo_movimiento = 2) AS ultimo_abono
+FROM cli_persona p
+LEFT JOIN cxp_movimiento m ON m.id_persona = p.id AND m.estado = 1
+WHERE p.es_proveedor = TRUE AND p.estado = 1
+GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento;
 
 CREATE OR REPLACE VIEW vw_ventas_por_medio AS
 SELECT
@@ -1767,6 +2199,45 @@ ON CONFLICT (codigo) DO NOTHING;
 INSERT INTO gen_pais (nombre, codigo_iso)
 VALUES ('Perú', 'PE')
 ON CONFLICT (codigo_iso) DO NOTHING;
+
+
+-- Categorias base de gastos administrativos (M16).
+-- Son las que el cliente nombro en la reunion. Puede crear mas desde el sistema.
+INSERT INTO gad_categoria (codigo, nombre, tipo_gasto, orden) VALUES
+    ('ALQUILER',      'Alquiler del local',   1, 1),
+    ('SERVICIOS',     'Servicios basicos',    1, 2),
+    ('SUSCRIPCIONES', 'Sistemas y software',  1, 3),
+    ('MANTENIMIENTO', 'Mantenimiento',        2, 4),
+    ('OFICINA',       'Utiles de oficina',    2, 5),
+    ('OTROS_ADM',     'Otros gastos',         2, 6)
+ON CONFLICT (codigo) DO NOTHING;
+
+-- Subcategorias de servicios basicos: el cliente los nombra por separado
+-- (luz, agua, internet) y quiere verlos desglosados en el reporte mensual.
+INSERT INTO gad_categoria (id_categoria_padre, codigo, nombre, tipo_gasto, orden)
+SELECT p.id, v.codigo, v.nombre, 1, v.orden
+FROM (VALUES
+    ('LUZ',      'Luz',      1),
+    ('AGUA',     'Agua',     2),
+    ('INTERNET', 'Internet', 3)
+) AS v(codigo, nombre, orden)
+JOIN gad_categoria p ON p.codigo = 'SERVICIOS'
+ON CONFLICT (codigo) DO NOTHING;
+
+-- Categorias de gasto diario (M14).
+-- Son exactamente las de la hoja fisica de "Requerimiento Diario" que el
+-- cliente mostro en la reunion, en el mismo orden.
+INSERT INTO gdo_categoria (codigo, nombre, orden) VALUES
+    ('PROCESADOS',    'Procesados',            1),
+    ('ABARROTES',     'Abarrotes',             2),
+    ('VERDURAS',      'Verduras y Frutas',     3),
+    ('CARNES',        'Carnes y Pollo',        4),
+    ('PESCADOS',      'Pescados y Mariscos',   5),
+    ('DESCARTABLES',  'Descartables',          6),
+    ('ASEO',          'Aseo y Limpieza',       7),
+    ('LICORES',       'Licores y Gaseosas',    8),
+    ('OTROS_GDO',     'Otros',                 9)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- =============================================================================
 -- FIN

@@ -7,6 +7,7 @@ import {
 import {
   mapActivateResult,
   mapDeleteResult,
+  mapListResult,
   mapSingleResult,
 } from '../../../common/helpers/auth-response.helper';
 import { CreateUsuarioDto, UpdateUsuarioDto } from '../dto/usuarios.dto';
@@ -17,17 +18,13 @@ import { UsuariosModel } from '../models/usuarios.model';
 export class UsuariosLogic {
   constructor(private readonly usuariosModel: UsuariosModel) {}
 
+  // Mismo caso que sucursales: devolvía `{ data, meta }` a mano y el
+  // TransformResponseInterceptor lo volvía a envolver, dejando la carga
+  // anidada dos veces. Lo alineo con mapListResult, que es lo que usan los
+  // demás módulos y lo que el front espera.
   async listar(filtros: FiltroUsuarioDto) {
     const result = await this.usuariosModel.listar(filtros);
-    return {
-      data: result.registros ?? [],
-      meta: {
-        total: result.total ?? 0,
-        limite: filtros.limite ?? 10,
-        offset: filtros.offset ?? 0,
-        resumen: result.resumen ?? { total: 0, activos: 0, inactivos: 0 },
-      },
-    };
+    return mapListResult(result, filtros);
   }
 
   async obtenerPorId(id: number) {

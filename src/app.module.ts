@@ -18,6 +18,15 @@ import { ProductosModule } from './modules/productos/productos.module';
 import { AlmacenesModule } from './modules/almacenes/almacenes.module';
 import { EstacionesModule } from './modules/estaciones/estaciones.module';
 import { SucursalesModule } from './modules/sucursales/sucursales.module';
+import { PersonasModule } from './modules/personas/personas.module';
+import { ConveniosModule } from './modules/convenios/convenios.module';
+import { CajasModule } from './modules/cajas/cajas.module';
+import { TurnosModule } from './modules/turnos/turnos.module';
+import { PlanillaModule } from './modules/planilla/planilla.module';
+import { GastosAdministrativosModule } from './modules/gastos-administrativos/gastos-administrativos.module';
+import { CuentasPorCobrarModule } from './modules/cuentas-por-cobrar/cuentas-por-cobrar.module';
+import { CuentasPorPagarModule } from './modules/cuentas-por-pagar/cuentas-por-pagar.module';
+import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.module';
 
 @Module({
   imports: [
@@ -42,7 +51,23 @@ import { SucursalesModule } from './modules/sucursales/sucursales.module';
     AdicionalesProductoModule,
     AlmacenesModule,
     EstacionesModule,
-    SucursalesModule
+    SucursalesModule,
+    // Maestro de personas: lo dejo al final para que agregar módulos nuevos
+    // siempre sea añadir una línea acá abajo y el conflicto de merge sea mínimo.
+    ConveniosModule,
+    PersonasModule,
+    // M11 - Caja y turnos.
+    CajasModule,
+    TurnosModule,
+    // M17 - Planilla.
+    PlanillaModule,
+    // M16 - Gastos administrativos.
+    GastosAdministrativosModule,
+    // M15 - Cuentas por pagar a proveedores.
+    CuentasPorPagarModule,
+    CuentasPorCobrarModule,
+    // M14 - Gastos diarios operativos.
+    GastosDiariosModule,
   ],
   controllers: [],
   providers: [

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   mapActivateResult,
   mapDeleteResult,
+  mapListResult,
   mapSingleResult,
 } from '../../../common/helpers/auth-response.helper';
 import { CreateSucursalDto, UpdateSucursalDto } from '../dto/sucursales.dto';
@@ -12,17 +13,18 @@ import { SucursalesModel } from '../models/sucursales.model';
 export class SucursalesLogic {
   constructor(private readonly sucursalesModel: SucursalesModel) {}
 
+  // Uso mapListResult como el resto de los módulos.
+  //
+  // Antes esto devolvía un objeto `{ data, meta }` armado a mano. El problema es
+  // que ese objeto no tiene `success` ni `message`, así que el
+  // TransformResponseInterceptor no lo reconocía como una respuesta ya formada
+  // y la envolvía otra vez, dejando la carga anidada dos veces:
+  //   { success, message, data: { data: [...], meta: {...} } }
+  // El front esperaba `data` como arreglo y recibía un objeto, con el error
+  // "sucursales.map is not a function".
   async listar(filtros: FiltroSucursalDto) {
     const result = await this.sucursalesModel.listar(filtros);
-    return {
-      data: result.registros ?? [],
-      meta: {
-        total: result.total ?? 0,
-        limite: filtros.limite ?? 10,
-        offset: filtros.offset ?? 0,
-        resumen: result.resumen ?? { total: 0, activos: 0, inactivos: 0 },
-      },
-    };
+    return mapListResult(result, filtros);
   }
 
   async obtenerPorId(id: number) {
