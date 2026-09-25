@@ -64,6 +64,8 @@ BEGIN
     )
     RETURNING id INTO v_id_insumo_tabla;
 
+    PERFORM pro_recalcular_costo_receta(p_id_receta);
+
     RETURN pro_obtener_receta(p_id_receta);
 END;
 $function$;

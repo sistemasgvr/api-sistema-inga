@@ -27,14 +27,14 @@ export class SubCategoriasProductoController {
   constructor(private readonly subCategoriasLogic: SubCategoriasProductoLogic) {}
 
   @Get()
-  @Permisos(PermisoBanderas.CATEGORIAS_LISTAR)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_LISTAR)
   @ApiOperation({ summary: 'Listar subcategorías de producto' })
   listar(@Query() filtros: FiltroSubCategoriasProductoDto) {
     return this.subCategoriasLogic.listar(filtros);
   }
 
   @Get(':id')
-  @Permisos(PermisoBanderas.CATEGORIAS_VER)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_VER)
   @ApiOperation({ summary: 'Obtener subcategoría por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   obtenerPorId(@Param('id', ParseIntPipe) id: number) {
@@ -42,14 +42,14 @@ export class SubCategoriasProductoController {
   }
 
   @Post()
-  @Permisos(PermisoBanderas.CATEGORIAS_CREAR)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_CREAR)
   @ApiOperation({ summary: 'Crear subcategoría de producto' })
   crear(@Body() dto: CreateSubCategoriaProductoDto) {
     return this.subCategoriasLogic.crear(dto);
   }
 
   @Patch(':id')
-  @Permisos(PermisoBanderas.CATEGORIAS_EDITAR)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_EDITAR)
   @ApiOperation({ summary: 'Actualizar subcategoría de producto' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   actualizar(
@@ -60,7 +60,7 @@ export class SubCategoriasProductoController {
   }
 
   @Patch(':id/activar')
-  @Permisos(PermisoBanderas.CATEGORIAS_ACTIVAR)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_ACTIVAR)
   @ApiOperation({ summary: 'Activar subcategoría de producto' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activar(
@@ -71,7 +71,7 @@ export class SubCategoriasProductoController {
   }
 
   @Delete(':id')
-  @Permisos(PermisoBanderas.CATEGORIAS_ELIMINAR)
+  @Permisos(PermisoBanderas.SUBCATEGORIAS_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar subcategoría (baja lógica)' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(

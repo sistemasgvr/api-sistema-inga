@@ -68,9 +68,9 @@ export class RecetasProductoController {
   @ApiOperation({ summary: 'Dar de baja un insumo de la receta' })
   eliminarInsumo(
     @Param('idInsumoReceta', ParseIntPipe) idInsumoReceta: number,
-    @Body() dto: AuditoriaDto,
+    @Body() dto?: AuditoriaDto, 
   ) {
-    return this.recetasLogic.eliminarInsumo(idInsumoReceta, dto.idUsuarioAuditoria);
+    return this.recetasLogic.eliminarInsumo(idInsumoReceta, dto?.idUsuarioAuditoria);
   }
 
   @Delete('recetas/:id')
@@ -78,8 +78,8 @@ export class RecetasProductoController {
   @ApiOperation({ summary: 'Dar de baja una receta completa' })
   eliminarReceta(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @Body() dto?: AuditoriaDto,
   ) {
-    return this.recetasLogic.eliminarReceta(id, dto.idUsuarioAuditoria);
+    return this.recetasLogic.eliminarReceta(id, dto?.idUsuarioAuditoria);
   }
 }

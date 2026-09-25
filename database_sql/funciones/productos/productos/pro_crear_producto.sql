@@ -114,6 +114,31 @@ BEGIN
     )
     RETURNING id INTO v_id;
 
+    -- INICIALIZACIÓN DE STOCK (Solo si controla_stock = TRUE y tiene almacén)
+    IF COALESCE(p_controla_stock, FALSE) = TRUE AND p_id_almacen_stock IS NOT NULL THEN
+        INSERT INTO alm_producto_stock (
+            id_almacen,
+            id_producto,
+            stock_actual,
+            stock_minimo,
+            stock_reservado,
+            costo_promedio,
+            id_usuario_creacion,
+            id_usuario_modificacion
+        )
+        VALUES (
+            p_id_almacen_stock,
+            v_id,
+            0,
+            0,
+            0,
+            0,
+            p_id_usuario_auditoria,
+            p_id_usuario_auditoria
+        )
+        ON CONFLICT (id_almacen, id_producto) DO NOTHING;
+    END IF;
+
     RETURN pro_obtener_producto(v_id);
 END;
 $function$;

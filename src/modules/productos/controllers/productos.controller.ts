@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,19 +10,27 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import 'multer';
+import { ApiConsumes, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { CreateProductoDto, FiltroProductosDto, UpdateProductoDto } from '../dto/productos.dto';
 import { ProductosLogic } from '../logic/productos.logic';
+import { SupabaseStorageService } from '../../../integrations/supabase-storage/supabase-storage.service';
 
 @ApiTags('Productos - Catálogo Principal')
 @Controller('productos')
 export class ProductosController {
-  constructor(private readonly productosLogic: ProductosLogic) {}
+  constructor(
+    private readonly productosLogic: ProductosLogic,
+    private readonly storageService: SupabaseStorageService,
+  ) {}
 
   @Get()
   @Permisos(PermisoBanderas.PRODUCTOS_LISTAR)
@@ -50,6 +59,31 @@ export class ProductosController {
   @ApiOperation({ summary: 'Crear un nuevo producto' })
   crear(@Body() dto: CreateProductoDto) {
     return this.productosLogic.crear(dto);
+  }
+
+  @Post('upload-imagen')
+  @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Subir imagen de producto a Supabase Storage' })
+  @ApiConsumes('multipart/form-data')
+  async uploadImagen(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Debes adjuntar un archivo de imagen');
+    }
+
+    const fileExt = file.originalname.split('.').pop();
+    const path = `productos/prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+    const uploadResult = await this.storageService.upload(
+      path,
+      file.buffer,
+      file.mimetype,
+      true,
+    );
+
+    const publicUrl = this.storageService.getPublicUrl(uploadResult.path);
+
+    return { url: publicUrl };
   }
 
   @Patch(':id')

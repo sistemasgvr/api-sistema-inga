@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
 
@@ -9,23 +10,25 @@ export class FiltroProductosDto extends FiltroPaginacionDto {
   @ApiPropertyOptional({
     enum: ['todos', 'activos', 'inactivos'],
     default: 'activos',
-    description: 'Filtrar por estado para los chips',
   })
   @IsOptional()
   estado?: ProductoEstadoFiltro = 'activos';
 
-  @ApiPropertyOptional({ description: 'Filtrar por tipo de producto (1: Insumo Crudo, etc.)' })
+  @ApiPropertyOptional({ description: 'Filtrar por tipo de producto (1 a 7)' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   tipo_producto?: number;
 
   @ApiPropertyOptional({ description: 'Filtrar por ID de subcategoría' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   id_subcategoria?: number;
 
   @ApiPropertyOptional({ description: 'Filtrar por ID de categoría' })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   id_categoria?: number;
 }
@@ -41,15 +44,15 @@ export class CreateProductoDto extends AuditoriaDto {
   @IsNotEmpty()
   id_unidad_medida!: number;
 
-  @ApiPropertyOptional({ description: 'ID de la estación de impresión (obligatorio en platos/tragos)', example: 1 })
+  @ApiPropertyOptional({ description: 'ID de la estación de impresión (opcional)', example: 1 })
   @IsOptional()
   @IsInt()
-  id_estacion?: number;
+  id_estacion?: number | null;
 
-  @ApiPropertyOptional({ description: 'ID del almacén de stock (obligatorio si controla stock)', example: 1 })
+  @ApiPropertyOptional({ description: 'ID del almacén de stock (opcional)', example: 1 })
   @IsOptional()
   @IsInt()
-  id_almacen_stock?: number;
+  id_almacen_stock?: number | null;
 
   @ApiProperty({ description: 'Código interno único del producto', example: 'PROD-0001' })
   @IsString()
@@ -66,7 +69,7 @@ export class CreateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional({ description: 'Descripción detallada' })
   @IsOptional()
   @IsString()
-  descripcion?: string;
+  descripcion?: string | null;
 
   @ApiProperty({ description: 'Tipo de producto (1 a 7)', example: 3 })
   @IsInt()
@@ -96,35 +99,35 @@ export class CreateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional({ description: 'Tiempo estimado de preparación en minutos', example: 15 })
   @IsOptional()
   @IsInt()
-  tiempo_prep_min?: number;
+  tiempo_prep_min?: number | null;
 
   @ApiPropertyOptional({ description: 'URL de la imagen del producto' })
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  imagen_url?: string;
+  imagen_url?: string | null;
 }
 
 export class UpdateProductoDto extends AuditoriaDto {
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
   id_subcategoria?: number;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
   id_unidad_medida?: number;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
-  id_estacion?: number;
+  id_estacion?: number | null;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
-  id_almacen_stock?: number;
+  id_almacen_stock?: number | null;
 
   @ApiPropertyOptional({ maxLength: 50 })
   @IsOptional()
@@ -141,7 +144,7 @@ export class UpdateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  descripcion?: string;
+  descripcion?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -171,11 +174,11 @@ export class UpdateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
-  tiempo_prep_min?: number;
+  tiempo_prep_min?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  imagen_url?: string;
+  imagen_url?: string | null;
 }
