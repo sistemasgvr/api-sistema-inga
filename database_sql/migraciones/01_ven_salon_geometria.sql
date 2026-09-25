@@ -1,0 +1,12 @@
+-- Compatibilidad con instalaciones anteriores a los campos del plano.
+ALTER TABLE ven_salon
+ADD COLUMN IF NOT EXISTS posicion_x NUMERIC(10, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE ven_salon
+ADD COLUMN IF NOT EXISTS posicion_y NUMERIC(10, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE ven_salon
+ADD COLUMN IF NOT EXISTS ancho NUMERIC(10, 2) NOT NULL DEFAULT 200;
+
+ALTER TABLE ven_salon
+ADD COLUMN IF NOT EXISTS alto NUMERIC(10, 2) NOT NULL DEFAULT 150;

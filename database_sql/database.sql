@@ -1188,7 +1188,10 @@ CREATE TABLE IF NOT EXISTS ven_salon (
     id_sucursal             BIGINT       NOT NULL,
     codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
-    orden                   INTEGER      NOT NULL DEFAULT 0,
+    posicion_x              NUMERIC(10,2) NOT NULL DEFAULT 0,
+    posicion_y              NUMERIC(10,2) NOT NULL DEFAULT 0,
+    ancho                   NUMERIC(10,2) NOT NULL DEFAULT 200,
+    alto                    NUMERIC(10,2) NOT NULL DEFAULT 150,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
@@ -1418,32 +1421,32 @@ CREATE TABLE IF NOT EXISTS ven_pago (
 -- KDS
 -- =============================================================================
 
--- Utilidad: ticket en pantalla de cocina/barra (tiempos y estado de preparación).
-CREATE TABLE IF NOT EXISTS kds_ticket (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_comanda              BIGINT       NOT NULL,
-    id_pedido_detalle       BIGINT       NOT NULL,
-    id_estacion             BIGINT       NOT NULL,
-    estado_kds              SMALLINT     NOT NULL DEFAULT 1,
-    fecha_envio             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_inicio            TIMESTAMPTZ,
-    fecha_listo             TIMESTAMPTZ,
-    tiempo_prep_min         INTEGER,
-    alerta_tiempo           BOOLEAN      NOT NULL DEFAULT FALSE,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_kds_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
-    CONSTRAINT fk_kds_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
-    CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
-    CONSTRAINT fk_kds_ticket_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_kds_ticket_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
+    -- Utilidad: ticket en pantalla de cocina/barra (tiempos y estado de preparación).
+    CREATE TABLE IF NOT EXISTS kds_ticket (
+        id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        id_comanda              BIGINT       NOT NULL,
+        id_pedido_detalle       BIGINT       NOT NULL,
+        id_estacion             BIGINT       NOT NULL,
+        estado_kds              SMALLINT     NOT NULL DEFAULT 1,
+        fecha_envio             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        fecha_inicio            TIMESTAMPTZ,
+        fecha_listo             TIMESTAMPTZ,
+        tiempo_prep_min         INTEGER,
+        alerta_tiempo           BOOLEAN      NOT NULL DEFAULT FALSE,
+        estado                  SMALLINT     NOT NULL DEFAULT 1,
+        id_usuario_creacion     BIGINT,
+        id_usuario_modificacion BIGINT,
+        fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_kds_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
+        CONSTRAINT fk_kds_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
+        CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
+        CONSTRAINT fk_kds_ticket_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+        CONSTRAINT fk_kds_ticket_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    );
 
--- =============================================================================
--- CXC — crédito consorcio (Billy Reaño / GVR / 4G / etc.)
+    -- =============================================================================
+    -- CXC — crédito consorcio (Billy Reaño / GVR / 4G / etc.)
 -- =============================================================================
 
 -- Utilidad: cuenta por cobrar: consumo y pagos a quincena/fin de mes por persona.
@@ -2062,8 +2065,8 @@ SELECT l.id, v.codigo, v.nombre, v.valor, v.orden
 FROM gen_lista l
 JOIN (
     VALUES
-    ('PRODUCTO_TIPO', 'INSUMO_CRUDO', 'Insumo crudo / almacén', 1, 1),
-    ('PRODUCTO_TIPO', 'INSUMO_PROCESADO', 'Insumo procesado / receta', 2, 2),
+    ('PRODUCTO_TIPO', 'INSUMO_CRUDO', 'Insumo crudo / almacén', 1, 1), /*No tienen receta, se compran y se venden tal cual.*/
+    ('PRODUCTO_TIPO', 'INSUMO_PROCESADO', 'Insumo procesado / receta', 2, 2), 
     ('PRODUCTO_TIPO', 'PLATO_CARTA', 'Plato a la carta', 3, 3),
     ('PRODUCTO_TIPO', 'PLATO_MENU', 'Plato de menú', 4, 4),
     ('PRODUCTO_TIPO', 'TRAGO', 'Trago preparado', 5, 5),

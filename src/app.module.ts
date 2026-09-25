@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ListasModule } from './modules/listas/listas.module';
+import { SalonModule } from './modules/salon/salon.module';
 import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import databaseConfig from './config/database.config';
@@ -68,6 +70,8 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     CuentasPorCobrarModule,
     // M14 - Gastos diarios operativos.
     GastosDiariosModule,
+    SalonModule,
+    ListasModule,
   ],
   controllers: [],
   providers: [

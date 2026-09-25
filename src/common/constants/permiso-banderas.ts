@@ -2,6 +2,8 @@
  * Banderas de permiso. El nombre en BD (auth_permisos.nombre) debe coincidir con el valor.
  */
 export const PermisoBanderas = {
+  AMBIENTES_LISTAR: 'ambientes.listar',
+  AMBIENTES_GESTIONAR: 'ambientes.gestionar',
   USUARIOS_LISTAR: 'usuarios.listar',
   USUARIOS_VER: 'usuarios.ver',
   USUARIOS_CREAR: 'usuarios.crear',
