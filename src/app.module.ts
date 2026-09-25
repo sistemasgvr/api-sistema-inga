@@ -6,6 +6,7 @@ import jwtConfig from './config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { LoginModule } from './modules/login/login.module';
+import { GeneralListasModule } from './modules/general/general-listas.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermisosModule } from './modules/permisos/permisos.module';
@@ -18,6 +19,7 @@ import { ProductosModule } from './modules/productos/productos.module';
 import { AlmacenesModule } from './modules/almacenes/almacenes.module';
 import { EstacionesModule } from './modules/estaciones/estaciones.module';
 import { SucursalesModule } from './modules/sucursales/sucursales.module';
+import { SupabaseStorageModule } from './integrations/supabase-storage/supabase-storage.module';
 
 @Module({
   imports: [
@@ -32,13 +34,15 @@ import { SucursalesModule } from './modules/sucursales/sucursales.module';
     }),
     LoginModule,
     DatabaseModule,
+    SupabaseStorageModule,
+    GeneralListasModule,
     UsuariosModule,
     RolesModule,
     PermisosModule,
     CategoriasProductoModule,
     SubCategoriasProductoModule,
-    ProductosModule,
     RecetasProductoModule,
+    ProductosModule,
     AdicionalesProductoModule,
     AlmacenesModule,
     EstacionesModule,
