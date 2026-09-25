@@ -8,7 +8,10 @@ export class GeneralListasController {
   constructor(private readonly listasLogic: GeneralListasLogic) {}
 
   @Get(':codigoLista/opciones')
-  @ApiOperation({ summary: 'Obtener opciones de un catálogo por su código (ej. ALMACEN_TIPO, ESTACION_TIPO)' })
+  @ApiOperation({
+    summary:
+      'Obtener opciones de un catálogo por su código (ej. ALMACEN_TIPO, ESTACION_TIPO)',
+  })
   obtenerOpcionesPorLista(@Param('codigoLista') codigoLista: string) {
     return this.listasLogic.obtenerOpcionesPorLista(codigoLista.toUpperCase());
   }

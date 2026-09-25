@@ -8,7 +8,7 @@ export class GeneralListasLogic {
 
   async obtenerOpcionesPorLista(codigoLista: string) {
     const result = await this.listasModel.obtenerOpcionesPorLista(codigoLista);
-    
+
     return mapSingleResult(
       result,
       `No se encontraron opciones para el catálogo: ${codigoLista}`,

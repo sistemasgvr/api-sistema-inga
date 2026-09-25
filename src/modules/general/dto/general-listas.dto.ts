@@ -7,10 +7,16 @@ export class OpcionCatalogoDto {
   @ApiProperty({ description: 'Código único de la opción', example: 'CRUDO' })
   codigo!: string;
 
-  @ApiProperty({ description: 'Nombre o etiqueta legible', example: 'Almacén de insumos' })
+  @ApiProperty({
+    description: 'Nombre o etiqueta legible',
+    example: 'Almacén de insumos',
+  })
   nombre!: string;
 
-  @ApiProperty({ description: 'Valor entero asignado en la base de datos', example: 1 })
+  @ApiProperty({
+    description: 'Valor entero asignado en la base de datos',
+    example: 1,
+  })
   valor_entero!: number;
 
   @ApiProperty({ description: 'Orden de despliegue en combos', example: 1 })

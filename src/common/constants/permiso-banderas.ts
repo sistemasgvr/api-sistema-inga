@@ -59,19 +59,7 @@ export const PermisoBanderas = {
   SUCURSALES_EDITAR: 'sucursales.editar',
   SUCURSALES_ELIMINAR: 'sucursales.eliminar',
   SUCURSALES_ACTIVAR: 'sucursales.activar',
-  SUCURSALES_LISTAR: 'SUCURSALES_LISTAR',
-  SUCURSALES_VER: 'SUCURSALES_VER',
-  SUCURSALES_CREAR: 'SUCURSALES_CREAR',
-  SUCURSALES_EDITAR: 'SUCURSALES_EDITAR',
-  SUCURSALES_ELIMINAR: 'SUCURSALES_ELIMINAR',
-  SUCURSALES_ACTIVAR: 'SUCURSALES_ACTIVAR',
 
-  // Maestro de personas (clientes y proveedores) y sus convenios de crédito.
-  //
-  // Uso la convención en minúsculas con punto ('personas.listar') y no la de
-  // mayúsculas con guion bajo que aparece más arriba, porque es la que está
-  // realmente sembrada en la tabla auth_permiso y la que usan usuarios y roles.
-  // Cuando unifiquemos las banderas, estas ya quedan del lado correcto.
   PERSONAS_LISTAR: 'personas.listar',
   PERSONAS_VER: 'personas.ver',
   PERSONAS_CREAR: 'personas.crear',
@@ -86,7 +74,6 @@ export const PermisoBanderas = {
   CONVENIOS_ELIMINAR: 'convenios.eliminar',
   CONVENIOS_ACTIVAR: 'convenios.activar',
 
-  // Caja y turnos (M11).
   CAJAS_LISTAR: 'cajas.listar',
   CAJAS_VER: 'cajas.ver',
   CAJAS_CREAR: 'cajas.crear',
@@ -94,9 +81,6 @@ export const PermisoBanderas = {
   CAJAS_ELIMINAR: 'cajas.eliminar',
   CAJAS_ACTIVAR: 'cajas.activar',
 
-  // Separo abrir y cerrar de listar/ver a propósito: un administrador puede
-  // necesitar revisar los cierres sin poder operar la caja, y un cajero puede
-  // operar la suya sin ver el histórico de todos.
   TURNOS_LISTAR: 'turnos.listar',
   TURNOS_VER: 'turnos.ver',
   TURNOS_ABRIR: 'turnos.abrir',
