@@ -10,6 +10,7 @@ export const envValidationSchema = Joi.object({
     .default('development'),
 
   PORT: Joi.number().port().default(3000),
+  PEDIDOS_TASA_IGV: Joi.number().min(0).max(100).precision(2).default(18),
 
   HTTP_REQUEST_LOGGER_ENABLED: Joi.boolean()
     .truthy('true')

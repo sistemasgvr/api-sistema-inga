@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PedidosModule } from './modules/pedidos/pedidos.module';
 import { ListasModule } from './modules/listas/listas.module';
 import { SalonModule } from './modules/salon/salon.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -76,6 +77,7 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     GastosDiariosModule,
     SalonModule,
     ListasModule,
+    PedidosModule,
   ],
   controllers: [],
   providers: [

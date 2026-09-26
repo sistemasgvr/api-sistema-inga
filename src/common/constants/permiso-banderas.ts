@@ -2,6 +2,12 @@
  * Banderas de permiso. El nombre en BD (auth_permisos.nombre) debe coincidir con el valor.
  */
 export const PermisoBanderas = {
+  PEDIDOS_VER: 'pedidos.ver',
+  PEDIDOS_ABRIR: 'pedidos.abrir',
+  PEDIDOS_EDITAR: 'pedidos.editar',
+  PEDIDOS_COMANDAR: 'pedidos.comandar',
+  PEDIDOS_ESTADO: 'pedidos.estado',
+  PEDIDOS_ANULAR: 'pedidos.anular',
   AMBIENTES_LISTAR: 'ambientes.listar',
   AMBIENTES_GESTIONAR: 'ambientes.gestionar',
   USUARIOS_LISTAR: 'usuarios.listar',
