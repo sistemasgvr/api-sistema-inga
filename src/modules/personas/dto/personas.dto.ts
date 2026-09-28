@@ -5,7 +5,6 @@ import {
   IsEmail,
   IsIn,
   IsInt,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -45,7 +44,9 @@ export class FiltroPersonasDto extends FiltroPaginacionDto {
   @IsIn(['todos', 'clientes', 'proveedores'])
   rol?: PersonaRolFiltro = 'todos';
 
-  @ApiPropertyOptional({ description: 'Filtrar clientes de un convenio puntual' })
+  @ApiPropertyOptional({
+    description: 'Filtrar clientes de un convenio puntual',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -53,12 +54,18 @@ export class FiltroPersonasDto extends FiltroPaginacionDto {
 }
 
 export class BuscarPersonasDto {
-  @ApiPropertyOptional({ example: '4561', description: 'Nombre, razón social o documento' })
+  @ApiPropertyOptional({
+    example: '4561',
+    description: 'Nombre, razón social o documento',
+  })
   @IsOptional()
   @IsString()
   buscar?: string;
 
-  @ApiPropertyOptional({ enum: ['todos', 'clientes', 'proveedores'], default: 'todos' })
+  @ApiPropertyOptional({
+    enum: ['todos', 'clientes', 'proveedores'],
+    default: 'todos',
+  })
   @IsOptional()
   @IsIn(['todos', 'clientes', 'proveedores'])
   rol?: PersonaRolFiltro = 'todos';
@@ -71,21 +78,36 @@ export class BuscarPersonasDto {
 }
 
 export class CreatePersonaDto extends AuditoriaDto {
-  @ApiProperty({ enum: [1, 2], example: 1, description: '1 = natural, 2 = jurídica' })
+  @ApiProperty({
+    enum: [1, 2],
+    example: 1,
+    description: '1 = natural, 2 = jurídica',
+  })
   @IsInt()
   @IsIn([1, 2])
   tipo_persona!: number;
 
-  @ApiProperty({ enum: [1, 4, 6], example: 1, description: '1 = DNI, 4 = CE, 6 = RUC' })
+  @ApiPropertyOptional({
+    enum: [1, 4, 6],
+    example: 1,
+    description:
+      '1 = DNI, 4 = CE, 6 = RUC. Obligatorio si se envía num_documento',
+  })
+  @IsOptional()
   @IsInt()
   @IsIn([1, 4, 6])
-  tipo_documento!: number;
+  tipo_documento?: number;
 
-  @ApiProperty({ example: '45612345', maxLength: 20 })
+  @ApiPropertyOptional({
+    example: '45612345',
+    maxLength: 20,
+    description:
+      'Opcional (ej. clientes de delivery). Una persona jurídica requiere RUC',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(20)
-  num_documento!: string;
+  num_documento?: string;
 
   @ApiPropertyOptional({
     example: 'Consorcio GVR S.A.C.',

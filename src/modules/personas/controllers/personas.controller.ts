@@ -49,7 +49,9 @@ export class PersonasController {
 
   @Get(':id')
   @Permisos(PermisoBanderas.PERSONAS_VER)
-  @ApiOperation({ summary: 'Obtener persona por ID (incluye su saldo de crédito)' })
+  @ApiOperation({
+    summary: 'Obtener persona por ID (incluye su saldo de crédito)',
+  })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   obtenerPorId(@Param('id', ParseIntPipe) id: number) {
     return this.personasLogic.obtenerPorId(id);
@@ -84,7 +86,8 @@ export class PersonasController {
   @Delete(':id')
   @Permisos(PermisoBanderas.PERSONAS_ELIMINAR)
   @ApiOperation({
-    summary: 'Dar de baja persona (baja lógica; falla si tiene deuda pendiente)',
+    summary:
+      'Dar de baja persona (baja lógica; falla si tiene deuda pendiente)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {

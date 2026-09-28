@@ -6,6 +6,7 @@ DECLARE
   v_sucursal BIGINT := (p_datos->>'id_sucursal')::BIGINT;
   v_mozo BIGINT := (p_datos->>'id_mozo')::BIGINT;
   v_turno BIGINT := (p_datos->>'id_turno')::BIGINT;
+  v_persona BIGINT := NULLIF(p_datos->>'id_persona', '')::BIGINT;
   v ven_mesa%ROWTYPE; v_salon ven_salon%ROWTYPE;
 BEGIN
   IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido inválido'; END IF;
@@ -23,10 +24,13 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM gen_sucursal WHERE id = v_sucursal AND estado = 1) THEN RAISE EXCEPTION 'Seleccione una sucursal activa'; END IF;
   IF NOT EXISTS(SELECT 1 FROM auth_usuario WHERE id = v_mozo AND estado = 1) THEN RAISE EXCEPTION 'Seleccione un mozo activo'; END IF;
   IF COALESCE((p_datos->>'num_comensales')::INTEGER,1) <= 0 THEN RAISE EXCEPTION 'Número de comensales inválido'; END IF;
+  IF v_persona IS NOT NULL AND NOT EXISTS(SELECT 1 FROM cli_persona WHERE id = v_persona AND estado = 1 AND es_cliente) THEN
+    RAISE EXCEPTION 'El cliente no existe, está inactivo o no está marcado como cliente';
+  END IF;
   PERFORM ven_validar_turno_pedido(v_turno, v_sucursal);
   v_id := nextval(pg_get_serial_sequence('public.ven_pedido', 'id'));
-  INSERT INTO ven_pedido(id,id_sucursal,id_mesa,id_mozo,id_turno,tipo_pedido,codigo,num_comensales,observacion,tasa_igv,id_usuario_creacion,id_usuario_modificacion)
-  OVERRIDING SYSTEM VALUE VALUES(v_id,v_sucursal,v_mesa,v_mozo,v_turno,v_tipo,'PED-' || v_id,
+  INSERT INTO ven_pedido(id,id_sucursal,id_mesa,id_mozo,id_turno,id_persona,tipo_pedido,codigo,num_comensales,observacion,tasa_igv,id_usuario_creacion,id_usuario_modificacion)
+  OVERRIDING SYSTEM VALUE VALUES(v_id,v_sucursal,v_mesa,v_mozo,v_turno,v_persona,v_tipo,'PED-' || v_id,
     COALESCE((p_datos->>'num_comensales')::INTEGER,1),p_datos->>'observacion',COALESCE((p_datos->>'tasa_igv')::NUMERIC,18),p_usuario,p_usuario);
   UPDATE ven_mesa SET estado_mesa = 2, id_usuario_modificacion = p_usuario, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = v_mesa;
   RETURN ven_obtener_pedido(v_id);

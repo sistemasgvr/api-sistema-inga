@@ -6,9 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { mapSingleResult } from '../../../common/helpers/auth-response.helper';
+import {
+  mapListResult,
+  mapSingleResult,
+} from '../../../common/helpers/auth-response.helper';
 import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
+import { FiltroPedidoDto } from '../dto/pedido.dto';
 import { AccionPedido, PedidoModel } from '../models/pedido.model';
 
 @Injectable()
@@ -17,6 +21,10 @@ export class PedidoLogic {
     private readonly model: PedidoModel,
     private readonly config: ConfigService,
   ) {}
+
+  async listar(filtros: FiltroPedidoDto) {
+    return mapListResult(await this.model.listar(filtros), filtros);
+  }
 
   obtener(id: number) {
     return this.resolver(() => this.model.obtener(id));

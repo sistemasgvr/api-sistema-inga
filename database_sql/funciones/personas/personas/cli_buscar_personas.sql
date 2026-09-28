@@ -1,16 +1,3 @@
--- Buscador rápido de personas, pensado para los autocompletar de otras pantallas.
---
--- Existe aparte de cli_listar_personas porque resuelve un problema distinto:
---   - cli_listar_personas alimenta la tabla del maestro: pagina, cuenta totales
---     y trae la ficha completa. Es pesada y no la quiero corriendo en cada tecla.
---   - esta devuelve pocas columnas y como máximo 15 filas, para que el usuario
---     escriba y vea sugerencias al instante.
---
--- Los requerimientos la piden en dos sitios:
---   M07 → "buscador de proveedor" en el alta de compra
---   M12 → "buscador de persona por nombre o documento" en el cobro a crédito
--- Por eso el parámetro p_rol: cada pantalla pide solo lo suyo y no se arriesga a
--- que el cajero elija por error a un proveedor como cliente a crédito.
 CREATE OR REPLACE FUNCTION cli_buscar_personas(
     p_busqueda VARCHAR DEFAULT '',
     p_rol VARCHAR DEFAULT NULL,
@@ -38,6 +25,8 @@ BEGIN
                             COALESCE(p.apellido_materno, '')), ''),
                 p.razon_social
             ) AS nombre_completo,
+            p.telefono,
+            p.direccion,
             p.es_cliente,
             p.es_proveedor,
             p.id_convenio,
@@ -68,7 +57,7 @@ BEGIN
           )
           AND (
               p_busqueda = ''
-              OR p.num_documento LIKE '%' || p_busqueda || '%'
+              OR COALESCE(p.num_documento, '') LIKE '%' || p_busqueda || '%'
               OR LOWER(COALESCE(p.razon_social, '')) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(
                   TRIM(COALESCE(p.nombres, '') || ' ' ||
@@ -79,7 +68,7 @@ BEGIN
         ORDER BY
             -- Primero lo que empieza igual a lo tecleado: si escribo "456",
             -- el documento 45612345 sale antes que el 12345645.
-            CASE WHEN p.num_documento LIKE p_busqueda || '%' THEN 0 ELSE 1 END,
+            CASE WHEN COALESCE(p.num_documento, '') LIKE p_busqueda || '%' THEN 0 ELSE 1 END,
             COALESCE(
                 NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),
                 p.razon_social

@@ -3,5 +3,5 @@
 \set ON_ERROR_STOP on
 BEGIN;
 \ir funciones/general/listas/gen_listar_listas.sql
-\ir funciones/general/listas/gen_obtener_lista_opciones.sql
+\ir funciones/general/listas/gen_obtener_opciones_lista.sql
 COMMIT;

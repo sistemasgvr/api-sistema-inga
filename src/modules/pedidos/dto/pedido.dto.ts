@@ -1,20 +1,23 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
+import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
 
 export class AbrirPedidoDto {
   @ApiProperty({ enum: [1, 2, 3] })
@@ -33,6 +36,11 @@ export class AbrirPedidoDto {
   id_sucursal?: number;
   @ApiProperty() @IsInt() @Min(1) id_mozo!: number;
   @ApiProperty() @IsInt() @Min(1) id_turno!: number;
+  @ApiPropertyOptional({ description: 'Cliente (cli_persona) del pedido' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id_persona?: number;
   @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
@@ -134,4 +142,33 @@ export class EstadoPedidoDto {
   @IsNotEmpty()
   @MaxLength(2000)
   motivo?: string;
+}
+
+export class FiltroPedidoDto extends FiltroPaginacionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
+
+  @ApiPropertyOptional({
+    example: '2,3',
+    description:
+      'Tipos de pedido separados por coma (1 mesa, 2 llevar, 3 delivery)',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[1-3](,[1-3])*$/)
+  tipos_pedido?: string;
+
+  @ApiPropertyOptional({
+    description: 'Solo pedidos abiertos, comandados o por cobrar',
+  })
+  @IsOptional()
+  @Transform(
+    ({ value }: { value: unknown }) => value === true || value === 'true',
+  )
+  @IsBoolean()
+  en_curso?: boolean;
 }

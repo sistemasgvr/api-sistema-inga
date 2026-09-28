@@ -69,8 +69,8 @@ export class PersonasLogic {
   async crear(dto: CreatePersonaDto) {
     const datos = this.normalizarPorTipo(dto.tipo_persona, {
       tipoPersona: dto.tipo_persona,
-      tipoDocumento: dto.tipo_documento,
-      numDocumento: dto.num_documento,
+      tipoDocumento: dto.tipo_documento ?? null,
+      numDocumento: dto.num_documento ?? null,
       razonSocial: dto.razon_social ?? null,
       nombres: dto.nombres ?? null,
       apellidoPaterno: dto.apellido_paterno ?? null,
@@ -84,7 +84,10 @@ export class PersonasLogic {
       idConvenio: dto.id_convenio ?? null,
     });
 
-    const result = await this.personasModel.crear(datos, dto.idUsuarioAuditoria);
+    const result = await this.personasModel.crear(
+      datos,
+      dto.idUsuarioAuditoria,
+    );
     return mapSingleResult(result, 'No se pudo crear la persona');
   }
 

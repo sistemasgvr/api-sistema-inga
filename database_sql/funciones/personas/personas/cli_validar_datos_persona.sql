@@ -1,16 +1,3 @@
--- Valida los datos de una persona y devuelve el mensaje de error, o NULL si todo está bien.
---
--- La saqué a una función aparte porque crear y actualizar necesitan exactamente
--- las mismas reglas. Si las dejaba copiadas en las dos, tarde o temprano alguien
--- iba a corregir una y olvidarse de la otra.
---
--- Devuelve TEXT (no JSON) para que quien la llame arme la respuesta como le
--- convenga; así también sirve el día que la necesite una carga masiva.
---
--- Las reglas salen de los requerimientos:
---   M07 → un proveedor se elige por es_proveedor = TRUE
---   M12 → cobrar a crédito exige es_cliente = TRUE y un convenio activo
---   M13 → para factura el receptor debe tener RUC de 11 dígitos y ser jurídica
 CREATE OR REPLACE FUNCTION cli_validar_datos_persona(
     p_tipo_persona SMALLINT,
     p_tipo_documento SMALLINT,
@@ -37,13 +24,11 @@ BEGIN
         RETURN 'El tipo de persona debe ser natural o jurídica';
     END IF;
 
+    -- El documento es opcional (ej. clientes de delivery que solo dan nombre y
+    -- teléfono). Si se envía, debe venir con su tipo y cumplir el formato.
     -- 1 = DNI, 4 = CE, 6 = RUC (catálogo DOCUMENTO_TIPO, códigos SUNAT)
-    IF p_tipo_documento NOT IN (1, 4, 6) THEN
+    IF v_doc IS NOT NULL AND (p_tipo_documento IS NULL OR p_tipo_documento NOT IN (1, 4, 6)) THEN
         RETURN 'El tipo de documento debe ser DNI, RUC o carné de extranjería';
-    END IF;
-
-    IF v_doc IS NULL THEN
-        RETURN 'El número de documento es obligatorio';
     END IF;
 
     IF p_tipo_documento = 1 AND v_doc !~ '^[0-9]{8}$' THEN
@@ -61,7 +46,7 @@ BEGIN
     -- Una empresa siempre va con RUC y razón social. Esto es lo que después
     -- permite emitir factura (M13) sin tener que pedir los datos de nuevo.
     IF p_tipo_persona = 2 THEN
-        IF p_tipo_documento <> 6 THEN
+        IF v_doc IS NULL OR p_tipo_documento IS DISTINCT FROM 6 THEN
             RETURN 'Una persona jurídica debe identificarse con RUC';
         END IF;
         IF NULLIF(TRIM(p_razon_social), '') IS NULL THEN

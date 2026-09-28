@@ -6,7 +6,10 @@ CREATE OR REPLACE FUNCTION ven_listar_mesas(p_f JSONB) RETURNS JSON LANGUAGE sql
       AND (COALESCE(p_f->>'estado', 'activos') = 'todos' OR m.estado = CASE WHEN p_f->>'estado' = 'inactivos' THEN 0 ELSE 1 END)
       AND m.codigo ILIKE '%' || COALESCE(p_f->>'buscar', '') || '%'
   ), pagina AS (
-    SELECT * FROM filtrados ORDER BY codigo, id
+    SELECT f.*, (SELECT p.id FROM ven_pedido p
+                 WHERE p.id_mesa = f.id AND p.estado = 1 AND p.estado_pedido IN (1,2,3)
+                 ORDER BY p.id DESC LIMIT 1) AS id_pedido_activo
+    FROM filtrados f ORDER BY f.codigo, f.id
     LIMIT COALESCE((p_f->>'limite')::INTEGER, 10) OFFSET COALESCE((p_f->>'offset')::INTEGER, 0)
   )
   SELECT json_build_object('registros', COALESCE((SELECT json_agg(p) FROM pagina p), '[]'::JSON),

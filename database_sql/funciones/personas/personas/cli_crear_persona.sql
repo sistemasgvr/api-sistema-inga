@@ -1,8 +1,3 @@
--- Creo una persona (cliente, proveedor o ambos).
---
--- Toda la validación de forma la delego en cli_validar_datos_persona para no
--- repetirla. Acá solo me encargo de lo propio del alta: el documento duplicado
--- y el INSERT.
 CREATE OR REPLACE FUNCTION cli_crear_persona(
     p_tipo_persona SMALLINT,
     p_tipo_documento SMALLINT,
@@ -48,9 +43,10 @@ BEGIN
     -- existe pero está inactiva, le digo al usuario que la reactive en vez de
     -- dejarlo peleando con un error de "documento repetido" sobre alguien que
     -- no ve en la lista.
+    -- Sin documento no hay duplicado que buscar (el UNIQUE admite varios NULL).
     SELECT id, estado INTO v_existente
     FROM cli_persona
-    WHERE tipo_documento = p_tipo_documento AND num_documento = v_doc;
+    WHERE v_doc IS NOT NULL AND tipo_documento = p_tipo_documento AND num_documento = v_doc;
 
     IF FOUND THEN
         IF v_existente.estado = 0 THEN
@@ -86,7 +82,7 @@ BEGIN
     )
     VALUES (
         p_tipo_persona,
-        p_tipo_documento,
+        CASE WHEN v_doc IS NULL THEN NULL ELSE p_tipo_documento END,
         v_doc,
         NULLIF(TRIM(p_razon_social), ''),
         NULLIF(TRIM(p_nombres), ''),

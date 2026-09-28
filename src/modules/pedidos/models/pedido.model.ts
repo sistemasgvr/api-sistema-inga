@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../../database/database.service';
-import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
+import {
+  AuthListResult,
+  AuthSingleResult,
+} from '../../../common/interfaces/auth-db.interface';
+import { FiltroPedidoDto } from '../dto/pedido.dto';
 
 export type AccionPedido =
   | 'abrir'
@@ -9,11 +13,17 @@ export type AccionPedido =
   | 'anular_item'
   | 'comandar'
   | 'estado'
-  | 'anular';
-
+  | 'anular'
+  | 'descartar';
 @Injectable()
 export class PedidoModel {
   constructor(private readonly db: DatabaseService) {}
+
+  listar(filtros: FiltroPedidoDto) {
+    return this.db.callFunctionJson<AuthListResult>('ven_listar_pedidos', [
+      JSON.stringify({ ...filtros, offset: filtros.offset }),
+    ]);
+  }
 
   obtener(id: number) {
     return this.db.callFunctionJson<AuthSingleResult>('ven_obtener_pedido', [

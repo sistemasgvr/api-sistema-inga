@@ -1,7 +1,4 @@
-CREATE OR REPLACE FUNCTION gen_obtener_lista_opciones(
-  p_id BIGINT DEFAULT NULL,
-  p_codigo VARCHAR DEFAULT NULL
-)
+CREATE OR REPLACE FUNCTION gen_obtener_opciones_lista(p_id BIGINT)
 RETURNS JSON
 LANGUAGE sql
 AS $function$
@@ -21,9 +18,7 @@ AS $function$
       ), '[]'::JSON)
     )
     FROM gen_lista l
-    WHERE l.estado = 1
-      AND ((p_id IS NOT NULL AND p_codigo IS NULL AND l.id = p_id)
-        OR (p_id IS NULL AND p_codigo IS NOT NULL AND l.codigo = upper(trim(p_codigo))))
+    WHERE l.id = p_id AND l.estado = 1
+    LIMIT 1
   ));
 $function$;
-x 

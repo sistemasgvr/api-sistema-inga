@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -20,6 +21,7 @@ import {
   AnularPedidoDto,
   EditarItemDto,
   EstadoPedidoDto,
+  FiltroPedidoDto,
 } from '../dto/pedido.dto';
 import { PedidoLogic } from '../logic/pedido.logic';
 
@@ -29,6 +31,13 @@ type AuthRequest = Request & { user: AuthenticatedUser };
 @Controller('pedidos')
 export class PedidosController {
   constructor(private readonly logic: PedidoLogic) {}
+
+  @Get()
+  @Permisos(P.PEDIDOS_VER)
+  @ApiOperation({ summary: 'Listar pedidos con filtros y paginación' })
+  listar(@Query() filtros: FiltroPedidoDto) {
+    return this.logic.listar(filtros);
+  }
 
   @Get(':id')
   @Permisos(P.PEDIDOS_VER)
@@ -117,5 +126,14 @@ export class PedidosController {
     @Req() req: AuthRequest,
   ) {
     return this.logic.ejecutar('anular', id, null, dto, req.user);
+  }
+
+  @Post(':id/descartar')
+  @Permisos(P.PEDIDOS_ABRIR)
+  @ApiOperation({
+    summary: 'Descartar un pedido abierto sin productos (solo quien lo abrió)',
+  })
+  descartar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    return this.logic.ejecutar('descartar', id, null, {}, req.user);
   }
 }

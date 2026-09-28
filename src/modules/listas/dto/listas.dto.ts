@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
-import { IsInt, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, Max, Min } from 'class-validator';
 
 export class ListaIdParamDto {
   @ApiProperty({ example: 7, description: 'ID real de gen_lista' })
@@ -9,17 +9,6 @@ export class ListaIdParamDto {
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)
   id!: number;
-}
-
-export class ListaCodigoParamDto {
-  @ApiProperty({ example: 'MESA_ESTADO', maxLength: 50 })
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
-  @IsString()
-  @MaxLength(50)
-  @Matches(/^[A-Z][A-Z0-9_]*$/)
-  codigo!: string;
 }
 
 export interface ListaItem {

@@ -69,7 +69,9 @@ export class PersonasModel {
   }
 
   obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_persona', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_persona', [
+      id,
+    ]);
   }
 
   crear(datos: PersonaDbParams, idUsuarioAuditoria?: number) {
@@ -98,25 +100,28 @@ export class PersonasModel {
     quitarConvenio: boolean,
     idUsuarioAuditoria?: number,
   ) {
-    return this.db.callFunctionJson<AuthSingleResult>('cli_actualizar_persona', [
-      id,
-      datos.tipoPersona,
-      datos.tipoDocumento,
-      datos.numDocumento,
-      datos.razonSocial,
-      datos.nombres,
-      datos.apellidoPaterno,
-      datos.apellidoMaterno,
-      datos.direccion,
-      datos.idDistrito,
-      datos.telefono,
-      datos.email,
-      datos.esCliente,
-      datos.esProveedor,
-      datos.idConvenio,
-      quitarConvenio,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'cli_actualizar_persona',
+      [
+        id,
+        datos.tipoPersona,
+        datos.tipoDocumento,
+        datos.numDocumento,
+        datos.razonSocial,
+        datos.nombres,
+        datos.apellidoPaterno,
+        datos.apellidoMaterno,
+        datos.direccion,
+        datos.idDistrito,
+        datos.telefono,
+        datos.email,
+        datos.esCliente,
+        datos.esProveedor,
+        datos.idConvenio,
+        quitarConvenio,
+        idUsuarioAuditoria ?? null,
+      ],
+    );
   }
 
   eliminar(id: number, idUsuarioAuditoria?: number) {

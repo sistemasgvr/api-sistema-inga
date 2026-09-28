@@ -9,7 +9,6 @@ import jwtConfig from './config/jwt.config';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { LoginModule } from './modules/login/login.module';
-import { GeneralListasModule } from './modules/general/general-listas.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermisosModule } from './modules/permisos/permisos.module';
@@ -47,7 +46,6 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     LoginModule,
     DatabaseModule,
     SupabaseStorageModule,
-    GeneralListasModule,
     UsuariosModule,
     RolesModule,
     PermisosModule,

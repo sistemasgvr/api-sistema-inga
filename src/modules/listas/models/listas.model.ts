@@ -11,10 +11,10 @@ export class ListasModel {
     return this.db.callFunctionJson<ListaItem[]>('gen_listar_listas');
   }
 
-  obtenerOpciones(id: number | null, codigo: string | null) {
+  obtenerOpciones(id: number) {
     return this.db.callFunctionJson<AuthSingleResult<ListaConOpciones>>(
-      'gen_obtener_lista_opciones',
-      [id, codigo],
+      'gen_obtener_opciones_lista',
+      [id],
     );
   }
 }
