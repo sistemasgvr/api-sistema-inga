@@ -31,8 +31,8 @@ BEGIN
         INNER JOIN gen_sucursal s ON e.id_sucursal = s.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = e.tipo_estacion 
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'ESTACION_TIPO')
-        LEFT JOIN auth_usuario uc ON e.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um ON e.id_usuario_modificacion = um.id
+        LEFT JOIN auth_usuario_datos uc ON e.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um ON e.id_usuario_modificacion = um.id
         WHERE e.id = p_id AND e.estado = 1
     ) t;
 

@@ -29,7 +29,7 @@ BEGIN
         RETURN json_build_object('error', 'La caja indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM auth_usuario WHERE id = p_id_cajero AND estado = 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM auth_usuario_datos WHERE id = p_id_cajero AND estado = 1) THEN
         RETURN json_build_object('error', 'El cajero indicado no existe o está inactivo', 'registro', NULL);
     END IF;
 
@@ -41,7 +41,7 @@ BEGIN
     SELECT t.id, TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS cajero
     INTO v_turno_abierto
     FROM caj_turno t
-    INNER JOIN auth_usuario u ON t.id_cajero = u.id
+    INNER JOIN auth_usuario_datos u ON t.id_cajero = u.id
     WHERE t.id_caja = p_id_caja AND t.estado_turno = 1 AND t.estado = 1
     LIMIT 1;
 

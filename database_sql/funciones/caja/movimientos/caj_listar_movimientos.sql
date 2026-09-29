@@ -36,8 +36,8 @@ BEGIN
             TRIM(COALESCE(uc.nombres, '') || ' ' || COALESCE(uc.apellidos, '')) AS nombre_registra,
             m.fecha_creacion
         FROM caj_movimiento m
-        LEFT JOIN auth_usuario ua ON m.id_usuario_autoriza = ua.id
-        LEFT JOIN auth_usuario uc ON m.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos ua ON m.id_usuario_autoriza = ua.id
+        LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = m.tipo_movimiento
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'CAJA_MOV_TIPO')
         WHERE m.id_turno = p_id_turno AND m.estado = 1

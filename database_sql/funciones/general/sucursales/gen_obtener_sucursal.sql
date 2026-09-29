@@ -23,7 +23,7 @@ BEGIN
             s.fecha_modificacion,
             (
                 SELECT COUNT(*)
-                FROM auth_usuario u
+                FROM auth_usuario_datos u
                 WHERE u.id_sucursal_default = s.id AND u.estado = 1
             ) AS total_usuarios
         FROM gen_sucursal s

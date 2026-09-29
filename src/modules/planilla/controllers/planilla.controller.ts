@@ -30,12 +30,11 @@ import { PlanillaLogic } from '../logic/planilla.logic';
 export class PlanillaController {
   constructor(private readonly planillaLogic: PlanillaLogic) {}
 
-  /* ---------------------------- Trabajadores ---------------------------- */
-
   @Get('trabajadores')
   @Permisos(PermisoBanderas.TRABAJADORES_LISTAR)
   @ApiOperation({
-    summary: 'Listar trabajadores, con lo pagado en el período y su último pago',
+    summary:
+      'Listar trabajadores, con lo pagado en el período y su último pago',
   })
   listarTrabajadores(@Query() filtros: FiltroTrabajadoresDto) {
     return this.planillaLogic.listarTrabajadores(filtros);
@@ -89,8 +88,6 @@ export class PlanillaController {
     return this.planillaLogic.eliminarTrabajador(id, dto.idUsuarioAuditoria);
   }
 
-  /* -------------------------------- Pagos -------------------------------- */
-
   @Get('pagos')
   @Permisos(PermisoBanderas.PLANILLA_PAGOS_LISTAR)
   @ApiOperation({
@@ -100,9 +97,6 @@ export class PlanillaController {
     return this.planillaLogic.listarPagos(filtros);
   }
 
-  // Va antes de 'pagos/:id' porque Nest resuelve las rutas en orden de
-  // declaración: si ':id' fuera primero, capturaría la palabra "reporte" y el
-  // ParseIntPipe devolvería un 400.
   @Get('pagos/reporte')
   @Permisos(PermisoBanderas.PLANILLA_PAGOS_LISTAR)
   @ApiOperation({
@@ -133,10 +127,18 @@ export class PlanillaController {
   @Delete('pagos/:id')
   @Permisos(PermisoBanderas.PLANILLA_PAGOS_ANULAR)
   @ApiOperation({
-    summary: 'Anular pago (falla si fue en efectivo y su turno ya está cerrado)',
+    summary:
+      'Anular pago (falla si fue en efectivo y su turno ya está cerrado)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  anularPago(@Param('id', ParseIntPipe) id: number, @Body() dto: AnularPagoDto) {
-    return this.planillaLogic.anularPago(id, dto.motivo, dto.idUsuarioAuditoria);
+  anularPago(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AnularPagoDto,
+  ) {
+    return this.planillaLogic.anularPago(
+      id,
+      dto.motivo,
+      dto.idUsuarioAuditoria,
+    );
   }
 }

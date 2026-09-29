@@ -58,8 +58,8 @@ BEGIN
             c.id_usuario_modificacion,
             um2.nombres AS nombre_usuario_modificacion
         FROM pro_categoria c
-        LEFT JOIN auth_usuario uc ON c.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um2 ON c.id_usuario_modificacion = um2.id
+        LEFT JOIN auth_usuario_datos uc ON c.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um2 ON c.id_usuario_modificacion = um2.id
         WHERE (p_solo_activos IS NULL OR c.estado = p_solo_activos)
           AND (p_es_carta IS NULL OR c.es_carta = p_es_carta)
           AND (

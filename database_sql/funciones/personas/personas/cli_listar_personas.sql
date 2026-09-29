@@ -106,8 +106,8 @@ BEGIN
             AND lp.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'PERSONA_TIPO')
         LEFT JOIN gen_lista_opcion ld ON ld.valor_entero = p.tipo_documento
             AND ld.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'DOCUMENTO_TIPO')
-        LEFT JOIN auth_usuario uc ON p.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um ON p.id_usuario_modificacion = um.id
+        LEFT JOIN auth_usuario_datos uc ON p.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um ON p.id_usuario_modificacion = um.id
         WHERE (p_estado IS NULL OR p.estado = p_estado)
           AND (p_id_convenio IS NULL OR p.id_convenio = p_id_convenio)
           AND (

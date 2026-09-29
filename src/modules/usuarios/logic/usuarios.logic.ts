@@ -3,6 +3,7 @@ import {
   ConflictException,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   mapActivateResult,
@@ -18,10 +19,19 @@ import { UsuariosModel } from '../models/usuarios.model';
 export class UsuariosLogic {
   constructor(private readonly usuariosModel: UsuariosModel) {}
 
-  // Mismo caso que sucursales: devolvía `{ data, meta }` a mano y el
-  // TransformResponseInterceptor lo volvía a envolver, dejando la carga
-  // anidada dos veces. Lo alineo con mapListResult, que es lo que usan los
-  // demás módulos y lo que el front espera.
+  trabajadoresDisponibles() {
+    return this.usuariosModel.trabajadoresDisponibles();
+  }
+
+  async trabajadorDisponible(id: number) {
+    const [trabajador] = await this.usuariosModel.trabajadoresDisponibles(id);
+    if (!trabajador)
+      throw new NotFoundException(
+        'El trabajador ya tiene usuario, está inactivo o no tiene correo.',
+      );
+    return trabajador;
+  }
+
   async listar(filtros: FiltroUsuarioDto) {
     const result = await this.usuariosModel.listar(filtros);
     return mapListResult(result, filtros);
@@ -39,13 +49,9 @@ export class UsuariosLogic {
 
       const result = await this.usuariosModel.crear(
         dto.username,
-        dto.email,
+        dto.idTrabajador,
         passwordHash,
-        dto.nombres,
-        dto.apellidos,
-        dto.telefono,
         pinHash,
-        dto.idSucursalDefault ?? null,
         dto.rolesIds ?? [],
         dto.idUsuarioAuditoria,
       );
@@ -61,20 +67,13 @@ export class UsuariosLogic {
         ? await UsuariosModel.hashPassword(dto.password)
         : null;
 
-      const pinHash = dto.pin
-        ? await UsuariosModel.hashPin(dto.pin)
-        : null;
+      const pinHash = dto.pin ? await UsuariosModel.hashPin(dto.pin) : null;
 
       const result = await this.usuariosModel.actualizar(
         id,
         dto.username ?? null,
-        dto.email ?? null,
         passwordHash,
         pinHash,
-        dto.nombres ?? null,
-        dto.apellidos ?? null,
-        dto.telefono ?? null,
-        dto.idSucursalDefault ?? null,
         dto.rolesIds ?? null,
         dto.idUsuarioAuditoria,
       );
@@ -87,7 +86,10 @@ export class UsuariosLogic {
   async eliminar(id: number, idUsuarioAuditoria?: number) {
     try {
       const result = await this.usuariosModel.eliminar(id, idUsuarioAuditoria);
-      return mapDeleteResult(result, `Usuario con ID ${id} no encontrado o ya desactivado`);
+      return mapDeleteResult(
+        result,
+        `Usuario con ID ${id} no encontrado o ya desactivado`,
+      );
     } catch (error: any) {
       this.handleDatabaseException(error);
     }
@@ -96,7 +98,10 @@ export class UsuariosLogic {
   async activar(id: number, idUsuarioAuditoria?: number) {
     try {
       const result = await this.usuariosModel.activar(id, idUsuarioAuditoria);
-      return mapActivateResult(result, `Usuario con ID ${id} no encontrado o ya activo`);
+      return mapActivateResult(
+        result,
+        `Usuario con ID ${id} no encontrado o ya activo`,
+      );
     } catch (error: any) {
       this.handleDatabaseException(error);
     }
@@ -116,9 +121,13 @@ export class UsuariosLogic {
         throw new ConflictException(cleanMessage);
       }
 
-      throw new BadRequestException(cleanMessage || 'Error al procesar la solicitud');
+      throw new BadRequestException(
+        cleanMessage || 'Error al procesar la solicitud',
+      );
     }
 
-    throw new InternalServerErrorException('Error interno al procesar la solicitud');
+    throw new InternalServerErrorException(
+      'Error interno al procesar la solicitud',
+    );
   }
 }

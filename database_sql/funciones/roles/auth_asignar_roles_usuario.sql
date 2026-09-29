@@ -11,7 +11,7 @@ DECLARE
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF NOT EXISTS (SELECT 1 FROM auth_usuario WHERE id = p_id_usuario AND estado = 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM auth_usuario_datos WHERE id = p_id_usuario AND estado = 1) THEN
         RETURN json_build_object('error', 'El usuario especificado no existe o está inactivo', 'registro', NULL);
     END IF;
 

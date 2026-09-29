@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsEmail,
+  ValidateIf,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -67,6 +69,19 @@ export class FiltroTrabajadoresDto extends FiltroPaginacionDto {
 }
 
 export class CreateTrabajadorDto extends AuditoriaDto {
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional()
+  @ValidateIf((_object, value) => value !== '')
+  @IsEmail()
+  @MaxLength(255)
+  email?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  telefono?: string;
+
   @ApiProperty({ example: 'María', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -113,6 +128,19 @@ export class CreateTrabajadorDto extends AuditoriaDto {
 }
 
 export class UpdateTrabajadorDto extends AuditoriaDto {
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional()
+  @ValidateIf((_object, value) => value !== '')
+  @IsEmail()
+  @MaxLength(255)
+  email?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  telefono?: string;
+
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()

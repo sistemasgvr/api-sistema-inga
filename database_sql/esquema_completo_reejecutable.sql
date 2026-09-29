@@ -261,22 +261,16 @@ CREATE TABLE IF NOT EXISTS gen_sucursal (
 -- Utilidad: usuarios que entran al sistema (login, PIN de mozo).
 CREATE TABLE IF NOT EXISTS auth_usuario (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_trabajador           BIGINT NOT NULL UNIQUE,
     username                VARCHAR(80)  NOT NULL,
-    email                   VARCHAR(255) NOT NULL,
     password_hash           VARCHAR(255) NOT NULL,
     pin_hash                VARCHAR(255),
-    nombres                 VARCHAR(100) NOT NULL,
-    apellidos               VARCHAR(100) NOT NULL,
-    telefono                VARCHAR(20),
-    id_sucursal_default     BIGINT,
     es_super_admin          BOOLEAN NOT NULL DEFAULT FALSE,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_auth_usuario_username UNIQUE (username),
-    CONSTRAINT uq_auth_usuario_email UNIQUE (email),
-    CONSTRAINT ck_auth_usuario_estado CHECK (estado IN (0, 1)),
-    CONSTRAINT fk_usuario_sucursal_default FOREIGN KEY (id_sucursal_default) REFERENCES gen_sucursal (id)
+    CONSTRAINT ck_auth_usuario_estado CHECK (estado IN (0, 1))
 );
 
 -- Auditoría: FK a auth_usuario (tablas creadas antes por dependencia circular con sucursal).
@@ -1258,7 +1252,10 @@ CREATE TABLE IF NOT EXISTS ven_salon (
     id_sucursal             BIGINT       NOT NULL,
     codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
-    orden                   INTEGER      NOT NULL DEFAULT 0,
+    posicion_x              NUMERIC(10,2) NOT NULL DEFAULT 0,
+    posicion_y              NUMERIC(10,2) NOT NULL DEFAULT 0,
+    ancho                   NUMERIC(10,2) NOT NULL DEFAULT 200,
+    alto                    NUMERIC(10,2) NOT NULL DEFAULT 150,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
@@ -1488,32 +1485,32 @@ CREATE TABLE IF NOT EXISTS ven_pago (
 -- KDS
 -- =============================================================================
 
--- Utilidad: ticket en pantalla de cocina/barra (tiempos y estado de preparación).
-CREATE TABLE IF NOT EXISTS kds_ticket (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_comanda              BIGINT       NOT NULL,
-    id_pedido_detalle       BIGINT       NOT NULL,
-    id_estacion             BIGINT       NOT NULL,
-    estado_kds              SMALLINT     NOT NULL DEFAULT 1,
-    fecha_envio             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_inicio            TIMESTAMPTZ,
-    fecha_listo             TIMESTAMPTZ,
-    tiempo_prep_min         INTEGER,
-    alerta_tiempo           BOOLEAN      NOT NULL DEFAULT FALSE,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_kds_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
-    CONSTRAINT fk_kds_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
-    CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
-    CONSTRAINT fk_kds_ticket_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_kds_ticket_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
+    -- Utilidad: ticket en pantalla de cocina/barra (tiempos y estado de preparación).
+    CREATE TABLE IF NOT EXISTS kds_ticket (
+        id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        id_comanda              BIGINT       NOT NULL,
+        id_pedido_detalle       BIGINT       NOT NULL,
+        id_estacion             BIGINT       NOT NULL,
+        estado_kds              SMALLINT     NOT NULL DEFAULT 1,
+        fecha_envio             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        fecha_inicio            TIMESTAMPTZ,
+        fecha_listo             TIMESTAMPTZ,
+        tiempo_prep_min         INTEGER,
+        alerta_tiempo           BOOLEAN      NOT NULL DEFAULT FALSE,
+        estado                  SMALLINT     NOT NULL DEFAULT 1,
+        id_usuario_creacion     BIGINT,
+        id_usuario_modificacion BIGINT,
+        fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_kds_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
+        CONSTRAINT fk_kds_detalle FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id),
+        CONSTRAINT fk_kds_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
+        CONSTRAINT fk_kds_ticket_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+        CONSTRAINT fk_kds_ticket_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    );
 
--- =============================================================================
--- CXC — crédito consorcio (Billy Reaño / GVR / 4G / etc.)
+    -- =============================================================================
+    -- CXC — crédito consorcio (Billy Reaño / GVR / 4G / etc.)
 -- =============================================================================
 
 -- Utilidad: cuenta por cobrar: consumo y pagos a quincena/fin de mes por persona.
@@ -1573,6 +1570,8 @@ CREATE TABLE IF NOT EXISTS pla_trabajador (
     id_sucursal             BIGINT,
     nombres                 VARCHAR(100) NOT NULL,
     apellidos               VARCHAR(100) NOT NULL,
+    email                   VARCHAR(255),
+    telefono                VARCHAR(20),
     num_documento           VARCHAR(20),
     puesto                  VARCHAR(100),
     sueldo_referencial      NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -1587,6 +1586,20 @@ CREATE TABLE IF NOT EXISTS pla_trabajador (
     CONSTRAINT fk_pla_trabajador_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_pla_trabajador_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pla_trabajador_email ON pla_trabajador (LOWER(email)) WHERE email IS NOT NULL;
+DO $mig$ BEGIN
+    ALTER TABLE auth_usuario ADD CONSTRAINT fk_auth_usuario_trabajador FOREIGN KEY (id_trabajador) REFERENCES pla_trabajador(id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+CREATE OR REPLACE VIEW auth_usuario_datos AS
+SELECT u.id, u.username, u.password_hash, u.pin_hash, u.es_super_admin,
+       u.estado, u.fecha_creacion, u.fecha_modificacion, u.id_trabajador,
+       t.nombres, t.apellidos, t.email, t.telefono,
+       t.id_sucursal AS id_sucursal_default, t.estado AS estado_trabajador
+FROM auth_usuario u
+JOIN pla_trabajador t ON t.id = u.id_trabajador;
+
 
 COMMENT ON COLUMN pla_trabajador.sueldo_referencial IS
     'Monto habitual de la quincena. Solo sugiere el importe al registrar el pago; el pago real puede diferir.';
@@ -2013,15 +2026,6 @@ WHERE p.es_cliente = TRUE AND p.estado = 1
 GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento,
          p.id_convenio, c.nombre, c.limite_credito;
 
--- Saldo deudor por proveedor. Espejo de vw_cxc_saldo_persona.
---
--- Positivo = le debemos a ese proveedor. La resta va al reves que en CxC:
--- alla el cargo es lo que el cliente consume, aca el cargo es lo que nosotros
--- compramos a credito, y el abono es lo que le pagamos.
---
--- Solo lista proveedores (es_proveedor = TRUE) e incluye a los que estan en
--- cero: el dashboard necesita mostrar la lista completa, no solo a quienes
--- tienen deuda hoy.
 CREATE OR REPLACE VIEW vw_cxp_saldo_proveedor AS
 SELECT
     p.id AS id_persona,
@@ -2132,7 +2136,7 @@ SELECT l.id, v.codigo, v.nombre, v.valor, v.orden
 FROM gen_lista l
 JOIN (
     VALUES
-    ('PRODUCTO_TIPO', 'INSUMO_CRUDO', 'Insumo crudo / almacén', 1, 1),
+    ('PRODUCTO_TIPO', 'INSUMO_CRUDO', 'Insumo crudo / almacén', 1, 1), /*No tienen receta, se compran y se venden tal cual.*/
     ('PRODUCTO_TIPO', 'INSUMO_PROCESADO', 'Insumo procesado / receta', 2, 2),
     ('PRODUCTO_TIPO', 'PLATO_CARTA', 'Plato a la carta', 3, 3),
     ('PRODUCTO_TIPO', 'PLATO_MENU', 'Plato de menú', 4, 4),

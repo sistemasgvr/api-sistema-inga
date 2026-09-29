@@ -20,7 +20,7 @@ RETURNS JSON LANGUAGE sql AS $$
       (SELECT COALESCE(NULLIF(trim(concat_ws(' ', c.nombres, c.apellido_paterno, c.apellido_materno)), ''), c.razon_social)
         FROM cli_persona c WHERE c.id = f.id_persona) AS nombre_cliente,
       (SELECT c.telefono FROM cli_persona c WHERE c.id = f.id_persona) AS telefono_cliente,
-      (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario u WHERE u.id = f.id_mozo) AS nombre_mozo,
+      (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario_datos u WHERE u.id = f.id_mozo) AS nombre_mozo,
       (SELECT count(*) FROM ven_pedido_detalle d WHERE d.id_pedido = f.id AND d.estado = 1 AND d.tipo_linea <> 3) AS cantidad_items
     FROM filtrados f ORDER BY f.fecha_apertura DESC, f.id DESC
     LIMIT COALESCE((p_f->>'limite')::INTEGER, 10) OFFSET COALESCE((p_f->>'offset')::INTEGER, 0)

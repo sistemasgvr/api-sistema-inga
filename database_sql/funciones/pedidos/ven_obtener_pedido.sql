@@ -6,7 +6,7 @@ RETURNS JSON LANGUAGE sql AS $$
       'nombre_cliente', (SELECT COALESCE(NULLIF(trim(concat_ws(' ', c.nombres, c.apellido_paterno, c.apellido_materno)), ''), c.razon_social)
         FROM cli_persona c WHERE c.id = p.id_persona),
       'telefono_cliente', (SELECT c.telefono FROM cli_persona c WHERE c.id = p.id_persona),
-      'nombre_mozo', (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario u WHERE u.id = p.id_mozo),
+      'nombre_mozo', (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario_datos u WHERE u.id = p.id_mozo),
       'items', COALESCE((SELECT jsonb_agg(to_jsonb(d) || jsonb_build_object(
         'nombre_producto', pr.nombre,
         'adicionales', COALESCE((SELECT jsonb_agg(to_jsonb(a) || jsonb_build_object('nombre', pa.nombre) ORDER BY a.id)

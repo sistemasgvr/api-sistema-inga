@@ -37,8 +37,8 @@ BEGIN
             um.nombres AS nombre_usuario_modificacion
         FROM cli_convenio c
         INNER JOIN gen_condicion_pago cp ON c.id_condicion_pago = cp.id
-        LEFT JOIN auth_usuario uc ON c.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um ON c.id_usuario_modificacion = um.id
+        LEFT JOIN auth_usuario_datos uc ON c.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um ON c.id_usuario_modificacion = um.id
         WHERE c.id = p_id
     ) t;
 

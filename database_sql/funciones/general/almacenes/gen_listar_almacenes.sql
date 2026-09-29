@@ -69,8 +69,8 @@ BEGIN
         INNER JOIN gen_sucursal s ON a.id_sucursal = s.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = a.tipo_almacen 
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'ALMACEN_TIPO')
-        LEFT JOIN auth_usuario uc ON a.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um ON a.id_usuario_modificacion = um.id
+        LEFT JOIN auth_usuario_datos uc ON a.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um ON a.id_usuario_modificacion = um.id
         WHERE (p_estado IS NULL OR a.estado = p_estado)
           AND s.estado = 1
           AND (p_id_sucursal IS NULL OR a.id_sucursal = p_id_sucursal)

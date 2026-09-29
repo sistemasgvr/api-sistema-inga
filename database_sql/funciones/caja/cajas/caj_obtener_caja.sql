@@ -34,7 +34,7 @@ BEGIN
             WHERE t2.id_caja = c.id AND t2.estado_turno = 1 AND t2.estado = 1
             LIMIT 1
         ) ta ON TRUE
-        LEFT JOIN auth_usuario u ON ta.id_cajero = u.id
+        LEFT JOIN auth_usuario_datos u ON ta.id_cajero = u.id
         WHERE c.id = p_id
     ) t;
 

@@ -23,11 +23,11 @@ BEGIN
         )
     INTO v_valida, v_registro
     FROM auth_sesion s
-    INNER JOIN auth_usuario u ON s.id_usuario = u.id
+    INNER JOIN auth_usuario_datos u ON s.id_usuario = u.id
     WHERE s.refresh_token_hash = p_refresh_token_hash
       AND s.estado = 1
       AND s.fecha_expiracion > NOW()
-      AND u.estado = 1;
+      AND u.estado = 1 AND u.estado_trabajador = 1;
 
     IF NOT FOUND THEN
         RETURN json_build_object('valida', FALSE, 'registro', NULL);

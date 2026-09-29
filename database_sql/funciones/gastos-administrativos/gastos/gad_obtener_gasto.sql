@@ -47,7 +47,7 @@ BEGIN
         LEFT JOIN caj_turno tu ON g.id_turno = tu.id
         LEFT JOIN caj_caja caj ON tu.id_caja = caj.id
         LEFT JOIN gen_sucursal suc ON g.id_sucursal = suc.id
-        LEFT JOIN auth_usuario uc ON g.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON g.id_usuario_creacion = uc.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = g.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE g.id = p_id

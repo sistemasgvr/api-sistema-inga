@@ -10,7 +10,9 @@ CREATE OR REPLACE FUNCTION pla_actualizar_trabajador(
     p_puesto VARCHAR DEFAULT NULL,
     p_sueldo_referencial NUMERIC DEFAULT NULL,
     p_id_sucursal BIGINT DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_email VARCHAR DEFAULT NULL,
+    p_telefono VARCHAR DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -26,7 +28,8 @@ BEGIN
     v_apellidos := NULLIF(TRIM(p_apellidos), '');
     v_doc := NULLIF(TRIM(p_num_documento), '');
 
-    IF NOT EXISTS (SELECT 1 FROM pla_trabajador WHERE id = p_id AND estado = 1) THEN
+    PERFORM 1 FROM pla_trabajador WHERE id = p_id AND estado = 1 FOR UPDATE;
+    IF NOT FOUND THEN
         RETURN json_build_object('error', 'El trabajador no existe o está inactivo', 'registro', NULL);
     END IF;
 
@@ -56,8 +59,14 @@ BEGIN
         RETURN json_build_object('error', 'La sucursal indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
+    IF p_email IS NOT NULL AND NULLIF(TRIM(p_email), '') IS NULL
+       AND EXISTS (SELECT 1 FROM auth_usuario WHERE id_trabajador = p_id) THEN
+        RAISE EXCEPTION 'Un trabajador con usuario debe conservar un correo electrónico.';
+    END IF;
     UPDATE pla_trabajador
     SET
+        email = CASE WHEN p_email IS NULL THEN email ELSE NULLIF(LOWER(TRIM(p_email)), '') END,
+        telefono = CASE WHEN p_telefono IS NULL THEN telefono ELSE NULLIF(TRIM(p_telefono), '') END,
         nombres = COALESCE(v_nombres, nombres),
         apellidos = COALESCE(v_apellidos, apellidos),
         num_documento = COALESCE(v_doc, num_documento),

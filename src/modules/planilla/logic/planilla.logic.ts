@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   mapActivateResult,
   mapDeleteResult,
@@ -15,14 +20,6 @@ import {
 } from '../dto/planilla.dto';
 import { PlanillaModel } from '../models/planilla.model';
 
-/**
- * Orquesta las llamadas al modelo y traduce lo que devuelve la base en la
- * respuesta HTTP correcta.
- *
- * Los helpers `map*Result` convierten el `{ error: '...' }` de las funciones
- * SQL en un 400 o 404 real, así el mensaje escrito en el plpgsql llega tal cual
- * al usuario final.
- */
 @Injectable()
 export class PlanillaLogic {
   constructor(private readonly planillaModel: PlanillaModel) {}
@@ -40,17 +37,47 @@ export class PlanillaLogic {
   }
 
   async crearTrabajador(dto: CreateTrabajadorDto) {
-    const result = await this.planillaModel.crearTrabajador(dto);
-    return mapSingleResult(result, 'No se pudo crear el trabajador');
+    try {
+      const result = await this.planillaModel.crearTrabajador(dto);
+      return mapSingleResult(result, 'No se pudo crear el trabajador');
+    } catch (error) {
+      this.errorTrabajador(error);
+    }
   }
 
   async actualizarTrabajador(id: number, dto: UpdateTrabajadorDto) {
-    const result = await this.planillaModel.actualizarTrabajador(id, dto);
-    return mapSingleResult(result, `Trabajador con ID ${id} no encontrado`);
+    try {
+      const result = await this.planillaModel.actualizarTrabajador(id, dto);
+      return mapSingleResult(result, `Trabajador con ID ${id} no encontrado`);
+    } catch (error) {
+      this.errorTrabajador(error);
+    }
+  }
+
+  private errorTrabajador(error: unknown): never {
+    const dbError = error as {
+      code?: string;
+      constraint?: string;
+      message?: string;
+    };
+    if (
+      dbError.code === '23505' &&
+      dbError.constraint === 'uq_pla_trabajador_email'
+    ) {
+      throw new ConflictException(
+        'Ya existe un trabajador con ese correo electrónico.',
+      );
+    }
+    if (dbError.code === 'P0001')
+      throw new BadRequestException(dbError.message);
+    throw error;
   }
 
   async eliminarTrabajador(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.planillaModel.eliminarTrabajador(id, idUsuarioAuditoria);
+    const result = await this.planillaModel.eliminarTrabajador(
+      id,
+      idUsuarioAuditoria,
+    );
     return mapDeleteResult(
       result,
       `Trabajador con ID ${id} no encontrado o ya inactivo`,
@@ -58,7 +85,10 @@ export class PlanillaLogic {
   }
 
   async activarTrabajador(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.planillaModel.activarTrabajador(id, idUsuarioAuditoria);
+    const result = await this.planillaModel.activarTrabajador(
+      id,
+      idUsuarioAuditoria,
+    );
     return mapActivateResult(
       result,
       `Trabajador con ID ${id} no encontrado o ya activo`,
@@ -83,15 +113,17 @@ export class PlanillaLogic {
   }
 
   async anularPago(id: number, motivo?: string, idUsuarioAuditoria?: number) {
-    const result = await this.planillaModel.anularPago(id, motivo, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Pago con ID ${id} no encontrado o ya anulado`);
+    const result = await this.planillaModel.anularPago(
+      id,
+      motivo,
+      idUsuarioAuditoria,
+    );
+    return mapDeleteResult(
+      result,
+      `Pago con ID ${id} no encontrado o ya anulado`,
+    );
   }
 
-  /**
-   * El reporte siempre existe: si no hubo pagos, devuelve el período con los
-   * totales en cero y la lista de pendientes. Por eso no uso `mapSingleResult`,
-   * que lanzaría un 404 donde en realidad la respuesta correcta es "cero".
-   */
   async reportePeriodo(filtros: FiltroReportePeriodoDto) {
     const result = await this.planillaModel.reportePeriodo(filtros);
 

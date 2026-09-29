@@ -1,12 +1,8 @@
 CREATE OR REPLACE FUNCTION auth_crear_usuario(
     p_username VARCHAR,
-    p_email VARCHAR,
+    p_id_trabajador BIGINT,
     p_password_hash VARCHAR,
-    p_nombres VARCHAR,
-    p_apellidos VARCHAR,
-    p_telefono VARCHAR DEFAULT NULL,
     p_pin_hash VARCHAR DEFAULT NULL,
-    p_id_sucursal_default BIGINT DEFAULT NULL,
     p_roles_ids JSON DEFAULT '[]'::JSON,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
 )
@@ -20,34 +16,30 @@ DECLARE
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF EXISTS (SELECT 1 FROM auth_usuario WHERE username = p_username) THEN
+    IF EXISTS (SELECT 1 FROM auth_usuario_datos WHERE username = p_username) THEN
         RAISE EXCEPTION 'El nombre de usuario % ya se encuentra registrado.', p_username;
     END IF;
 
-    IF EXISTS (SELECT 1 FROM auth_usuario WHERE email = p_email) THEN
-        RAISE EXCEPTION 'El correo electrónico % ya se encuentra registrado.', p_email;
+    PERFORM 1 FROM pla_trabajador WHERE id = p_id_trabajador AND estado = 1 AND email IS NOT NULL FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Seleccione un trabajador activo con correo electrónico.';
+    END IF;
+    IF EXISTS (SELECT 1 FROM auth_usuario WHERE id_trabajador = p_id_trabajador) THEN
+        RAISE EXCEPTION 'El trabajador ya se encuentra registrado con un usuario.';
     END IF;
 
     INSERT INTO auth_usuario (
         username,
-        email,
+        id_trabajador,
         password_hash,
         pin_hash,
-        nombres,
-        apellidos,
-        telefono,
-        id_sucursal_default,
         es_super_admin,
         estado
     ) VALUES (
         p_username,
-        p_email,
+        p_id_trabajador,
         p_password_hash,
         p_pin_hash,
-        p_nombres,
-        p_apellidos,
-        p_telefono,
-        p_id_sucursal_default,
         FALSE,
         1
     )
@@ -73,33 +65,6 @@ BEGIN
         END LOOP;
     END IF;
 
-    SELECT row_to_json(t) INTO v_registro
-    FROM (
-        SELECT 
-            u.id, 
-            u.username, 
-            u.email, 
-            u.nombres, 
-            u.apellidos, 
-            u.telefono,
-            u.id_sucursal_default, 
-            u.es_super_admin, 
-            u.estado, 
-            u.fecha_creacion,
-            (
-                SELECT COALESCE(json_agg(json_build_object(
-                    'id', r.id, 
-                    'codigo', r.codigo, 
-                    'nombre', r.nombre
-                )), '[]'::JSON)
-                FROM auth_usuario_rol ur
-                INNER JOIN auth_rol r ON ur.id_rol = r.id
-                WHERE ur.id_usuario = u.id AND ur.estado = 1 AND r.estado = 1
-            ) AS roles
-        FROM auth_usuario u
-        WHERE u.id = v_id_usuario
-    ) t;
-
-    RETURN json_build_object('registro', v_registro);
+    RETURN auth_obtener_usuario(v_id_usuario);
 END;
 $function$;

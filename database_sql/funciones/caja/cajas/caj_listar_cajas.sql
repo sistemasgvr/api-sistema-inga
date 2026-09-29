@@ -83,7 +83,7 @@ BEGIN
             WHERE t2.id_caja = c.id AND t2.estado_turno = 1 AND t2.estado = 1
             LIMIT 1
         ) ta ON TRUE
-        LEFT JOIN auth_usuario u ON ta.id_cajero = u.id
+        LEFT JOIN auth_usuario_datos u ON ta.id_cajero = u.id
         WHERE (p_estado IS NULL OR c.estado = p_estado)
           AND (p_id_sucursal IS NULL OR c.id_sucursal = p_id_sucursal)
           AND (

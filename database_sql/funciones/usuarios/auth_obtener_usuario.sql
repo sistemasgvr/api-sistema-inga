@@ -11,12 +11,14 @@ BEGIN
     FROM (
         SELECT
             u.id,
+            u.id_trabajador,
             u.username,
             u.email,
             u.nombres,
             u.apellidos,
             u.telefono,
             u.id_sucursal_default,
+            u.es_super_admin,
             u.estado,
             u.fecha_creacion,
             u.fecha_modificacion,
@@ -30,7 +32,7 @@ BEGIN
                 INNER JOIN auth_rol r ON ur.id_rol = r.id
                 WHERE ur.id_usuario = u.id AND ur.estado = 1 AND r.estado = 1
             ) AS roles
-        FROM auth_usuario u
+        FROM auth_usuario_datos u
         WHERE u.id = p_id
     ) t;
 

@@ -46,8 +46,8 @@ BEGIN
         LEFT JOIN pro_unidad_medida um ON p.id_unidad_medida = um.id
         LEFT JOIN gen_estacion e ON p.id_estacion = e.id
         LEFT JOIN gen_almacen a ON p.id_almacen_stock = a.id
-        LEFT JOIN auth_usuario uc ON p.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario umod ON p.id_usuario_modificacion = umod.id
+        LEFT JOIN auth_usuario_datos uc ON p.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos umod ON p.id_usuario_modificacion = umod.id
         WHERE p.id = p_id
     ) t;
 

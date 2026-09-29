@@ -35,7 +35,7 @@ BEGIN
         INNER JOIN pla_trabajador t ON p.id_trabajador = t.id
         LEFT JOIN caj_turno tu ON p.id_turno = tu.id
         LEFT JOIN caj_caja c ON tu.id_caja = c.id
-        LEFT JOIN auth_usuario uc ON p.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON p.id_usuario_creacion = uc.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = p.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE p.id = p_id

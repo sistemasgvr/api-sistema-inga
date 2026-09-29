@@ -56,6 +56,8 @@ BEGIN
             t.id,
             t.id_sucursal,
             s.nombre AS nombre_sucursal,
+            t.email, t.telefono,
+            (SELECT u.id FROM auth_usuario u WHERE u.id_trabajador = t.id) AS id_usuario,
             t.nombres,
             t.apellidos,
             TRIM(t.nombres || ' ' || t.apellidos) AS nombre_completo,

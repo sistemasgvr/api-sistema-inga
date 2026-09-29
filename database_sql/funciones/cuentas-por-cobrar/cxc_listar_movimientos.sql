@@ -86,7 +86,7 @@ BEGIN
         FROM cxc_movimiento m
         INNER JOIN cli_persona p ON m.id_persona = p.id
         LEFT JOIN cli_convenio c ON m.id_convenio = c.id
-        LEFT JOIN auth_usuario uc ON m.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         WHERE (p_incluir_anulados = TRUE OR m.estado = 1)
           AND (p_id_persona IS NULL OR m.id_persona = p_id_persona)
           AND (p_id_convenio IS NULL OR m.id_convenio = p_id_convenio)

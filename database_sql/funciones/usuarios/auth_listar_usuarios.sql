@@ -21,7 +21,7 @@ BEGIN
         COUNT(*) FILTER (WHERE u.estado = 1),
         COUNT(*) FILTER (WHERE u.estado = 0)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos
-    FROM auth_usuario u
+    FROM auth_usuario_datos u
     WHERE (
         p_busqueda = ''
         OR LOWER(u.username) LIKE LOWER('%' || p_busqueda || '%')
@@ -31,7 +31,7 @@ BEGIN
     );
 
     SELECT COUNT(*) INTO v_total
-    FROM auth_usuario u
+    FROM auth_usuario_datos u
     WHERE (p_estado IS NULL OR u.estado = p_estado)
       AND (
           p_busqueda = ''
@@ -45,6 +45,7 @@ BEGIN
     FROM (
         SELECT
             u.id,
+            u.id_trabajador,
             u.username,
             u.email,
             u.nombres,
@@ -65,7 +66,7 @@ BEGIN
                 INNER JOIN auth_rol r ON ur.id_rol = r.id
                 WHERE ur.id_usuario = u.id AND ur.estado = 1 AND r.estado = 1
             ) AS roles
-        FROM auth_usuario u
+        FROM auth_usuario_datos u
         WHERE (p_estado IS NULL OR u.estado = p_estado)
           AND (
               p_busqueda = ''

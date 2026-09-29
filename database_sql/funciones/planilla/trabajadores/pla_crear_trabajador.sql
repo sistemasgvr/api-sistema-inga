@@ -11,7 +11,9 @@ CREATE OR REPLACE FUNCTION pla_crear_trabajador(
     p_puesto VARCHAR DEFAULT NULL,
     p_sueldo_referencial NUMERIC DEFAULT 0,
     p_id_sucursal BIGINT DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_email VARCHAR DEFAULT NULL,
+    p_telefono VARCHAR DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -81,12 +83,12 @@ BEGIN
     END IF;
 
     INSERT INTO pla_trabajador (
-        id_sucursal, nombres, apellidos, num_documento, puesto,
+        id_sucursal, nombres, apellidos, num_documento, puesto, email, telefono,
         sueldo_referencial, id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
         p_id_sucursal, v_nombres, v_apellidos, v_doc,
-        NULLIF(TRIM(p_puesto), ''), COALESCE(p_sueldo_referencial, 0),
+        NULLIF(TRIM(p_puesto), ''), NULLIF(LOWER(TRIM(p_email)), ''), NULLIF(TRIM(p_telefono), ''), COALESCE(p_sueldo_referencial, 0),
         p_id_usuario_auditoria, p_id_usuario_auditoria
     )
     RETURNING id INTO v_id;

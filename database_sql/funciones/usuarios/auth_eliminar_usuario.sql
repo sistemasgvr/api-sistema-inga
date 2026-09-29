@@ -13,7 +13,7 @@ BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
     SELECT es_super_admin INTO v_es_super_admin
-    FROM auth_usuario
+    FROM auth_usuario_datos
     WHERE id = p_id AND estado = 1;
 
     IF NOT FOUND THEN
@@ -43,7 +43,7 @@ BEGIN
         SELECT COUNT(DISTINCT ur.id_usuario) INTO v_total_admins_activos
         FROM auth_usuario_rol ur
         INNER JOIN auth_rol r ON ur.id_rol = r.id
-        INNER JOIN auth_usuario u ON ur.id_usuario = u.id
+        INNER JOIN auth_usuario_datos u ON ur.id_usuario = u.id
         WHERE r.codigo = 'ADMIN' AND r.estado = 1 
           AND ur.estado = 1 
           AND u.estado = 1;

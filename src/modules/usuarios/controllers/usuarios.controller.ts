@@ -29,6 +29,21 @@ export class UsuariosController {
     return this.usuariosLogic.listar(filtros);
   }
 
+  @Get('trabajadores-disponibles')
+  @Permisos(PermisoBanderas.USUARIOS_CREAR)
+  @ApiOperation({
+    summary: 'Trabajadores activos con correo y sin cuenta de acceso',
+  })
+  trabajadoresDisponibles() {
+    return this.usuariosLogic.trabajadoresDisponibles();
+  }
+
+  @Get('trabajadores-disponibles/:id')
+  @Permisos(PermisoBanderas.USUARIOS_CREAR)
+  trabajadorDisponible(@Param('id', ParseIntPipe) id: number) {
+    return this.usuariosLogic.trabajadorDisponible(id);
+  }
+
   @Get(':id')
   @Permisos(PermisoBanderas.USUARIOS_VER)
   @ApiOperation({ summary: 'Obtener usuario por ID' })

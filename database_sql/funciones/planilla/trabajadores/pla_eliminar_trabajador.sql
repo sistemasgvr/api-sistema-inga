@@ -27,6 +27,10 @@ BEGIN
         RETURN json_build_object('eliminado', FALSE, 'id', p_id);
     END IF;
 
+    UPDATE auth_sesion SET estado = 0
+    WHERE id_usuario IN (SELECT id FROM auth_usuario WHERE id_trabajador = p_id)
+      AND estado = 1;
+
     RETURN json_build_object('eliminado', TRUE, 'id', p_id);
 END;
 $function$;

@@ -37,7 +37,7 @@ BEGIN
         LEFT JOIN gen_sucursal s ON d.id_sucursal = s.id
         LEFT JOIN caj_turno t ON d.id_turno = t.id
         LEFT JOIN caj_caja c ON t.id_caja = c.id
-        LEFT JOIN auth_usuario uc ON d.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON d.id_usuario_creacion = uc.id
         WHERE d.id = p_id
     ) x;
 

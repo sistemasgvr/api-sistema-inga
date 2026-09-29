@@ -11,6 +11,7 @@ BEGIN
     FROM (
         SELECT
             u.id,
+            u.id_trabajador,
             u.username,
             u.email,
             u.password_hash,
@@ -31,9 +32,9 @@ BEGIN
                 INNER JOIN auth_rol r ON ur.id_rol = r.id
                 WHERE ur.id_usuario = u.id AND ur.estado = 1 AND r.estado = 1
             ) AS roles
-        FROM auth_usuario u
+        FROM auth_usuario_datos u
         WHERE LOWER(u.email) = LOWER(p_login)
-          AND u.estado = 1
+          AND u.estado = 1 AND u.estado_trabajador = 1
     ) t;
 
     RETURN json_build_object('registro', v_registro);

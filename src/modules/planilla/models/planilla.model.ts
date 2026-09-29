@@ -16,11 +16,6 @@ import {
   UpdateTrabajadorDto,
 } from '../dto/planilla.dto';
 
-/**
- * Capa que habla con la base. No decide nada: solo traduce los datos que
- * recibe a los parámetros que espera cada función SQL, en el orden correcto.
- * Toda la regla de negocio vive en las funciones `pla_*`.
- */
 @Injectable()
 export class PlanillaModel {
   constructor(private readonly db: DatabaseService) {}
@@ -30,8 +25,6 @@ export class PlanillaModel {
     if (estado === 'todos') return null;
     return 1;
   }
-
-  /* ---------------------------- Trabajadores ---------------------------- */
 
   listarTrabajadores(filtros: FiltroTrabajadoresDto) {
     return this.db.callFunctionJson<AuthListResult>('pla_listar_trabajadores', [
@@ -46,7 +39,10 @@ export class PlanillaModel {
   }
 
   obtenerTrabajador(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('pla_obtener_trabajador', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'pla_obtener_trabajador',
+      [id],
+    );
   }
 
   crearTrabajador(dto: CreateTrabajadorDto) {
@@ -58,39 +54,42 @@ export class PlanillaModel {
       dto.sueldo_referencial ?? 0,
       dto.id_sucursal ?? null,
       dto.idUsuarioAuditoria ?? null,
+      dto.email ?? null,
+      dto.telefono ?? null,
     ]);
   }
 
   actualizarTrabajador(id: number, dto: UpdateTrabajadorDto) {
-    return this.db.callFunctionJson<AuthSingleResult>('pla_actualizar_trabajador', [
-      id,
-      dto.nombres ?? null,
-      dto.apellidos ?? null,
-      dto.num_documento ?? null,
-      dto.puesto ?? null,
-      // `?? null` y no `|| null`: un sueldo de 0 es válido y con `||` se
-      // convertiría en null, dejando el valor anterior sin cambiar.
-      dto.sueldo_referencial ?? null,
-      dto.id_sucursal ?? null,
-      dto.idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'pla_actualizar_trabajador',
+      [
+        id,
+        dto.nombres ?? null,
+        dto.apellidos ?? null,
+        dto.num_documento ?? null,
+        dto.puesto ?? null,
+        dto.sueldo_referencial ?? null,
+        dto.id_sucursal ?? null,
+        dto.idUsuarioAuditoria ?? null,
+        dto.email ?? null,
+        dto.telefono ?? null,
+      ],
+    );
   }
 
   eliminarTrabajador(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthDeleteResult>('pla_eliminar_trabajador', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthDeleteResult>(
+      'pla_eliminar_trabajador',
+      [id, idUsuarioAuditoria ?? null],
+    );
   }
 
   activarTrabajador(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('pla_activar_trabajador', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'pla_activar_trabajador',
+      [id, idUsuarioAuditoria ?? null],
+    );
   }
-
-  /* -------------------------------- Pagos -------------------------------- */
 
   listarPagos(filtros: FiltroPagosDto) {
     return this.db.callFunctionJson<AuthListResult>('pla_listar_pagos', [

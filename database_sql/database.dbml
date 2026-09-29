@@ -71,14 +71,11 @@ Table auth_rol_permiso {
 
 Table auth_usuario {
   id bigint [pk, increment]
+  id_trabajador bigint [not null, unique]
+  es_super_admin boolean [not null, default: false]
   username varchar(80) [not null, unique]
-  email varchar(255) [not null, unique]
   password_hash varchar(255) [not null]
   pin_hash varchar(255)
-  nombres varchar(100) [not null]
-  apellidos varchar(100) [not null]
-  telefono varchar(20)
-  id_sucursal_default bigint
   estado smallint [not null, default: 1]
   fecha_creacion timestamptz [not null, default: `now()`]
   fecha_modificacion timestamptz [not null, default: `now()`]
@@ -1291,7 +1288,8 @@ Table kds_ticket {
 
 Ref: auth_rol_permiso.id_rol > auth_rol.id
 Ref: auth_rol_permiso.id_permiso > auth_permiso.id
-Ref: auth_usuario.id_sucursal_default > gen_sucursal.id
+Ref: auth_usuario.id_trabajador - pla_trabajador.id
+Ref: pla_trabajador.id_sucursal > gen_sucursal.id
 Ref: auth_usuario_rol.id_usuario > auth_usuario.id
 Ref: auth_usuario_rol.id_rol > auth_rol.id
 Ref: auth_sesion.id_usuario > auth_usuario.id
@@ -1541,3 +1539,20 @@ Ref: kds_ticket.id_usuario_creacion > auth_usuario.id
 Ref: kds_ticket.id_usuario_modificacion > auth_usuario.id
 Ref: cxc_movimiento.id_usuario_creacion > auth_usuario.id
 Ref: cxc_movimiento.id_usuario_modificacion > auth_usuario.id
+
+Table pla_trabajador {
+  id bigint [pk, increment]
+  id_sucursal bigint
+  nombres varchar(100) [not null]
+  apellidos varchar(100) [not null]
+  email varchar(255) [note: 'Único sin distinguir mayúsculas. Obligatorio para vincular usuario.']
+  telefono varchar(20)
+  num_documento varchar(20) [unique]
+  puesto varchar(100)
+  sueldo_referencial numeric(12,2) [not null, default: 0]
+  estado smallint [not null, default: 1]
+  id_usuario_creacion bigint [ref: > auth_usuario.id]
+  id_usuario_modificacion bigint [ref: > auth_usuario.id]
+  fecha_creacion timestamptz [not null, default: `now()`]
+  fecha_modificacion timestamptz [not null, default: `now()`]
+}

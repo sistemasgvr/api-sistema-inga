@@ -43,7 +43,7 @@ BEGIN
         FROM cxc_movimiento m
         INNER JOIN cli_persona p ON m.id_persona = p.id
         LEFT JOIN cli_convenio c ON m.id_convenio = c.id
-        LEFT JOIN auth_usuario uc ON m.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         WHERE m.id = p_id
     ) x;
 

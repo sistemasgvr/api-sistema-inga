@@ -40,8 +40,10 @@ async function main() {
   const empresa = await insert('gen_empresa', { ruc: '20000000001', razon_social: 'Pruebas' });
   const sucursal = await insert('gen_sucursal', { id_empresa: empresa, codigo: 'TEST', nombre: 'Pruebas' });
   const otraSucursal = await insert('gen_sucursal', { id_empresa: empresa, codigo: 'OTRA', nombre: 'Otra' });
-  const usuario = await insert('auth_usuario', { username: 'admin_test', email: 'admin@test.local', password_hash: 'test', nombres: 'Admin', apellidos: 'Test' });
-  const mozo = await insert('auth_usuario', { username: 'mozo_test', email: 'mozo@test.local', password_hash: 'test', nombres: 'Mozo', apellidos: 'Test' });
+  const usuarioTrabajador = await insert('pla_trabajador', { nombres: 'Admin', apellidos: 'Test', email: 'admin@test.local' });
+  const usuario = await insert('auth_usuario', { username: 'admin_test', password_hash: 'test', id_trabajador: usuarioTrabajador });
+  const mozoTrabajador = await insert('pla_trabajador', { nombres: 'Mozo', apellidos: 'Test', email: 'mozo@test.local' });
+  const mozo = await insert('auth_usuario', { username: 'mozo_test', password_hash: 'test', id_trabajador: mozoTrabajador });
   const rol = (await q("SELECT id FROM auth_rol WHERE codigo = 'ADMIN'"))[0].id;
   await insert('auth_usuario_rol', { id_usuario: usuario, id_rol: rol });
   const caja = await insert('caj_caja', { id_sucursal: sucursal, codigo: 'CAJA', nombre: 'Caja' });

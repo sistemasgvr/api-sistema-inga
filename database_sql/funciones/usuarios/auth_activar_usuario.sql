@@ -8,6 +8,9 @@ AS $function$
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
+    IF NOT EXISTS (SELECT 1 FROM auth_usuario_datos WHERE id = p_id AND estado_trabajador = 1) THEN
+        RAISE EXCEPTION 'El trabajador debe estar activo para activar su usuario.';
+    END IF;
     UPDATE auth_usuario
     SET estado = 1
     WHERE id = p_id AND estado = 0;

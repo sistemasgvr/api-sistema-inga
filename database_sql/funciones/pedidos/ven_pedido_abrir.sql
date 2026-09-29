@@ -22,7 +22,7 @@ BEGIN
   ELSIF v_mesa IS NOT NULL THEN RAISE EXCEPTION 'Solo los pedidos de tipo MESA admiten id_mesa';
   END IF;
   IF NOT EXISTS(SELECT 1 FROM gen_sucursal WHERE id = v_sucursal AND estado = 1) THEN RAISE EXCEPTION 'Seleccione una sucursal activa'; END IF;
-  IF NOT EXISTS(SELECT 1 FROM auth_usuario WHERE id = v_mozo AND estado = 1) THEN RAISE EXCEPTION 'Seleccione un mozo activo'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM auth_usuario_datos WHERE id = v_mozo AND estado = 1) THEN RAISE EXCEPTION 'Seleccione un mozo activo'; END IF;
   IF COALESCE((p_datos->>'num_comensales')::INTEGER,1) <= 0 THEN RAISE EXCEPTION 'Número de comensales inválido'; END IF;
   IF v_persona IS NOT NULL AND NOT EXISTS(SELECT 1 FROM cli_persona WHERE id = v_persona AND estado = 1 AND es_cliente) THEN
     RAISE EXCEPTION 'El cliente no existe, está inactivo o no está marcado como cliente';

@@ -37,7 +37,7 @@ BEGIN
         FROM caj_turno tu
         INNER JOIN caj_caja c ON tu.id_caja = c.id
         INNER JOIN gen_sucursal s ON c.id_sucursal = s.id
-        INNER JOIN auth_usuario u ON tu.id_cajero = u.id
+        INNER JOIN auth_usuario_datos u ON tu.id_cajero = u.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = tu.estado_turno
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'TURNO_ESTADO')
         WHERE tu.id = p_id

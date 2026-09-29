@@ -69,8 +69,8 @@ BEGIN
             ) AS total_productos
         FROM pro_subcategoria sc
         INNER JOIN pro_categoria c ON sc.id_categoria = c.id
-        LEFT JOIN auth_usuario uc ON sc.id_usuario_creacion = uc.id
-        LEFT JOIN auth_usuario um ON sc.id_usuario_modificacion = um.id
+        LEFT JOIN auth_usuario_datos uc ON sc.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos um ON sc.id_usuario_modificacion = um.id
         WHERE (p_estado IS NULL OR sc.estado = p_estado)
           AND c.estado = 1
           AND (p_id_categoria IS NULL OR sc.id_categoria = p_id_categoria)

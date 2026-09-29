@@ -46,7 +46,7 @@ BEGIN
         INNER JOIN cli_persona p ON m.id_persona = p.id
         LEFT JOIN caj_turno tu ON m.id_turno = tu.id
         LEFT JOIN caj_caja c ON tu.id_caja = c.id
-        LEFT JOIN auth_usuario uc ON m.id_usuario_creacion = uc.id
+        LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = m.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE m.id = p_id
