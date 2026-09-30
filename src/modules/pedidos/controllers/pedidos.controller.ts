@@ -16,6 +16,7 @@ import type { AuthenticatedUser } from '../../../common/interfaces/authenticated
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas as P } from '../../../common/constants/permiso-banderas';
 import {
+  EntregarItemDto,
   AbrirPedidoDto,
   AgregarItemDto,
   AnularPedidoDto,
@@ -81,7 +82,7 @@ export class PedidosController {
   @Delete(':id/items/:item_id')
   @Permisos(P.PEDIDOS_ANULAR)
   @ApiOperation({
-    summary: 'Anular ítem no comandado, con motivo y autorización',
+    summary: 'Cancelar unidades no entregadas con motivo y autorización',
   })
   anularItem(
     @Param('id', ParseIntPipe) id: number,
@@ -92,10 +93,24 @@ export class PedidosController {
     return this.logic.ejecutar('anular_item', id, item, dto, req.user);
   }
 
+  @Post(':id/items/:item_id/entregar')
+  @Permisos(P.PEDIDOS_ENTREGAR)
+  @ApiOperation({
+    summary: 'Entregar una cantidad acumulada del producto terminado',
+  })
+  entregar(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('item_id', ParseIntPipe) item: number,
+    @Body() dto: EntregarItemDto,
+    @Req() req: AuthRequest,
+  ) {
+    return this.logic.ejecutar('entregar', id, item, dto, req.user);
+  }
+
   @Post(':id/comandar')
   @Permisos(P.PEDIDOS_COMANDAR)
   @ApiOperation({
-    summary: 'Comandar ítems pendientes por estación y descontar inventario',
+    summary: 'Comandar ítems y reservar productos terminados disponibles',
   })
   comandar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
     return this.logic.ejecutar('comandar', id, null, {}, req.user);
@@ -118,7 +133,8 @@ export class PedidosController {
   @Post(':id/anular')
   @Permisos(P.PEDIDOS_ANULAR)
   @ApiOperation({
-    summary: 'Anular pedido y devolver las cantidades del kardex original',
+    summary:
+      'Anular pedido sin entregas, liberando reservas o registrando merma',
   })
   anular(
     @Param('id', ParseIntPipe) id: number,

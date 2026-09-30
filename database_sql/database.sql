@@ -1,3 +1,5 @@
+-- Inventario vigente: instalar_inventario.sql completa esta base con migración, catálogos y funciones.
+-- Preparación consume receta e ingresa terminado; comandar reserva; entregar descuenta terminado.
 -- =============================================================================
 -- SISTEMA INGA — PostgreSQL
 -- Esquema operativo de restaurante (carta + menú + bar + almacén + recetario)
@@ -5,22 +7,12 @@
 --
 -- MODELO DE NEGOCIO (reunión con administración Inga)
 -- -----------------------------------------------------------------------------
--- Hay DOS inventarios. No mezclarlos:
---
---  1) ALMACÉN (insumo crudo / a granel)
---     Compra semanal: sacos, planchas, cajas, botellas, atún, fideos, licores.
---     Salida diaria a cocina o barra (hoy: foto WhatsApp + Excel).
---     El sistema registra ingreso por compra y salida por vale, con evidencia.
---     El crudo NO entra a la receta del plato.
---     Flujo cocina: requerimiento chef → salida de almacén (foto) → producción
---     (chef declara presas/potes/onzas) → recién ahí existe stock recetario.
---
---  2) PRODUCCIÓN / RECETARIO (insumo ya procesado / porcionado)
---     El chef procesa fuera del sistema (8 patos → 45 presas; culantro → 30 potes
---     de salsa; caja de pisco → onzas). Luego se INGRESA al stock recetario.
---     Cada plato/trago tiene receta en gramos, ml, onzas, presas, porciones.
---     Cada venta explota la receta y descuenta este stock (ingreso − consumo).
---     Alerta cuando stock_actual <= stock_minimo (chef + administración).
+-- Inventario unificado por producto y almacén.
+-- Producción anticipada o por pedido: consume ingredientes según receta e ingresa
+-- productos terminados. Comandar reserva los terminados disponibles. Entregar
+-- descuenta el terminado, sin volver a consumir ingredientes. Una cancelación
+-- libera reservas o registra merma; no reconstruye ingredientes ya utilizados.
+-- Los catálogos y funciones operativas se instalan con instalar_inventario.sql.
 --
 --  Bar: tragos en ONZAS agregadas por insumo (pisco, whisky, ron, tequila, vodka,
 --  vino gato para preparación). No se controla botella física abierta.
@@ -42,7 +34,7 @@
 --  - Montos NUMERIC(12,2). Cantidades/stock NUMERIC(14,4).
 --  - Fechas TIMESTAMPTZ. IDs BIGINT IDENTITY (tickets y kardex legibles).
 --  - Catálogos de negocio en gen_lista / gen_lista_opcion (semilla al final).
---  - El API actualiza stock; kardex es la fuente de verdad de movimientos.
+--  - Funciones transaccionales actualizan stock; vw_alm_kardex consulta movimientos confirmados.
 -- =============================================================================
 
 -- Requiere PostgreSQL 12+. Tipos: TIMESTAMPTZ, NUMERIC, IDENTITY.
@@ -603,7 +595,7 @@ CREATE TABLE IF NOT EXISTS pro_producto (
 COMMENT ON COLUMN pro_producto.id_almacen_stock IS
     'Almacén donde vive el stock de este ítem (crudo, cocina o barra).';
 COMMENT ON COLUMN pro_producto.controla_stock IS
-    'TRUE en crudo, procesado y bebida unitaria. FALSE en plato/trago (se controla por receta).';
+    'TRUE para ingredientes, productos directos y platos terminados. La receta se consume al producir; la entrega descuenta el terminado.';
 
 -- Cabecera de receta (versionable). Una vigente por producto vendible.
 -- Utilidad: receta vigente de un plato o trago (versionable).
@@ -731,10 +723,8 @@ CREATE TABLE IF NOT EXISTS alm_producto_stock (
     stock_minimo            NUMERIC(14, 4) NOT NULL DEFAULT 0,
     stock_reservado         NUMERIC(14, 4) NOT NULL DEFAULT 0,
     costo_promedio          NUMERIC(12, 4) NOT NULL DEFAULT 0,
-    alerta_activa           BOOLEAN      NOT NULL DEFAULT FALSE,
-    fecha_ultima_alerta     TIMESTAMPTZ,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
+    id_usuario_creacion BIGINT NOT NULL,
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -742,55 +732,58 @@ CREATE TABLE IF NOT EXISTS alm_producto_stock (
     CONSTRAINT ck_alm_stock_no_neg CHECK (stock_actual >= 0),
     CONSTRAINT fk_stock_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
     CONSTRAINT fk_stock_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_alm_producto_stock_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_alm_producto_stock_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_alm_producto_stock_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
--- tipo_movimiento (KARDEX_TIPO): ver semilla
--- Utilidad: historial de ingresos y salidas (la resta ingreso − venta vive aquí).
-CREATE TABLE IF NOT EXISTS alm_kardex (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_almacen              BIGINT       NOT NULL,
-    id_producto             BIGINT       NOT NULL,
-    tipo_movimiento         SMALLINT     NOT NULL,
-    signo                   SMALLINT     NOT NULL,
-    cantidad                NUMERIC(14, 4) NOT NULL,
-    id_unidad_medida        BIGINT       NOT NULL,
-    stock_anterior          NUMERIC(14, 4) NOT NULL,
-    stock_nuevo             NUMERIC(14, 4) NOT NULL,
-    costo_unitario          NUMERIC(12, 4),
-    documento_tipo          VARCHAR(40),
-    documento_id            BIGINT,
-    observacion             TEXT,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT ck_kardex_signo CHECK (signo IN (-1, 1)),
-    CONSTRAINT ck_kardex_cantidad CHECK (cantidad > 0),
-    CONSTRAINT fk_kardex_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_kardex_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_kardex_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_alm_kardex_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_kardex_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+CREATE TABLE IF NOT EXISTS alm_movimiento (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  codigo VARCHAR(80) NOT NULL UNIQUE,
+  fecha_movimiento TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id_tipo_movimiento BIGINT NOT NULL REFERENCES gen_lista_opcion(id),
+  id_motivo_movimiento BIGINT NOT NULL REFERENCES gen_lista_opcion(id),
+  estado SMALLINT NOT NULL DEFAULT 1 CHECK(estado IN (1,2,3)),
+  documento_tipo VARCHAR(40),
+  documento_id BIGINT,
+  id_movimiento_referencia BIGINT REFERENCES alm_movimiento(id),
+  observacion TEXT,
+  fecha_confirmacion TIMESTAMPTZ,
+  id_usuario_creacion BIGINT NOT NULL REFERENCES auth_usuario(id),
+  id_usuario_modificacion BIGINT REFERENCES auth_usuario(id),
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_modificacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK(btrim(codigo) <> ''),
+  CHECK((documento_tipo IS NULL AND documento_id IS NULL) OR
+    (documento_tipo IS NOT NULL AND documento_id IS NOT NULL AND documento_id > 0)),
+  CHECK(id_movimiento_referencia IS NULL OR id_movimiento_referencia <> id),
+  CHECK((estado=2 AND fecha_confirmacion IS NOT NULL) OR (estado<>2 AND fecha_confirmacion IS NULL))
 );
 
-COMMENT ON COLUMN alm_kardex.documento_tipo IS
-    'Origen polimórfico: COMPRA, SALIDA, PRODUCCION, PEDIDO_DETALLE, TRASLADO, AJUSTE. documento_id = PK de esa tabla.';
-
--- Utilidad: aviso de stock bajo para chef y administración.
-CREATE TABLE IF NOT EXISTS alm_alerta (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_almacen              BIGINT       NOT NULL,
-    id_producto             BIGINT       NOT NULL,
-    stock_al_momento        NUMERIC(14, 4) NOT NULL,
-    stock_minimo            NUMERIC(14, 4) NOT NULL,
-    vista_chef              BOOLEAN      NOT NULL DEFAULT FALSE,
-    vista_admin             BOOLEAN      NOT NULL DEFAULT FALSE,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_alerta_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_alerta_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id)
+CREATE TABLE IF NOT EXISTS alm_movimiento_detalle (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id_movimiento BIGINT NOT NULL REFERENCES alm_movimiento(id),
+  numero_linea INTEGER NOT NULL CHECK(numero_linea > 0),
+  id_producto BIGINT NOT NULL REFERENCES pro_producto(id),
+  id_almacen BIGINT NOT NULL REFERENCES gen_almacen(id),
+  id_unidad_medida BIGINT NOT NULL REFERENCES pro_unidad_medida(id),
+  cantidad NUMERIC(14,4) NOT NULL CHECK(cantidad > 0),
+  signo SMALLINT NOT NULL CHECK(signo IN (-1,1)),
+  stock_anterior NUMERIC(14,4) CHECK(stock_anterior >= 0),
+  stock_nuevo NUMERIC(14,4) CHECK(stock_nuevo >= 0),
+  costo_unitario NUMERIC(12,4) CHECK(costo_unitario >= 0),
+  observacion TEXT,
+  id_usuario_creacion BIGINT NOT NULL REFERENCES auth_usuario(id),
+  id_usuario_modificacion BIGINT REFERENCES auth_usuario(id),
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_modificacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(id_movimiento,numero_linea),
+  CHECK((stock_anterior IS NULL AND stock_nuevo IS NULL) OR
+    (stock_anterior IS NOT NULL AND stock_nuevo IS NOT NULL AND stock_nuevo=stock_anterior+cantidad*signo))
 );
+CREATE INDEX IF NOT EXISTS ix_alm_mov_fecha ON alm_movimiento(fecha_movimiento,id);
+CREATE INDEX IF NOT EXISTS ix_alm_mov_documento ON alm_movimiento(documento_tipo,documento_id);
+CREATE INDEX IF NOT EXISTS ix_alm_mov_det_stock ON alm_movimiento_detalle(id_almacen,id_producto,id_movimiento);
+
 
 -- Requerimiento del chef (crudo). NO entra al recetario.
 -- Ej.: "8 patos enteros ~3.2 kg, arroz, arveja, loche, culantro".
@@ -835,146 +828,9 @@ CREATE TABLE IF NOT EXISTS prod_requerimiento_detalle (
     CONSTRAINT fk_prod_requerimiento_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
--- Vale de salida de almacén crudo → cocina/barra (reemplaza el Excel + foto)
--- Utilidad: vale de salida de almacén crudo a cocina o barra (reemplaza el Excel).
-CREATE TABLE IF NOT EXISTS alm_salida (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_sucursal             BIGINT       NOT NULL,
-    id_almacen_origen       BIGINT       NOT NULL,
-    id_requerimiento        BIGINT,
-    codigo                  VARCHAR(50)  NOT NULL,
-    destino                 SMALLINT     NOT NULL,
-    observacion             TEXT,
-    estado_salida           SMALLINT     NOT NULL DEFAULT 1,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_alm_salida_codigo UNIQUE (codigo),
-    CONSTRAINT fk_salida_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
-    CONSTRAINT fk_salida_almacen FOREIGN KEY (id_almacen_origen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_salida_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
-    CONSTRAINT fk_alm_salida_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_salida_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: productos y cantidades que salieron del almacén.
-CREATE TABLE IF NOT EXISTS alm_salida_detalle (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_salida               BIGINT       NOT NULL,
-    id_producto             BIGINT       NOT NULL,
-    cantidad                NUMERIC(14, 4) NOT NULL,
-    id_unidad_medida        BIGINT       NOT NULL,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_salida_det_salida FOREIGN KEY (id_salida) REFERENCES alm_salida (id),
-    CONSTRAINT fk_salida_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_salida_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_alm_salida_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_salida_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: fotos de evidencia cuando administración no está presente.
-CREATE TABLE IF NOT EXISTS alm_salida_evidencia (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_salida               BIGINT       NOT NULL,
-    archivo_url             VARCHAR(500) NOT NULL,
-    observacion             VARCHAR(255),
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_salida_evidencia FOREIGN KEY (id_salida) REFERENCES alm_salida (id),
-    CONSTRAINT fk_alm_salida_evidencia_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: mover stock entre almacenes.
-CREATE TABLE IF NOT EXISTS alm_traslado (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_almacen_origen       BIGINT       NOT NULL,
-    id_almacen_destino      BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
-    motivo                  VARCHAR(255),
-    estado_traslado         SMALLINT     NOT NULL DEFAULT 1,
-    observacion             TEXT,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_alm_traslado_codigo UNIQUE (codigo),
-    CONSTRAINT ck_traslado_distintos CHECK (id_almacen_origen <> id_almacen_destino),
-    CONSTRAINT fk_traslado_origen FOREIGN KEY (id_almacen_origen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_traslado_destino FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_alm_traslado_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_traslado_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: detalle de productos del traslado.
-CREATE TABLE IF NOT EXISTS alm_traslado_detalle (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_traslado             BIGINT       NOT NULL,
-    id_producto             BIGINT       NOT NULL,
-    cantidad                NUMERIC(14, 4) NOT NULL,
-    id_unidad_medida        BIGINT       NOT NULL,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_traslado_det_traslado FOREIGN KEY (id_traslado) REFERENCES alm_traslado (id),
-    CONSTRAINT fk_traslado_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_traslado_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_alm_traslado_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_traslado_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: conteo / merma / corrección de inventario.
-CREATE TABLE IF NOT EXISTS alm_ajuste (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_almacen              BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
-    motivo                  SMALLINT     NOT NULL,
-    observacion             TEXT,
-    estado_ajuste           SMALLINT     NOT NULL DEFAULT 1,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_alm_ajuste_codigo UNIQUE (codigo),
-    CONSTRAINT fk_ajuste_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_alm_ajuste_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_ajuste_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
--- Utilidad: diferencia entre stock del sistema y lo contado.
-CREATE TABLE IF NOT EXISTS alm_ajuste_detalle (
-    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_ajuste               BIGINT       NOT NULL,
-    id_producto             BIGINT       NOT NULL,
-    stock_sistema           NUMERIC(14, 4) NOT NULL,
-    stock_contado           NUMERIC(14, 4) NOT NULL,
-    diferencia              NUMERIC(14, 4) NOT NULL,
-    id_unidad_medida        BIGINT       NOT NULL,
-    estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
-    id_usuario_modificacion BIGINT,
-    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ajuste_det_ajuste FOREIGN KEY (id_ajuste) REFERENCES alm_ajuste (id),
-    CONSTRAINT fk_ajuste_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_ajuste_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_alm_ajuste_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_alm_ajuste_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
-);
-
 -- =============================================================================
--- PRODUCCIÓN: ingreso de insumos YA porcionados (lo que Inga pide digitalizar)
--- No explota crudo. El chef declara el rendimiento (45 presas, 30 potes, N onzas).
+-- PRODUCCIÓN: consumo de receta e ingreso del producto terminado
+-- La preparación declara la cantidad terminada; sus dos movimientos se confirman juntos.
 -- =============================================================================
 
 -- Utilidad: ingreso al recetario de lo ya porcionado (45 presas, 30 potes, N onzas).
@@ -989,7 +845,7 @@ CREATE TABLE IF NOT EXISTS prod_orden (
     observacion             TEXT,
     estado_orden            SMALLINT     NOT NULL DEFAULT 1,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
+    id_usuario_creacion BIGINT NOT NULL,
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -997,7 +853,7 @@ CREATE TABLE IF NOT EXISTS prod_orden (
     CONSTRAINT fk_prod_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_prod_almacen FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
     CONSTRAINT fk_prod_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
-    CONSTRAINT fk_prod_orden_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_orden_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_prod_orden_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
@@ -1011,19 +867,19 @@ CREATE TABLE IF NOT EXISTS prod_orden_detalle (
     costo_unitario          NUMERIC(12, 4),
     nota_rendimiento        VARCHAR(255),
     estado                  SMALLINT     NOT NULL DEFAULT 1,
-    id_usuario_creacion     BIGINT,
+    id_usuario_creacion BIGINT NOT NULL,
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_prod_det_orden FOREIGN KEY (id_orden) REFERENCES prod_orden (id),
     CONSTRAINT fk_prod_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_prod_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_prod_orden_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_prod_orden_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_prod_orden_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN prod_orden_detalle.nota_rendimiento IS
-    'Texto libre: "De 8 patos enteros". El sistema no calcula la conversión crudo→porción.';
+    'Observación del rendimiento real de la preparación.';
 
 -- =============================================================================
 -- COMPRAS
@@ -1871,9 +1727,6 @@ CREATE INDEX IF NOT EXISTS ix_cli_persona_convenio ON cli_persona (id_convenio) 
 CREATE INDEX IF NOT EXISTS ix_pro_producto_tipo ON pro_producto (tipo_producto, estado);
 CREATE INDEX IF NOT EXISTS ix_pro_producto_nombre ON pro_producto (nombre);
 CREATE INDEX IF NOT EXISTS ix_receta_insumo_receta ON pro_receta_insumo (id_receta);
-CREATE INDEX IF NOT EXISTS ix_alm_kardex_prod_fecha ON alm_kardex (id_producto, id_almacen, fecha_creacion DESC);
-CREATE INDEX IF NOT EXISTS ix_alm_kardex_doc ON alm_kardex (documento_tipo, documento_id);
-CREATE INDEX IF NOT EXISTS ix_alm_alerta_pendiente ON alm_alerta (fecha_creacion DESC);
 CREATE INDEX IF NOT EXISTS ix_ven_mesa_estado ON ven_mesa (estado_mesa) WHERE estado = 1;
 CREATE INDEX IF NOT EXISTS ix_ven_pedido_estado ON ven_pedido (id_sucursal, estado_pedido, fecha_apertura DESC);
 CREATE INDEX IF NOT EXISTS ix_ven_pedido_persona ON ven_pedido (id_persona, fecha_apertura DESC);
@@ -1903,7 +1756,7 @@ SELECT
     p.tipo_producto,
     s.stock_actual,
     s.stock_minimo,
-    s.alerta_activa,
+    (s.stock_actual <= s.stock_minimo) AS alerta_activa,
     um.simbolo AS um
 FROM alm_producto_stock s
 JOIN gen_almacen a ON a.id = s.id_almacen

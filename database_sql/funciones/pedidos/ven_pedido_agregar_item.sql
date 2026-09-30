@@ -14,7 +14,7 @@ BEGIN
   IF v_cantidad IS NULL OR v_cantidad <= 0 OR v_cantidad <> round(v_cantidad,4) THEN RAISE EXCEPTION 'La cantidad debe ser positiva con máximo 4 decimales'; END IF;
   v_precio := COALESCE((p_datos->>'precio_unitario')::NUMERIC,pr.precio_venta);
   IF v_precio < 0 OR v_precio <> round(v_precio,2) THEN RAISE EXCEPTION 'Precio inválido'; END IF;
-  IF v_receta IS NULL AND NOT pr.controla_stock THEN
+  IF v_receta IS NULL THEN
     SELECT id INTO v_receta FROM pro_receta WHERE id_producto = pr.id AND estado = 1 AND vigente;
   END IF;
   SELECT COALESCE(array_agg(x::BIGINT),'{}'::BIGINT[]) INTO v_seleccion

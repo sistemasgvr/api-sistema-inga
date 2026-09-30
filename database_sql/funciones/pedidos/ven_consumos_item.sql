@@ -11,7 +11,7 @@ BEGIN
   IF d.id_receta IS NOT NULL THEN
     SELECT rec.* INTO r FROM pro_receta rec WHERE rec.id = d.id_receta AND rec.estado = 1 AND rec.id_producto = d.id_producto;
     IF NOT FOUND OR r.rendimiento_porciones <= 0 THEN RAISE EXCEPTION 'Receta inválida o inactiva'; END IF;
-    IF pr.controla_stock THEN RAISE EXCEPTION 'Un producto no puede descontar stock directo y receta a la vez'; END IF;
+
     IF NOT EXISTS(SELECT 1 FROM pro_receta_insumo WHERE id_receta = r.id AND estado = 1) THEN RAISE EXCEPTION 'La receta no tiene insumos activos'; END IF;
     IF EXISTS(SELECT 1 FROM unnest(d.insumos_seleccionados) s(id)
       WHERE NOT EXISTS(SELECT 1 FROM pro_receta_insumo ri WHERE ri.id = s.id AND ri.id_receta = r.id AND ri.estado = 1))
@@ -26,7 +26,7 @@ BEGIN
   END IF;
 
   FOR v IN
-    SELECT pr.id AS producto, pr.id_unidad_medida AS unidad, d.cantidad AS consumo WHERE pr.controla_stock
+    SELECT pr.id AS producto, pr.id_unidad_medida AS unidad, d.cantidad AS consumo WHERE pr.controla_stock AND d.id_receta IS NULL
     UNION ALL
     SELECT ri.id_producto_insumo, ri.id_unidad_medida,
       ri.cantidad * d.cantidad / r.rendimiento_porciones * (1 + ri.porcentaje_merma / 100)

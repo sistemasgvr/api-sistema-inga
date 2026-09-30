@@ -1,4 +1,3 @@
--- Ejecutar mediante instalar_pedidos.sql. Conserva el esquema y los datos existentes.
 ALTER TABLE public.ven_pedido
   ADD COLUMN IF NOT EXISTS tasa_igv NUMERIC(5,2) NOT NULL DEFAULT 18 CHECK (tasa_igv BETWEEN 0 AND 100),
   ADD COLUMN IF NOT EXISTS motivo_anulacion TEXT,
@@ -19,9 +18,11 @@ COMMENT ON COLUMN public.ven_pedido_detalle.afecto_igv IS
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ven_pedido_mesa_en_curso
   ON public.ven_pedido(id_mesa)
   WHERE id_mesa IS NOT NULL AND estado = 1 AND estado_pedido IN (1,2,3);
--- En los reversos, documento_id identifica el movimiento original del kardex.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_alm_kardex_reverso_venta
-  ON public.alm_kardex(documento_id)
-  WHERE documento_tipo = 'ANULACION_VENTA' AND signo = 1;
-CREATE INDEX IF NOT EXISTS ix_alm_kardex_pedido_detalle
-  ON public.alm_kardex(documento_id) WHERE documento_tipo = 'PEDIDO_DETALLE';
+-- Índices del esquema anterior, solo antes de migrar inventario.
+DO $$ BEGIN
+  IF to_regclass('public.alm_kardex') IS NOT NULL THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_alm_kardex_reverso_venta ON public.alm_kardex(documento_id)
+      WHERE documento_tipo='ANULACION_VENTA' AND signo=1;
+    CREATE INDEX IF NOT EXISTS ix_alm_kardex_pedido_detalle ON public.alm_kardex(documento_id) WHERE documento_tipo='PEDIDO_DETALLE';
+  END IF;
+END $$;

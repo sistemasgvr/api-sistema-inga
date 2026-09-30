@@ -157,6 +157,10 @@ export const PermisoBanderas = {
   GDO_REGISTRAR: 'gdo.registrar',
   GDO_ANULAR: 'gdo.anular',
   GDO_INSUMOS_GESTIONAR: 'gdo.insumos.gestionar',
+  INVENTARIO_VER: 'inventario.ver',
+  INVENTARIO_GESTIONAR: 'inventario.gestionar',
+  PRODUCCION_PREPARAR: 'produccion.preparar',
+  PEDIDOS_ENTREGAR: 'pedidos.entregar',
 } as const;
 
 export type PermisoBandera =

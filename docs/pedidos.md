@@ -1,3 +1,5 @@
+> Inventario actualizado: consultar [inventario.md](inventario.md) para instalación, producción, reservas y entregas.
+
 # M05 — Pedidos, comandas e inventario
 
 Se mantiene la arquitectura `controllers → logic → models → funciones SQL`.
@@ -88,9 +90,9 @@ Se admite uno o ambos campos. No cambia producto, receta, precio ni adicionales.
 `POST /pedidos/:id/comandar`, sin cuerpo.
 
 Genera una comanda por estación con numeración por pedido/estación. No imprime ni envía al KDS; deja los registros preparados para esa integración.
-Consume stock directo, insumos de receta y adicionales. La receta se divide por `rendimiento_porciones`, incluye merma multiplicando por `1 + porcentaje_merma/100`, y convierte a la unidad del producto de stock. Las conversiones admiten la relación directa o su inversa.
-Se usa `stock_actual - stock_reservado` como disponible y se registran VENTA/signo -1 en el kardex con `documento_tipo = PEDIDO_DETALLE`.
-Un reintento sin nuevos ítems en un pedido COMANDADO no duplica comandas ni descuentos.
+Reserva productos terminados disponibles; no consume ingredientes ni descuenta existencias. La preparación confirmada consume receta e ingresa el terminado. La entrega del detalle descuenta el producto terminado. Los reintentos sin nuevos ítems no duplican comandas ni reservas.
+
+La entrega se registra con POST /pedidos/:id/items/:item_id/entregar y un total acumulado cantidad_entregada. Ver los ejemplos y reglas de cancelación parcial en inventario.md.
 
 ### Cambiar estado
 
@@ -100,7 +102,7 @@ Un reintento sin nuevos ítems en un pedido COMANDADO no duplica comandas ni des
 
 Estados: 1 ABIERTO → 2 COMANDADO → 3 POR_COBRAR → 4 PAGADO. Desde 1, 2 o 3 puede pasar a 5 ANULADO con autorización y motivo.
 Enviar estado 2 ejecuta la misma operación de comandar; enviar 5 ejecuta la anulación completa. No son atajos para omitir inventario.
-POR_COBRAR exige que todos los ítems activos estén comandados y pone la mesa en estado 3.
+POR_COBRAR exige que todas las unidades no canceladas estén entregadas y pone la mesa en estado 3.
 PAGADO exige que la suma de `ven_pago` activos cubra el total; actualiza `monto_pagado`, fecha de cierre y libera la mesa. El registro de pagos corresponde al módulo de cobro y no se crea desde este endpoint.
 
 ### Anular ítem o pedido
@@ -112,10 +114,7 @@ El DELETE de un ítem y el POST de anulación requieren este cuerpo:
 ```
 
 El autorizador debe ser **el usuario autenticado**, activo y con un rol ADMIN o CAJERO activo. No basta enviar el ID de otra persona; para autorización de un mozo por un cajero debe usarse la sesión del autorizador. Ser superadministrador sin esos roles no sustituye esta validación.
-El ítem solo se anula antes de comandar y con `stock_descontado = false`; queda con `tipo_linea = 3`.
-La anulación completa devuelve exactamente las cantidades del kardex original, aunque la receta o los adicionales hayan cambiado; registra ANULACION_VENTA/signo +1, anula ítems y comandas, pone el total en cero y libera la mesa. Conserva líneas, cantidades, precios, motivo, autorizador y movimientos para auditoría.
-En el reverso, `documento_tipo = ANULACION_VENTA` y `documento_id` referencia el **ID del kardex de venta original**. El índice único evita una devolución repetida. El costo promedio se recalcula con el costo original devuelto.
-No se anulan pedidos pagados o con pagos/comprobantes activos; esos casos necesitan el flujo de reverso de cobro.
+Se pueden cancelar unidades no entregadas, antes o después de comandar. cantidad_cancelada indica el total acumulado de la línea. Si hay reservas, destino_preparado debe indicar DISPONIBLE o MERMA. Los ingredientes utilizados no se devuelven. La anulación total requiere que no haya productos entregados, pagos ni comprobantes. Se conservan cantidades, autores y movimientos para auditoría.
 
 ## Regla de IGV acordada
 
@@ -150,4 +149,4 @@ npm run test:pedidos:sql
 & 'C:/Program Files/PostgreSQL/18/bin/pg_ctl.exe' -D '.tmp/pedidos-pg' -m fast -w stop
 ```
 
-La prueba verifica IGV incluido/agregado, adicionales, recetas, sustituciones, merma, conversión de unidades, reservas, autorización, pertenencia de ítems, segunda ronda, pagos, anulación, reversos repetidos, atomicidad tras fallos y concurrencia real sobre mesas y stock.
+La prueba compartida verifica producción, conversión de unidades, adicionales, reservas concurrentes, autorización, pertenencia de ítems, entrega y cancelación parciales, reintentos, costos de traslado y atomicidad tras fallos.

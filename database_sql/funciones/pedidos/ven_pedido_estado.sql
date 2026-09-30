@@ -10,8 +10,8 @@ BEGIN
   IF v.estado_pedido = v_destino THEN RETURN ven_obtener_pedido(p_id); END IF;
   IF NOT ((v.estado_pedido = 2 AND v_destino = 3) OR (v.estado_pedido = 3 AND v_destino = 4)) THEN RAISE EXCEPTION 'Transición de estado inválida: % a %',v.estado_pedido,v_destino; END IF;
   PERFORM ven_validar_turno_pedido(v.id_turno,v.id_sucursal);
-  IF EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3 AND (id_comanda IS NULL OR NOT stock_descontado))
-    THEN RAISE EXCEPTION 'Hay ítems pendientes de comandar'; END IF;
+  IF EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3 AND (id_comanda IS NULL OR cantidad_entregada < cantidad - cantidad_cancelada))
+    THEN RAISE EXCEPTION 'Hay ítems pendientes de entregar'; END IF;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   IF v_destino = 4 THEN
     SELECT COALESCE(sum(monto),0) INTO v_pagado FROM ven_pago WHERE id_pedido = p_id AND estado = 1;

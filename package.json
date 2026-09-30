@@ -14,11 +14,12 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
-    "test:pedidos:sql": "node test/pedidos/pedidos.integration.cjs",
+    "test:pedidos:sql": "node test/inventario/inventario.integration.cjs",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:inventario:sql": "node test/inventario/inventario.integration.cjs"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -75,7 +76,10 @@
       "ts"
     ],
     "rootDir": ".",
-    "roots": ["<rootDir>/src", "<rootDir>/test"],
+    "roots": [
+      "<rootDir>/src",
+      "<rootDir>/test"
+    ],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

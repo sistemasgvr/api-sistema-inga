@@ -115,7 +115,35 @@ export class EditarItemDto {
   observacion?: string;
 }
 
+export class EntregarItemDto {
+  @ApiProperty({
+    description:
+      'Total acumulado entregado; repetir el mismo total no duplica la salida.',
+  })
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.0001)
+  @Max(9999999999.9999)
+  cantidad_entregada!: number;
+}
+
 export class AnularPedidoDto {
+  @ApiPropertyOptional({
+    description:
+      'Total acumulado cancelado de la línea. Omitir cancela todo lo no entregado.',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.0001)
+  @Max(9999999999.9999)
+  cantidad_cancelada?: number;
+  @ApiPropertyOptional({
+    enum: ['DISPONIBLE', 'MERMA'],
+    description: 'Obligatorio si hay porciones reservadas.',
+  })
+  @IsOptional()
+  @IsIn(['DISPONIBLE', 'MERMA'])
+  destino_preparado?: string;
+
   @ApiProperty({
     description:
       'Debe coincidir con el usuario autenticado, con rol ADMIN o CAJERO activo.',
@@ -127,6 +155,10 @@ export class AnularPedidoDto {
 }
 
 export class EstadoPedidoDto {
+  @ApiPropertyOptional({ enum: ['DISPONIBLE', 'MERMA'] })
+  @IsOptional()
+  @IsIn(['DISPONIBLE', 'MERMA'])
+  destino_preparado?: string;
   @ApiProperty({ enum: [2, 3, 4, 5] })
   @IsInt()
   @IsIn([2, 3, 4, 5])

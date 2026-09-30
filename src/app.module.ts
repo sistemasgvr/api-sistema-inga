@@ -1,3 +1,4 @@
+import { InventarioModule } from './modules/inventario/inventario.module';
 import { Module } from '@nestjs/common';
 import { PedidosModule } from './modules/pedidos/pedidos.module';
 import { ListasModule } from './modules/listas/listas.module';
@@ -76,6 +77,7 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     SalonModule,
     ListasModule,
     PedidosModule,
+    InventarioModule,
   ],
   controllers: [],
   providers: [

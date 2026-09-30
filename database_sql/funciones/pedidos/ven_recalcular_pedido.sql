@@ -4,8 +4,9 @@ DECLARE v_tasa NUMERIC; v_base NUMERIC; v_total NUMERIC;
 BEGIN
   SELECT tasa_igv / 100 INTO v_tasa FROM ven_pedido WHERE id = p_id;
   UPDATE ven_pedido_detalle d SET monto_subtotal = CASE WHEN tipo_linea IN (2,3) THEN 0 ELSE
-    round(cantidad * (precio_unitario + COALESCE((SELECT sum(a.precio_adicional)
-      FROM ven_pedido_detalle_adicional a WHERE a.id_pedido_detalle = d.id AND a.estado = 1), 0)) - monto_descuento, 2) END
+    round((cantidad - cantidad_cancelada) * (precio_unitario + COALESCE((SELECT sum(a.precio_adicional)
+      FROM ven_pedido_detalle_adicional a WHERE a.id_pedido_detalle = d.id AND a.estado = 1), 0)) - monto_descuento, 2) END,
+    id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP
   WHERE id_pedido = p_id AND estado = 1;
   -- afecto_igv expresa si el precio del catálogo incluye IGV según la regla acordada.
   SELECT COALESCE(sum(CASE WHEN afecto_igv THEN round(monto_subtotal / (1 + v_tasa), 2) ELSE monto_subtotal END),0),
