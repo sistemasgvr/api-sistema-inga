@@ -146,7 +146,7 @@ export class AnularPedidoDto {
 
   @ApiProperty({
     description:
-      'Debe coincidir con el usuario autenticado, con rol ADMIN o CAJERO activo.',
+      'Debe coincidir con el usuario autenticado, con permiso pedidos.anular o superadministrador.',
   })
   @IsInt()
   @Min(1)

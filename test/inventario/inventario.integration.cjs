@@ -46,6 +46,36 @@ async function main() {
   const mozo = await insert('auth_usuario', { username: 'mozo_test', password_hash: 'test', id_trabajador: mozoTrabajador });
   const rol = (await q("SELECT id FROM auth_rol WHERE codigo = 'ADMIN'"))[0].id;
   await insert('auth_usuario_rol', { id_usuario: usuario, id_rol: rol });
+  const permisoAnular = (await q("SELECT id FROM auth_permiso WHERE codigo = 'pedidos.anular'"))[0].id;
+  const autorizar = (actor, autoriza = actor, motivo = 'Prueba de permisos') =>
+    q('SELECT ven_autorizar_anulacion($1,$2,$3)', [actor, autoriza, motivo]);
+  // El nombre ADMIN no autoriza sin la bandera; un rol personalizado sí puede hacerlo.
+  await q('DELETE FROM auth_rol_permiso WHERE id_rol=$1 AND id_permiso=$2', [rol, permisoAnular]);
+  await rejects(() => autorizar(usuario), /pedidos.anular/);
+  const asignacion = await insert('auth_rol_permiso', { id_rol: rol, id_permiso: permisoAnular });
+  await autorizar(usuario);
+  const rolPersonalizado = await insert('auth_rol', { codigo: 'SUPERVISOR_TEST', nombre: 'Supervisor de prueba' });
+  const membresia = await insert('auth_usuario_rol', { id_usuario: mozo, id_rol: rolPersonalizado });
+  await insert('auth_rol_permiso', { id_rol: rolPersonalizado, id_permiso: permisoAnular });
+  await autorizar(mozo);
+  await rejects(() => autorizar(mozo, usuario), /usuario autenticado/);
+  for (const [table, id] of [['auth_usuario_rol', membresia], ['auth_rol', rolPersonalizado], ['auth_permiso', permisoAnular]]) {
+    await q(`UPDATE ${table} SET estado=0 WHERE id=$1`, [id]);
+    await rejects(() => autorizar(mozo), /pedidos.anular/);
+    await q(`UPDATE ${table} SET estado=1 WHERE id=$1`, [id]);
+  }
+  await q('UPDATE auth_rol_permiso SET estado=0 WHERE id=$1', [asignacion]);
+  await rejects(() => autorizar(usuario), /pedidos.anular/);
+  await q('UPDATE auth_rol_permiso SET estado=1 WHERE id=$1', [asignacion]);
+  await q('DELETE FROM auth_usuario_rol WHERE id=$1', [membresia]);
+  await q('UPDATE auth_usuario SET es_super_admin=true WHERE id=$1', [mozo]);
+  await autorizar(mozo); // Superadministrador sin roles ni permisos asignados.
+  await rejects(() => autorizar(mozo, usuario), /usuario autenticado/);
+  await rejects(() => autorizar(mozo, mozo, '  '), /motivo/);
+  await q('UPDATE auth_usuario SET estado=0 WHERE id=$1', [mozo]);
+  await rejects(() => autorizar(mozo), /pedidos.anular/);
+  await q('UPDATE auth_usuario SET estado=1,es_super_admin=false WHERE id=$1', [mozo]);
+  await rejects(() => autorizar(mozo), /pedidos.anular/);
   const caja = await insert('caj_caja', { id_sucursal: sucursal, codigo: 'CAJA', nombre: 'Caja' });
   const turno = await insert('caj_turno', { id_caja: caja, id_cajero: usuario });
   const salon = await insert('ven_salon', { id_sucursal: sucursal, codigo: 'SALON', nombre: 'Salón' });

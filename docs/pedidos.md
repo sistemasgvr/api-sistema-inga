@@ -113,7 +113,7 @@ El DELETE de un ítem y el POST de anulación requieren este cuerpo:
 { "id_usuario_autoriza": 7, "motivo": "Solicitud del cliente" }
 ```
 
-El autorizador debe ser **el usuario autenticado**, activo y con un rol ADMIN o CAJERO activo. No basta enviar el ID de otra persona; para autorización de un mozo por un cajero debe usarse la sesión del autorizador. Ser superadministrador sin esos roles no sustituye esta validación.
+El autorizador debe ser **el usuario autenticado**, activo y con el permiso `pedidos.anular`, obtenido mediante asignaciones y roles activos, o ser superadministrador. El nombre o código del rol no concede autorización por sí solo. No basta enviar el ID de otra persona; debe usarse la sesión del autorizador. La base de datos vuelve a validar el permiso y exige motivo incluso al superadministrador.
 Se pueden cancelar unidades no entregadas, antes o después de comandar. cantidad_cancelada indica el total acumulado de la línea. Si hay reservas, destino_preparado debe indicar DISPONIBLE o MERMA. Los ingredientes utilizados no se devuelven. La anulación total requiere que no haya productos entregados, pagos ni comprobantes. Se conservan cantidades, autores y movimientos para auditoría.
 
 ## Regla de IGV acordada
