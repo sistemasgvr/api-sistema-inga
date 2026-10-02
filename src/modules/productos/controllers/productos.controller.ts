@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -57,8 +58,13 @@ export class ProductosController {
   @Post()
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
   @ApiOperation({ summary: 'Crear un nuevo producto' })
-  crear(@Body() dto: CreateProductoDto) {
-    return this.productosLogic.crear(dto);
+  crear(@Body() dto: CreateProductoDto, @Req() req: any) {
+    const idUsuario = dto.idUsuarioAuditoria ?? req.user?.id ?? req.user?.id_usuario ?? 1;
+
+    return this.productosLogic.crear({
+      ...dto,
+      idUsuarioAuditoria: idUsuario,
+    });
   }
 
   @Post('upload-imagen')

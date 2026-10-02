@@ -133,8 +133,8 @@ BEGIN
             0,
             0,
             0,
-            p_id_usuario_auditoria,
-            p_id_usuario_auditoria
+            COALESCE(p_id_usuario_auditoria, 1),
+            COALESCE(p_id_usuario_auditoria, 1) 
         )
         ON CONFLICT (id_almacen, id_producto) DO NOTHING;
     END IF;
