@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Req
 } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
@@ -59,8 +60,13 @@ export class RecetasProductoController {
   guardarInsumo(
     @Param('idReceta', ParseIntPipe) idReceta: number,
     @Body() dto: GuardarRecetaInsumoDto,
+    @Req() req: any,
   ) {
-    return this.recetasLogic.guardarInsumo(idReceta, dto);
+    const idUsuario = dto.idUsuarioAuditoria ?? req.user?.id ?? req.user?.id_usuario;
+    return this.recetasLogic.guardarInsumo(idReceta, {
+      ...dto,
+      idUsuarioAuditoria: idUsuario,
+    });
   }
 
   @Delete('recetas/insumos/:idInsumoReceta')
