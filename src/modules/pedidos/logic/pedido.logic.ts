@@ -14,12 +14,14 @@ import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user
 import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
 import { FiltroPedidoDto } from '../dto/pedido.dto';
 import { AccionPedido, PedidoModel } from '../models/pedido.model';
+import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
 
 @Injectable()
 export class PedidoLogic {
   constructor(
     private readonly model: PedidoModel,
     private readonly config: ConfigService,
+    private readonly impresion: ImpresionGateway,
   ) {}
 
   async listar(filtros: FiltroPedidoDto) {
@@ -56,7 +58,15 @@ export class PedidoLogic {
     }
     return this.resolver(() =>
       this.model.ejecutar(accion, id, item, payload, usuario.id),
-    );
+    ).then((result) => {
+      if (
+        accion === 'comandar' ||
+        (accion === 'estado' && payload.estado_pedido === 2)
+      ) {
+        this.impresion.notificar();
+      }
+      return result;
+    });
   }
 
   private async resolver(operacion: () => Promise<AuthSingleResult>) {

@@ -89,7 +89,7 @@ Se admite uno o ambos campos. No cambia producto, receta, precio ni adicionales.
 
 `POST /pedidos/:id/comandar`, sin cuerpo.
 
-Genera una comanda por estación con numeración por pedido/estación. No imprime ni envía al KDS; deja los registros preparados para esa integración.
+Genera una comanda por estación con numeración por pedido/estación. Con la migración de impresión instalada, encola el ticket y notifica al receptor QZ Tray por WebSocket; ver [impresión](impresion.md). No envía al KDS.
 Reserva productos terminados disponibles; no consume ingredientes ni descuenta existencias. La preparación confirmada consume receta e ingresa el terminado. La entrega del detalle descuenta el producto terminado. Los reintentos sin nuevos ítems no duplican comandas ni reservas.
 
 La entrega se registra con POST /pedidos/:id/items/:item_id/entregar y un total acumulado cantidad_entregada. Ver los ejemplos y reglas de cancelación parcial en inventario.md.

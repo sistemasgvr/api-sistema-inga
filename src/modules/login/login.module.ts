@@ -24,6 +24,6 @@ import { LoginModel } from './models/login.model';
   ],
   controllers: [LoginController],
   providers: [LoginModel, LoginLogic, JwtStrategy],
-  exports: [JwtModule, PassportModule, LoginLogic, LoginModel],
+  exports: [JwtModule, PassportModule, LoginLogic, LoginModel, JwtStrategy],
 })
 export class LoginModule {}

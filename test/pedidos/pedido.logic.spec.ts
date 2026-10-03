@@ -8,12 +8,15 @@ import { ConfigService } from '@nestjs/config';
 import { AuthenticatedUser } from '../../src/common/interfaces/authenticated-user.interface';
 import { PedidoLogic } from '../../src/modules/pedidos/logic/pedido.logic';
 import { PedidoModel } from '../../src/modules/pedidos/models/pedido.model';
+import { ImpresionGateway } from '../../src/modules/impresion/gateways/impresion.gateway';
 
 describe('Orquestación de pedidos', () => {
   const model = { obtener: jest.fn(), ejecutar: jest.fn() };
+  const impresion = { notificar: jest.fn() };
   const logic = new PedidoLogic(
     model as unknown as PedidoModel,
     new ConfigService({ PEDIDOS_TASA_IGV: 18 }),
+    impresion as unknown as ImpresionGateway,
   );
   const user = {
     id: 7,
@@ -21,6 +24,17 @@ describe('Orquestación de pedidos', () => {
     es_super_admin: false,
   } as AuthenticatedUser;
   beforeEach(() => jest.resetAllMocks());
+
+  it('notifica sólo después de confirmar la comanda en base de datos', async () => {
+    model.ejecutar.mockResolvedValue({ registro: { id: 1 } });
+    await logic.ejecutar('comandar', 1, null, {}, user);
+    expect(impresion.notificar).toHaveBeenCalledTimes(1);
+    model.ejecutar.mockRejectedValue(new Error('rollback'));
+    await expect(logic.ejecutar('comandar', 1, null, {}, user)).rejects.toThrow(
+      'rollback',
+    );
+    expect(impresion.notificar).toHaveBeenCalledTimes(1);
+  });
 
   it.each([2, 5])(
     'impide eludir el permiso de comanda/anulación usando estado %s',
