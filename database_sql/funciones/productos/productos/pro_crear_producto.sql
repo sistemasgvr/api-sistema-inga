@@ -21,6 +21,7 @@ AS $function$
 DECLARE
     v_id BIGINT;
     v_codigo_interno VARCHAR;
+    v_controla_stock BOOLEAN;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
@@ -35,6 +36,12 @@ BEGIN
 
     IF p_tipo_producto IS NULL THEN
         RETURN json_build_object('error', 'El tipo de producto es obligatorio', 'registro', NULL);
+    END IF;
+
+    -- Si es Insumo Crudo (1), Insumo Procesado (2) o Bebida Unitaria (6), controla stock automáticamente
+    v_controla_stock := COALESCE(p_controla_stock, FALSE);
+    IF p_tipo_producto IN (1, 2, 6) THEN
+        v_controla_stock := TRUE;
     END IF;
 
     IF EXISTS (
@@ -72,7 +79,7 @@ BEGIN
         RETURN json_build_object('error', 'Debe asignar una estación de impresión para platos, tragos o bebidas', 'registro', NULL);
     END IF;
 
-    IF p_controla_stock = TRUE AND p_id_almacen_stock IS NULL THEN
+    IF v_controla_stock = TRUE AND p_id_almacen_stock IS NULL THEN
         RETURN json_build_object('error', 'Debe seleccionar un almacén si el producto controla stock directamente', 'registro', NULL);
     END IF;
 
@@ -105,7 +112,7 @@ BEGIN
         p_tipo_producto,
         COALESCE(p_precio_venta, 0),
         COALESCE(p_afecto_igv, TRUE),
-        COALESCE(p_controla_stock, FALSE),
+        v_controla_stock,
         COALESCE(p_disponible_venta, TRUE),
         p_tiempo_prep_min,
         p_imagen_url,
@@ -114,8 +121,8 @@ BEGIN
     )
     RETURNING id INTO v_id;
 
-    -- INICIALIZACIÓN DE STOCK (Solo si controla_stock = TRUE y tiene almacén)
-    IF COALESCE(p_controla_stock, FALSE) = TRUE AND p_id_almacen_stock IS NOT NULL THEN
+    -- INICIALIZACIÓN DE ENTRADA EN ALMACÉN EN 0
+    IF v_controla_stock = TRUE AND p_id_almacen_stock IS NOT NULL THEN
         INSERT INTO alm_producto_stock (
             id_almacen,
             id_producto,

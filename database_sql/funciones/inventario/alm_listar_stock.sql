@@ -6,10 +6,29 @@ CREATE OR REPLACE FUNCTION public.alm_listar_stock(
 ) RETURNS JSON LANGUAGE sql AS $$
   SELECT json_build_object('registros', COALESCE(json_agg(s ORDER BY s.id), '[]'::JSON))
   FROM (
-    SELECT * FROM alm_producto_stock
-    WHERE (p_producto IS NULL OR id_producto=p_producto)
-      AND (p_almacen IS NULL OR id_almacen=p_almacen)
-    ORDER BY id
-    LIMIT LEAST(GREATEST(p_limite,1),200) OFFSET GREATEST(p_offset,0)
+    SELECT 
+      aps.id,
+      aps.id_almacen,
+      a.nombre AS almacen_nombre,
+      aps.id_producto,
+      p.codigo_interno AS producto_codigo,
+      p.nombre AS producto_nombre,
+      p.tipo_producto,
+      um.simbolo AS simbolo_unidad,
+      aps.stock_actual,
+      aps.stock_minimo,
+      aps.stock_reservado,
+      aps.costo_promedio,
+      (aps.stock_actual <= aps.stock_minimo) AS alerta_activa,
+      aps.fecha_modificacion
+    FROM alm_producto_stock aps
+    JOIN pro_producto p ON p.id = aps.id_producto
+    JOIN gen_almacen a ON a.id = aps.id_almacen
+    JOIN pro_unidad_medida um ON um.id = p.id_unidad_medida
+    WHERE aps.estado = 1
+      AND (p_producto IS NULL OR aps.id_producto = p_producto)
+      AND (p_almacen IS NULL OR aps.id_almacen = p_almacen)
+    ORDER BY aps.id DESC
+    LIMIT LEAST(GREATEST(p_limite, 1), 200) OFFSET GREATEST(p_offset, 0)
   ) s;
 $$;
