@@ -31,6 +31,16 @@ async function main() {
     const sql = installer.replace(/^\\set.*$/gm, '').replace(/^\\ir (.+)$/gm, (_, file) => fs.readFileSync(path.join(root, 'database_sql', file.trim()), 'utf8'));
     await setup.query(sql);
     await setup.query(sql); // La instalación se puede repetir.
+    // Datos exclusivos de esta base temporal; no se migran datos de usuario.
+    await setup.query(`INSERT INTO pro_tipo_producto(id,nombre,permite_venta,requiere_receta,requiere_estacion,permite_stock_inicial) VALUES
+      (1,'Crudo',false,false,false,true),(2,'Procesado',false,true,false,true),
+      (3,'Carta',true,true,true,false),(4,'Menú',true,true,true,false),(5,'Trago',true,true,true,false),
+      (6,'Bebida',true,false,true,true),(7,'Adicional',true,false,false,true);
+      SELECT setval(pg_get_serial_sequence('pro_tipo_producto','id'),7);`);
+    const tiposInstaller = fs.readFileSync(path.join(root, 'database_sql/instalar_tipos_producto.sql'), 'utf8');
+    const tiposSql = tiposInstaller.replace(/^\\set.*$/gm, '').replace(/^\\ir (.+)$/gm, (_, file) => fs.readFileSync(path.join(root, 'database_sql', file.trim()), 'utf8'));
+    await setup.query(tiposSql);
+    await setup.query(tiposSql);
   } finally { setup.release(); }
   const q = async (sql, params = []) => (await pool.query(sql, params)).rows;
   const insert = async (table, data) => {
@@ -87,10 +97,32 @@ async function main() {
   const subcategoria = await insert('pro_subcategoria', { id_categoria: categoria, codigo: 'TEST', nombre: 'Pruebas' });
   const kg = (await q("SELECT id FROM pro_unidad_medida WHERE codigo = 'KG'"))[0].id;
   const gramos = (await q("SELECT id FROM pro_unidad_medida WHERE codigo = 'G'"))[0].id;
+  const tipoNuevo = (await q("SELECT pro_crear_tipo_producto('Tipo nuevo',true,true,true,false,$1) AS r", [usuario]))[0].r.registro;
+  check(tipoNuevo.id > 7, true);
+  const duplicado = (await q("SELECT pro_crear_tipo_producto('  TIPO NUEVO  ',false,false,false,true,$1) AS r", [usuario]))[0].r;
+  check(!!duplicado.error, true);
+  const tipos = (await q('SELECT pro_listar_tipos_producto() AS r'))[0].r;
+  check(tipos.find(t => t.id === tipoNuevo.id).requiere_receta, true);
+  const nuevo = {id_subcategoria:subcategoria,id_unidad_medida:kg,codigo_interno:'DINAMICO',nombre:'Dinámico',
+    tipo_producto:tipoNuevo.id,controla_stock:true,id_almacen_stock:almacen,precio_venta:20,disponible_venta:true};
+  const crear = async data => (await q('SELECT pro_crear_producto_stock($1::jsonb,$2) AS r',[JSON.stringify(data),usuario]))[0].r;
+  check(!!(await crear(nuevo)).error, true); // Estación requerida para un ID nuevo.
+  await rejects(() => crear({...nuevo,id_estacion:cocina,stock_inicial:2}), /no permite stock/);
+  const dinamico = (await crear({...nuevo,id_estacion:cocina})).registro;
+  check(dinamico.nombre_tipo_producto, 'Tipo nuevo');
+  check(dinamico.requiere_receta, true);
+  const modificado = (await q(`SELECT pro_actualizar_producto(p_id => $1::bigint, p_tipo_producto => 1::smallint) AS r`,[dinamico.id]))[0].r.registro;
+  check(modificado.id_estacion, null);
+  check(modificado.disponible_venta, false);
+  check(Number(modificado.precio_venta), 0);
+  check(!!(await q('SELECT pro_toggle_disponibilidad_producto($1) AS r',[dinamico.id]))[0].r.error, true);
+  const sinStock = (await q('SELECT pro_actualizar_producto(p_id => $1::bigint,p_controla_stock => false) AS r',[dinamico.id]))[0].r.registro;
+  check(sinStock.id_almacen_stock, null);
+  check(!!(await crear({...nuevo,codigo_interno:'INVALIDO',tipo_producto:30000})).error, true);
   const product = (codigo, data = {}) => insert('pro_producto', { id_subcategoria: subcategoria, id_unidad_medida: kg, id_estacion: cocina, id_almacen_stock: almacen, codigo_interno: codigo, nombre: codigo, tipo_producto: 2, controla_stock: true, precio_venta: 11.80, ...data });
   const insumo = await product('INSUMO');
   const bebida = await product('BEBIDA', { tipo_producto: 6, id_estacion: barra, afecto_igv: false, precio_venta: 10 });
-  const plato = await product('PLATO', { tipo_producto: 3, controla_stock: true });
+  const plato = await product('PLATO', { tipo_producto: tipoNuevo.id, controla_stock: true });
   await insert('alm_producto_stock', { id_usuario_creacion: usuario, id_almacen: almacen, id_producto: insumo, stock_actual: 10, costo_promedio: 5 });
   await insert('alm_producto_stock', { id_usuario_creacion: usuario, id_almacen: almacen, id_producto: bebida, stock_actual: 10, costo_promedio: 3 });
   const receta = await insert('pro_receta', { id_producto: plato, rendimiento_porciones: 2 });
@@ -270,7 +302,7 @@ async function main() {
 
   // Alta de producto + saldo inicial: una única operación con auditoría y rollback.
   const alta={id_subcategoria:Number(subcategoria),id_unidad_medida:Number(kg),id_estacion:Number(barra),id_almacen_stock:Number(almacen),
-    codigo_interno:'ALTA-STOCK',nombre:'Nueva gaseosa',tipo_producto:6,stock_inicial:4,stock_minimo:2,costo_inicial:3};
+    codigo_interno:'ALTA-STOCK',nombre:'Nueva gaseosa',tipo_producto:6,controla_stock:true,stock_inicial:4,stock_minimo:2,costo_inicial:3};
   const crearProducto=async data=>(await q('SELECT pro_crear_producto_stock($1::jsonb,$2) r',[JSON.stringify(data),usuario]))[0].r;
   const creado=(await crearProducto(alta)).registro;
   check(!!creado,true);
@@ -280,7 +312,7 @@ async function main() {
   check(Number(stockInicial.costo_promedio),3);
   check(Number(stockInicial.id_usuario_creacion),Number(usuario));
   check(Number((await q("SELECT count(*) n FROM vw_alm_kardex WHERE documento_tipo='PRODUCTO' AND documento_id=$1",[creado.id]))[0].n),1);
-  await rejects(()=>crearProducto({...alta,codigo_interno:'PLATO-INVALIDO',tipo_producto:3}),/preparación/);
+  await rejects(()=>crearProducto({...alta,codigo_interno:'PLATO-INVALIDO',tipo_producto:3}),/no permite stock/);
   const saldoInicial=await opcion('ALM_MOTIVO_MOVIMIENTO','SALDO_INICIAL');
   await q('UPDATE gen_lista_opcion SET estado=0 WHERE id=$1',[saldoInicial]);
   await rejects(()=>crearProducto({...alta,codigo_interno:'ALTA-ROLLBACK'}),/catálogo|Catálogo|motivo|Motivo/);

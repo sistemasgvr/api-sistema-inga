@@ -69,7 +69,7 @@ BEGIN
     UPDATE alm_producto_stock SET stock_reservado=stock_reservado+v_cantidad,id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP
       WHERE id_producto=pr.id AND id_almacen=almacen;
     UPDATE ven_pedido_detalle SET cantidad_reservada=cantidad_reservada+v_cantidad,id_almacen_reserva=almacen,
-      estado_preparacion=CASE WHEN cantidad_reservada+v_cantidad+cantidad_entregada+cantidad_cancelada=ven_pedido_detalle.cantidad THEN 4 ELSE 3 END,
+      estado_preparacion=3,
       id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=item;
   END IF;
   RETURN json_build_object('registro',to_jsonb(orden));

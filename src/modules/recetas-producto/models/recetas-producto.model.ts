@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthDeleteResult, AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
 import { DatabaseService } from '../../../database/database.service';
-import { CreateRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
+import { CreateRecetaDto, FiltroInsumosRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
 
 @Injectable()
 export class RecetasProductoModel {
@@ -15,8 +15,13 @@ export class RecetasProductoModel {
     return this.db.callFunctionJson<AuthSingleResult>('pro_obtener_receta', [id]);
   }
 
-  listarInsumosProcesados(busqueda: string) {
-    return this.db.callFunctionJson<any>('pro_listar_insumos_procesados', [busqueda ?? '']);
+  listarInsumosProcesados(filtros: FiltroInsumosRecetaDto) {
+    return this.db.callFunctionJson<any>('pro_listar_insumos_procesados', [
+      filtros.busqueda ?? '',
+      filtros.id_categoria ?? null,
+      filtros.id_subcategoria ?? null,
+      filtros.id_tipo_producto ?? null,
+    ]);
   }
 
   crearReceta(idProducto: number, dto: CreateRecetaDto) {

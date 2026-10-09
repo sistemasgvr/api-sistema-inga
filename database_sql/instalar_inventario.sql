@@ -4,6 +4,7 @@ BEGIN;
 \ir migraciones/02_ven_pedidos.sql
 \ir migraciones/04_inventario_unificado.sql
 \ir migraciones/05_reserva_insumos.sql
+\ir migraciones/08_tipos_producto_estructura.sql
 \ir funciones/pedidos/ven_obtener_pedido.sql
 \ir funciones/pedidos/ven_bloquear_pedido.sql
 \ir funciones/pedidos/ven_validar_turno_pedido.sql

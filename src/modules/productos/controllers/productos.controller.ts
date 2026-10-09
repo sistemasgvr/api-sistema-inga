@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -32,14 +31,14 @@ import {
   UpdateProductoDto,
 } from '../dto/productos.dto';
 import { ProductosLogic } from '../logic/productos.logic';
-import { SupabaseStorageService } from '../../../integrations/supabase-storage/supabase-storage.service';
+import { ProductoImagenLogic } from '../logic/producto-imagen.logic';
 
 @ApiTags('Productos - Catálogo Principal')
 @Controller('productos')
 export class ProductosController {
   constructor(
     private readonly productosLogic: ProductosLogic,
-    private readonly storageService: SupabaseStorageService,
+    private readonly productoImagenLogic: ProductoImagenLogic,
   ) {}
 
   @Get()
@@ -78,27 +77,11 @@ export class ProductosController {
 
   @Post('upload-imagen')
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Subir imagen de producto a Supabase Storage' })
   @ApiConsumes('multipart/form-data')
   async uploadImagen(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('Debes adjuntar un archivo de imagen');
-    }
-
-    const fileExt = file.originalname.split('.').pop();
-    const path = `productos/prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-    const uploadResult = await this.storageService.upload(
-      path,
-      file.buffer,
-      file.mimetype,
-      true,
-    );
-
-    const publicUrl = this.storageService.getPublicUrl(uploadResult.path);
-
-    return { url: publicUrl };
+    return this.productoImagenLogic.subir(file);
   }
 
   @Patch(':id')

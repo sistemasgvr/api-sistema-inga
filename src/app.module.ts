@@ -1,4 +1,5 @@
 import { InventarioModule } from './modules/inventario/inventario.module';
+import { TiposProductoModule } from './modules/tipos-producto/tipos-producto.module';
 import { Module } from '@nestjs/common';
 import { PedidosModule } from './modules/pedidos/pedidos.module';
 import { ListasModule } from './modules/listas/listas.module';
@@ -78,6 +79,7 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     ListasModule,
     PedidosModule,
     InventarioModule,
+    TiposProductoModule,
   ],
   controllers: [],
   providers: [

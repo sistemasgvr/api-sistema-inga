@@ -8,7 +8,41 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
+
+/**
+ * Filtros del selector de insumos del recetario.
+ *
+ * El recetario es multi-nivel: una receta admite insumos crudos y también
+ * platos que tienen su propia receta, así que el selector se apoya en los
+ * mismos filtros que el catálogo de productos en vez de fijar un tipo.
+ */
+export class FiltroInsumosRecetaDto {
+  @ApiPropertyOptional({ description: 'Texto a buscar en nombre o código' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  busqueda?: string;
+
+  @ApiPropertyOptional({ description: 'ID del tipo de producto' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_tipo_producto?: number;
+
+  @ApiPropertyOptional({ description: 'ID de la categoría' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_categoria?: number;
+
+  @ApiPropertyOptional({ description: 'ID de la subcategoría' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_subcategoria?: number;
+}
 
 export class CreateRecetaDto extends AuditoriaDto {
   @ApiPropertyOptional({ example: 'Receta Estándar Lomo Saltado' })

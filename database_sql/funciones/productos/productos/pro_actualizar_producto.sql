@@ -24,11 +24,24 @@ DECLARE
     v_nombre VARCHAR;
     v_controla_stock BOOLEAN;
     v_id_almacen BIGINT;
+    v_tipo pro_tipo_producto%ROWTYPE;
+    v_producto pro_producto%ROWTYPE;
+    v_estacion BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
     IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id AND estado = 1) THEN
         RETURN json_build_object('error', 'El producto no existe o está inactivo', 'registro', NULL);
+    END IF;
+
+    SELECT * INTO v_producto FROM pro_producto WHERE id = p_id;
+    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = COALESCE(p_tipo_producto, v_producto.tipo_producto) AND estado = 1;
+    IF NOT FOUND THEN
+        RETURN json_build_object('error', 'Tipo de producto inexistente o inactivo', 'registro', NULL);
+    END IF;
+    v_estacion := CASE WHEN v_tipo.requiere_estacion THEN COALESCE(p_id_estacion, v_producto.id_estacion) ELSE NULL END;
+    IF v_tipo.requiere_estacion AND v_estacion IS NULL THEN
+        RETURN json_build_object('error', 'Debe asignar una estación para este tipo de producto', 'registro', NULL);
     END IF;
 
     v_codigo_interno := NULLIF(TRIM(p_codigo_interno), '');
@@ -78,18 +91,18 @@ BEGIN
     SET
         id_subcategoria = COALESCE(p_id_subcategoria, id_subcategoria),
         id_unidad_medida = COALESCE(p_id_unidad_medida, id_unidad_medida),
-        id_estacion = COALESCE(p_id_estacion, id_estacion),
-        id_almacen_stock = COALESCE(p_id_almacen_stock, id_almacen_stock),
+        id_estacion = v_estacion,
+        id_almacen_stock = CASE WHEN v_controla_stock THEN v_id_almacen ELSE NULL END,
         codigo_interno = COALESCE(v_codigo_interno, codigo_interno),
         nombre = COALESCE(v_nombre, nombre),
-        descripcion = COALESCE(p_descripcion, descripcion),
+        descripcion = CASE WHEN p_descripcion = '' THEN NULL ELSE COALESCE(p_descripcion, descripcion) END,
         tipo_producto = COALESCE(p_tipo_producto, tipo_producto),
-        precio_venta = COALESCE(p_precio_venta, precio_venta),
+        precio_venta = CASE WHEN v_tipo.permite_venta THEN COALESCE(p_precio_venta, precio_venta) ELSE 0 END,
         afecto_igv = COALESCE(p_afecto_igv, afecto_igv),
         controla_stock = COALESCE(p_controla_stock, controla_stock),
-        disponible_venta = COALESCE(p_disponible_venta, disponible_venta),
-        tiempo_prep_min = COALESCE(p_tiempo_prep_min, tiempo_prep_min),
-        imagen_url = COALESCE(p_imagen_url, imagen_url),
+        disponible_venta = v_tipo.permite_venta AND COALESCE(p_disponible_venta, disponible_venta),
+        tiempo_prep_min = CASE WHEN v_tipo.requiere_receta THEN COALESCE(p_tiempo_prep_min, tiempo_prep_min) ELSE NULL END,
+        imagen_url = CASE WHEN p_imagen_url = '' THEN NULL ELSE COALESCE(p_imagen_url, imagen_url) END,
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = NOW()
     WHERE id = p_id AND estado = 1;

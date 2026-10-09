@@ -98,4 +98,46 @@ export class SupabaseStorageService {
     const { data } = client.storage.from(this.bucket).getPublicUrl(cleanPath);
     return data.publicUrl;
   }
+
+  /**
+   * Recupera la ruta interna del objeto a partir de su URL pública, que es
+   * como se guarda la referencia en la base de datos (`pro_producto.imagen_url`).
+   *
+   * Devuelve `null` si la URL no pertenece a este bucket, para que quien llame
+   * pueda descartar la operación en vez de adivinar una ruta.
+   */
+  extractPathFromPublicUrl(url: string): string | null {
+    const cleanUrl = url.trim();
+    if (!cleanUrl) return null;
+
+    // /storage/v1/object/public/<bucket>/<ruta...>
+    const marker = '/object/public/';
+    const indice = cleanUrl.indexOf(marker);
+    if (indice === -1) return null;
+
+    const resto = cleanUrl.slice(indice + marker.length);
+    const prefijo = `${this.bucket}/`;
+
+    return resto.startsWith(prefijo) ? resto.slice(prefijo.length) : null;
+  }
+
+  /**
+   * Borra objetos del bucket. No lanza si la ruta está repetida ni si el objeto
+   * ya no existe: Supabase responde con éxito en ambos casos.
+   */
+  async remove(paths: string[]): Promise<void> {
+    const cleanPaths = [...new Set(paths.map((p) => p.trim()).filter(Boolean))];
+
+    // Se filtra antes de exigir el cliente: borrar nada no necesita Supabase.
+    if (!cleanPaths.length) return;
+
+    const client = this.requireClient();
+    const { error } = await client.storage.from(this.bucket).remove(cleanPaths);
+
+    if (error) {
+      throw new BadRequestException(
+        `Error al eliminar archivos de Supabase: ${error.message}`,
+      );
+    }
+  }
 }

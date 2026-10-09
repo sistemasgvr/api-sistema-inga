@@ -21,11 +21,19 @@ BEGIN
     FROM alm_movimiento_detalle md JOIN pro_producto pr ON pr.id=md.id_producto JOIN gen_almacen a ON a.id=md.id_almacen
     WHERE md.id_movimiento=p_id ORDER BY md.signo,md.id_almacen,md.id_producto,md.numero_linea
   LOOP
+    IF t='AJUSTE' AND (
+      EXISTS(SELECT 1 FROM pro_tipo_producto WHERE id=d.tipo_producto AND requiere_receta)
+      OR EXISTS(SELECT 1 FROM pro_receta WHERE id_producto=d.id_producto AND estado=1 AND vigente)
+    ) THEN RAISE EXCEPTION 'Los productos con receta no permiten ajustes manuales de stock'; END IF;
     IF NOT d.controla_stock OR d.producto_estado<>1 OR d.almacen_estado<>1 OR d.id_unidad_medida<>d.unidad_base THEN
       RAISE EXCEPTION 'Producto/almacén inactivo, sin control de stock o unidad diferente a la base'; END IF;
-    -- Un plato solo ingresa por su receta (producción); comprarlo o darle saldo inicial evitaría consumir insumos.
-    IF t='ENTRADA' AND motivo IN ('COMPRA','SALDO_INICIAL') AND d.tipo_producto IN (3,4,5) THEN
-      RAISE EXCEPTION 'Los platos ingresan por preparación de su receta'; END IF;
+    -- El saldo inicial depende de la configuración del tipo, no de su identificador.
+    IF t='ENTRADA' AND motivo='SALDO_INICIAL' AND NOT EXISTS (
+      SELECT 1 FROM pro_tipo_producto WHERE id=d.tipo_producto AND estado=1 AND permite_stock_inicial
+    ) THEN RAISE EXCEPTION 'Este tipo no permite stock inicial'; END IF;
+    IF t='ENTRADA' AND motivo='COMPRA' AND EXISTS (
+      SELECT 1 FROM pro_tipo_producto WHERE id=d.tipo_producto AND requiere_receta AND NOT permite_stock_inicial
+    ) THEN RAISE EXCEPTION 'Este producto ingresa por preparación de su receta'; END IF;
     INSERT INTO alm_producto_stock(id_producto,id_almacen,id_usuario_creacion)
       VALUES(d.id_producto,d.id_almacen,p_usuario) ON CONFLICT(id_almacen,id_producto) DO NOTHING;
     SELECT * INTO STRICT s FROM alm_producto_stock WHERE id_producto=d.id_producto AND id_almacen=d.id_almacen FOR UPDATE;

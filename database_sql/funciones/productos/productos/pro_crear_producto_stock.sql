@@ -4,7 +4,8 @@ DECLARE r JSON; pr pro_producto%ROWTYPE; n NUMERIC:=COALESCE((p->>'stock_inicial
  minimo NUMERIC:=COALESCE((p->>'stock_minimo')::NUMERIC,0); costo NUMERIC:=COALESCE((p->>'costo_inicial')::NUMERIC,0);
 BEGIN
  IF n<0 OR minimo<0 OR costo<0 OR n<>round(n,4) THEN RAISE EXCEPTION 'Stock y costo inicial inválidos'; END IF;
- IF n>0 AND (p->>'tipo_producto')::INTEGER IN (3,4,5) THEN RAISE EXCEPTION 'Los platos ingresan por preparación de su receta'; END IF;
+ IF (n>0 OR costo>0) AND NOT EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=(p->>'tipo_producto')::INTEGER AND estado=1 AND permite_stock_inicial) THEN
+   RAISE EXCEPTION 'Este tipo no permite stock ni costo inicial'; END IF;
  r:=pro_crear_producto((p->>'id_subcategoria')::BIGINT,(p->>'id_unidad_medida')::BIGINT,(p->>'codigo_interno')::VARCHAR,
   (p->>'nombre')::VARCHAR,(p->>'tipo_producto')::SMALLINT,(p->>'id_estacion')::BIGINT,(p->>'id_almacen_stock')::BIGINT,
   (p->>'descripcion')::VARCHAR,COALESCE((p->>'precio_venta')::NUMERIC,0),COALESCE((p->>'afecto_igv')::BOOLEAN,TRUE),
@@ -12,10 +13,17 @@ BEGIN
   (p->>'tiempo_prep_min')::INTEGER,(p->>'imagen_url')::VARCHAR,p_usuario);
  IF r->>'error' IS NOT NULL THEN RETURN r; END IF;
  SELECT * INTO STRICT pr FROM pro_producto WHERE id=(r->'registro'->>'id')::BIGINT;
- IF (n>0 OR minimo>0) AND (NOT pr.controla_stock OR pr.id_almacen_stock IS NULL) THEN RAISE EXCEPTION 'Configure control de stock y almacén'; END IF;
+ IF (n>0 OR minimo>0 OR costo>0) AND (NOT pr.controla_stock OR pr.id_almacen_stock IS NULL) THEN RAISE EXCEPTION 'Configure control de stock y almacén'; END IF;
  IF pr.controla_stock AND pr.id_almacen_stock IS NOT NULL THEN
   INSERT INTO alm_producto_stock(id_producto,id_almacen,stock_minimo,id_usuario_creacion) VALUES(pr.id,pr.id_almacen_stock,minimo,p_usuario)
    ON CONFLICT(id_almacen,id_producto) DO UPDATE SET stock_minimo=EXCLUDED.stock_minimo,id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP;
+ END IF;
+ -- Con saldo cero también se conserva el costo por unidad indicado al crear.
+ -- No genera existencias ni movimientos; la primera entrada recalculará el promedio.
+ IF n=0 AND pr.controla_stock AND pr.id_almacen_stock IS NOT NULL THEN
+  UPDATE alm_producto_stock SET costo_promedio=costo,
+   id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP
+  WHERE id_producto=pr.id AND id_almacen=pr.id_almacen_stock;
  END IF;
  IF n>0 THEN
   PERFORM alm_aplicar('INICIAL-'||pr.id,'ENTRADA','SALDO_INICIAL','PRODUCTO',pr.id,

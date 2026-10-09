@@ -22,6 +22,7 @@ DECLARE
     v_id BIGINT;
     v_codigo_interno VARCHAR;
     v_controla_stock BOOLEAN;
+    v_tipo pro_tipo_producto%ROWTYPE;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
@@ -38,11 +39,18 @@ BEGIN
         RETURN json_build_object('error', 'El tipo de producto es obligatorio', 'registro', NULL);
     END IF;
 
-    -- Si es Insumo Crudo (1), Insumo Procesado (2) o Bebida Unitaria (6), controla stock automáticamente
-    v_controla_stock := COALESCE(p_controla_stock, FALSE);
-    IF p_tipo_producto IN (1, 2, 6) THEN
-        v_controla_stock := TRUE;
+    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = p_tipo_producto AND estado = 1;
+    IF NOT FOUND THEN
+        RETURN json_build_object('error', 'Tipo de producto inexistente o inactivo', 'registro', NULL);
     END IF;
+    v_controla_stock := COALESCE(p_controla_stock, FALSE);
+    IF NOT v_tipo.permite_venta THEN
+        p_precio_venta := 0;
+        p_disponible_venta := FALSE;
+    END IF;
+    IF NOT v_tipo.requiere_estacion THEN p_id_estacion := NULL; END IF;
+    IF NOT v_tipo.requiere_receta THEN p_tiempo_prep_min := NULL; END IF;
+    IF NOT v_controla_stock THEN p_id_almacen_stock := NULL; END IF;
 
     IF EXISTS (
         SELECT 1 FROM pro_producto
@@ -75,7 +83,7 @@ BEGIN
         RETURN json_build_object('error', 'El almacén de stock indicado no existe o está inactivo', 'registro', NULL);
     END IF;
 
-    IF p_tipo_producto IN (3, 4, 5, 6) AND p_id_estacion IS NULL THEN
+    IF v_tipo.requiere_estacion AND p_id_estacion IS NULL THEN
         RETURN json_build_object('error', 'Debe asignar una estación de impresión para platos, tragos o bebidas', 'registro', NULL);
     END IF;
 

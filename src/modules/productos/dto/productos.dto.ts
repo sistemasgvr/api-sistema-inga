@@ -14,7 +14,7 @@ export class FiltroProductosDto extends FiltroPaginacionDto {
   @IsOptional()
   estado?: ProductoEstadoFiltro = 'activos';
 
-  @ApiPropertyOptional({ description: 'Filtrar por tipo de producto (1 a 7)' })
+  @ApiPropertyOptional({ description: 'Filtrar por ID del tipo de producto' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -75,7 +75,7 @@ export class CreateProductoDto extends AuditoriaDto {
   @IsString()
   descripcion?: string | null;
 
-  @ApiProperty({ description: 'Tipo de producto (1 a 7)', example: 3 })
+  @ApiProperty({ description: 'ID del catálogo de tipos de producto', example: 3 })
   @IsInt()
   @IsNotEmpty()
   tipo_producto!: number;

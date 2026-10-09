@@ -8,6 +8,8 @@ BEGIN
   SELECT * INTO STRICT pr FROM pro_producto WHERE id = d.id_producto;
   SELECT id_sucursal INTO v_sucursal FROM ven_pedido WHERE id = d.id_pedido;
   IF pr.estado <> 1 OR NOT pr.disponible_venta THEN RAISE EXCEPTION 'Producto % no disponible', pr.nombre; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=pr.tipo_producto AND estado=1 AND permite_venta) THEN
+    RAISE EXCEPTION 'El tipo de producto no permite venta'; END IF;
   IF d.id_receta IS NOT NULL THEN
     SELECT rec.* INTO r FROM pro_receta rec WHERE rec.id = d.id_receta AND rec.estado = 1 AND rec.id_producto = d.id_producto;
     IF NOT FOUND OR r.rendimiento_porciones <= 0 THEN RAISE EXCEPTION 'Receta inválida o inactiva'; END IF;
@@ -21,7 +23,7 @@ BEGIN
         OR (bool_or(NOT ri.es_opcional) AND count(*) FILTER (WHERE ri.id = ANY(d.insumos_seleccionados)) <> 1))
     THEN RAISE EXCEPTION 'Seleccione un insumo por cada grupo obligatorio de sustitución'; END IF;
   ELSE
-    IF pr.tipo_producto IN (3,4,5) THEN RAISE EXCEPTION 'El plato o trago requiere una receta activa'; END IF;
+    IF EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=pr.tipo_producto AND requiere_receta) THEN RAISE EXCEPTION 'Este producto requiere una receta activa'; END IF;
     IF cardinality(d.insumos_seleccionados) > 0 THEN RAISE EXCEPTION 'No se admiten insumos seleccionados sin receta'; END IF;
   END IF;
 

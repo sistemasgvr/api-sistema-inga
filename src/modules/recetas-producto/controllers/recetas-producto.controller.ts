@@ -14,7 +14,7 @@ import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
-import { CreateRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
+import { CreateRecetaDto, FiltroInsumosRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
 import { RecetasProductoLogic } from '../logic/recetas-producto.logic';
 
 @ApiTags('Productos - Recetas y Recetario')
@@ -24,9 +24,12 @@ export class RecetasProductoController {
 
   @Get('insumos-procesados')
   @Permisos(PermisoBanderas.PRODUCTOS_LISTAR)
-  @ApiOperation({ summary: 'Filtrar insumos procesados (tipo 2) para buscador de recetas' })
-  listarInsumosProcesados(@Query('busqueda') busqueda: string) {
-    return this.recetasLogic.listarInsumosProcesados(busqueda);
+  @ApiOperation({
+    summary:
+      'Buscar insumos para el recetario: admite insumos crudos y platos con receta propia',
+  })
+  listarInsumosProcesados(@Query() filtros: FiltroInsumosRecetaDto) {
+    return this.recetasLogic.listarInsumosProcesados(filtros);
   }
 
   @Get(':idProducto/recetas')

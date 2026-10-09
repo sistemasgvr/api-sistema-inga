@@ -73,15 +73,26 @@ BEGIN
             a.nombre AS nombre_almacen,
             p.codigo_interno,
             p.nombre,
+            p.imagen_url,
             p.tipo_producto,
+            tp.nombre AS nombre_tipo_producto,
+            tp.permite_venta,
+            tp.requiere_receta,
+            tp.requiere_estacion,
+            tp.permite_stock_inicial,
             p.precio_venta,
             p.costo_receta_calculado,
+            pro_costo_unitario_insumo(p.id) AS costo_unitario,
             p.controla_stock,
             p.disponible_venta,
+            p.afecto_igv,
+            p.descripcion,
+            p.tiempo_prep_min,
             p.estado,
             p.fecha_creacion,
             p.fecha_modificacion
         FROM pro_producto p
+        LEFT JOIN pro_tipo_producto tp ON tp.id = p.tipo_producto
         LEFT JOIN pro_subcategoria sc ON p.id_subcategoria = sc.id
         LEFT JOIN pro_categoria c ON sc.id_categoria = c.id
         LEFT JOIN pro_unidad_medida um ON p.id_unidad_medida = um.id

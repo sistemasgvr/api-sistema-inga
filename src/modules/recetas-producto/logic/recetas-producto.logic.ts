@@ -3,7 +3,7 @@ import {
   mapDeleteResult,
   mapSingleResult,
 } from '../../../common/helpers/auth-response.helper';
-import { CreateRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
+import { CreateRecetaDto, FiltroInsumosRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
 import { RecetasProductoModel } from '../models/recetas-producto.model';
 
 @Injectable()
@@ -19,8 +19,8 @@ export class RecetasProductoLogic {
     return mapSingleResult(result, `Receta con ID ${id} no encontrada`);
   }
 
-  async listarInsumosProcesados(busqueda: string) {
-    return await this.recetasModel.listarInsumosProcesados(busqueda);
+  async listarInsumosProcesados(filtros: FiltroInsumosRecetaDto) {
+    return await this.recetasModel.listarInsumosProcesados(filtros);
   }
 
   async crearReceta(idProducto: number, dto: CreateRecetaDto) {

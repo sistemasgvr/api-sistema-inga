@@ -21,6 +21,10 @@ BEGIN
             r.estado,
             r.fecha_creacion,
             r.fecha_modificacion,
+            -- Costo de la receta completa. Con rendimiento_porciones = 1 es el
+            -- costo del plato; pro_costo_unitario_insumo lo resuelve igual que el
+            -- cálculo guardado, así que el detalle de abajo suma este mismo valor.
+            p.costo_receta_calculado AS costo_total_calculado,
             (
                 SELECT COALESCE(json_agg(row_to_json(ri_t)), '[]'::JSON)
                 FROM (
@@ -36,7 +40,13 @@ BEGIN
                         ri.porcentaje_merma,
                         ri.es_opcional,
                         ri.grupo_sustitucion,
-                        ri.orden
+                        ri.orden,
+                        pro_costo_unitario_insumo(ri.id_producto_insumo) AS costo_unitario_estimado,
+                        round(
+                            ri.cantidad * (1 + ri.porcentaje_merma / 100.0)
+                            * pro_costo_unitario_insumo(ri.id_producto_insumo),
+                            4
+                        ) AS monto_subtotal
                     FROM pro_receta_insumo ri
                     INNER JOIN pro_producto pi ON ri.id_producto_insumo = pi.id
                     INNER JOIN pro_unidad_medida um ON ri.id_unidad_medida = um.id

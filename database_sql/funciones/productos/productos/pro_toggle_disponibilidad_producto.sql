@@ -18,6 +18,13 @@ BEGIN
         RETURN json_build_object('error', 'Producto no encontrado o inactivo', 'registro', NULL);
     END IF;
 
+    IF v_nuevo_estado AND NOT EXISTS (
+        SELECT 1 FROM pro_producto p JOIN pro_tipo_producto t ON t.id=p.tipo_producto
+        WHERE p.id=p_id AND t.estado=1 AND t.permite_venta
+    ) THEN
+        RETURN json_build_object('error', 'Este tipo de producto no permite venta', 'registro', NULL);
+    END IF;
+
     UPDATE pro_producto
     SET disponible_venta = v_nuevo_estado,
         id_usuario_modificacion = p_id_usuario_auditoria,

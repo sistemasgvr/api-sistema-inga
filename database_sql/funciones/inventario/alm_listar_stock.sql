@@ -14,6 +14,8 @@ CREATE OR REPLACE FUNCTION public.alm_listar_stock(
       p.codigo_interno AS producto_codigo,
       p.nombre AS producto_nombre,
       p.tipo_producto,
+      (EXISTS(SELECT 1 FROM pro_tipo_producto tp WHERE tp.id=p.tipo_producto AND tp.requiere_receta)
+        OR EXISTS(SELECT 1 FROM pro_receta r WHERE r.id_producto=p.id AND r.estado=1 AND r.vigente)) AS tiene_receta,
       um.simbolo AS simbolo_unidad,
       aps.stock_actual,
       aps.stock_minimo,
@@ -26,6 +28,7 @@ CREATE OR REPLACE FUNCTION public.alm_listar_stock(
     JOIN gen_almacen a ON a.id = aps.id_almacen
     JOIN pro_unidad_medida um ON um.id = p.id_unidad_medida
     WHERE aps.estado = 1
+      AND p.estado = 1
       AND (p_producto IS NULL OR aps.id_producto = p_producto)
       AND (p_almacen IS NULL OR aps.id_almacen = p_almacen)
     ORDER BY aps.id DESC
