@@ -90,7 +90,7 @@ Se admite uno o ambos campos. No cambia producto, receta, precio ni adicionales.
 `POST /pedidos/:id/comandar`, sin cuerpo.
 
 Genera una comanda por estación con numeración por pedido/estación. Con la migración de impresión instalada, encola el ticket y notifica al receptor QZ Tray por WebSocket; ver [impresión](impresion.md). No envía al KDS.
-Reserva productos terminados disponibles; no consume ingredientes ni descuenta existencias. La preparación confirmada consume receta e ingresa el terminado. La entrega del detalle descuenta el producto terminado. Los reintentos sin nuevos ítems no duplican comandas ni reservas.
+Reserva productos terminados disponibles y aparta los ingredientes del resto, sin descontar existencias. Si falta stock se rechaza toda la comanda (HTTP 409) y se avisa a cocina. La preparación confirmada consume receta e ingresa el terminado. La entrega del detalle descuenta el producto terminado. Los reintentos sin nuevos ítems no duplican comandas ni reservas.
 
 La entrega se registra con POST /pedidos/:id/items/:item_id/entregar y un total acumulado cantidad_entregada. Ver los ejemplos y reglas de cancelación parcial en inventario.md.
 
@@ -114,7 +114,7 @@ El DELETE de un ítem y el POST de anulación requieren este cuerpo:
 ```
 
 El autorizador debe ser **el usuario autenticado**, activo y con el permiso `pedidos.anular`, obtenido mediante asignaciones y roles activos, o ser superadministrador. El nombre o código del rol no concede autorización por sí solo. No basta enviar el ID de otra persona; debe usarse la sesión del autorizador. La base de datos vuelve a validar el permiso y exige motivo incluso al superadministrador.
-Se pueden cancelar unidades no entregadas, antes o después de comandar. cantidad_cancelada indica el total acumulado de la línea. Si hay reservas, destino_preparado debe indicar DISPONIBLE o MERMA. Los ingredientes utilizados no se devuelven. La anulación total requiere que no haya productos entregados, pagos ni comprobantes. Se conservan cantidades, autores y movimientos para auditoría.
+Se pueden cancelar unidades no entregadas, antes o después de comandar. cantidad_cancelada indica el total acumulado de la línea. Si se cancelan platos preparados, destino_preparado debe indicar DISPONIBLE o MERMA; si se cancelan unidades sin preparar de una línea en preparación, destino_insumos debe indicar LIBERAR o MERMA (ver inventario.md). Los ingredientes utilizados no se devuelven. La anulación total requiere que no haya productos entregados, pagos ni comprobantes. Se conservan cantidades, autores y movimientos para auditoría.
 
 ## Regla de IGV acordada
 

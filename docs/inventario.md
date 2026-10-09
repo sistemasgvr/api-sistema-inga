@@ -8,7 +8,7 @@ En una base existente, ejecutar con psql:
 psql -X -v ON_ERROR_STOP=1 -d nombre_base -f database_sql/instalar_inventario.sql
 ```
 
-El instalador ejecuta la migración y reemplaza las funciones de pedidos dentro de una sola transacción. `instalar_pedidos.sql` delega en el mismo instalador. Para una base vacía, instalar primero `database_sql/database.sql` (o su versión reejecutable), y después este instalador. El esquema base por sí solo no instala las funciones operativas.
+El instalador ejecuta las migraciones (`04_inventario_unificado.sql` y `05_reserva_insumos.sql`) y reemplaza las funciones de pedidos dentro de una sola transacción. Las líneas comandadas antes de `05` no tienen ingredientes apartados: se preparan como antes. `instalar_pedidos.sql` delega en el mismo instalador. Para una base vacía, instalar primero `database_sql/database.sql` (o su versión reejecutable), y después este instalador. El esquema base por sí solo no instala las funciones operativas.
 
 No ejecutar el esquema base como migración de una base anterior: `CREATE TABLE IF NOT EXISTS` no actualiza sus columnas. La migración de inventario es `04_inventario_unificado.sql`.
 
@@ -38,11 +38,15 @@ Los traslados tienen exactamente dos líneas por producto, con cantidades iguale
 
 ## Flujo operativo
 
-1. Configurar stock del producto terminado, almacén y receta.
+1. Configurar stock del producto terminado, almacén y receta. Los platos (tipos 3, 4 y 5) no tienen stock inicial ni admiten entradas manuales por compra o saldo inicial: solo ingresan por preparación de su receta.
 2. Producción anticipada: registrar la cantidad realmente terminada. Se consumen ingredientes y se ingresan platos en la misma transacción.
-3. Comandar: reserva tantos productos terminados como estén disponibles, sin consumir ingredientes. La reserva por línea está en `ven_pedido_detalle` y el total en `alm_producto_stock.stock_reservado`.
-4. Si faltan platos, registrar producción vinculada al detalle del pedido. Las nuevas porciones quedan reservadas para esa línea.
+3. Comandar: primero reserva los productos terminados disponibles. Para las unidades restantes con receta **aparta sus ingredientes** (`ven_pedido_reserva_insumo` por línea; el total en `alm_producto_stock.stock_reservado`), sin descontarlos. Si falta cualquier ingrediente, o un producto directo sin receta no tiene existencias, se rechaza toda la comanda (SQLSTATE `IN001`, faltantes en `DETAIL`) y el backend registra un aviso para cocina en `ven_aviso_cocina`. Reintentar la comanda actualiza el aviso pendiente del pedido.
+4. Para lo que no estaba preparado, registrar producción vinculada al detalle del pedido (se puede en partes). Libera la parte proporcional de lo apartado y consume la receta en la misma transacción; las porciones quedan reservadas para esa línea. Si más tarde aparecen platos anticipados, la línea los toma y libera los ingredientes de esas unidades.
 5. Entregar: descuenta el producto terminado y libera su reserva. No vuelve a consumir la receta.
+
+Ejemplo, 21 platos con 5 preparados por adelantado: la comanda reserva los 5 y aparta los ingredientes de 16. Cocina ve «Listos: 5 · Por preparar: 16» y registra la preparación en partes (por ejemplo 10 y luego 6).
+
+Los ingredientes apartados ya no figuran como disponibles para otros pedidos ni para la producción anticipada; `prod_disponibilidad` con `id_pedido_detalle` sí cuenta lo apartado por esa misma línea.
 
 Una línea puede contener varias unidades. Una producción genera dos movimientos y cada entrega parcial genera su propia salida. Todos están vinculados al documento de producción o al detalle del pedido. La confirmación de inventario significa que se aplicó al stock, no que se entregó a mesa.
 
@@ -62,6 +66,8 @@ Las recetas de producción anticipada no admiten grupos de sustitución: se prep
 | POST `/inventario/movimientos/:id/cancelar` | `inventario.gestionar` | Descartar borrador. |
 | POST `/inventario/preparaciones` | `produccion.preparar` | Confirmar producción terminada. |
 | POST `/pedidos/:id/items/:item_id/entregar` | `pedidos.entregar` | Entrega acumulada de una línea. |
+| GET `/inventario/cocina/avisos` | `produccion.preparar` | Comandas rechazadas por falta de stock pendientes; filtros `id_sucursal` y `id_estacion`. |
+| POST `/inventario/cocina/avisos/:id/atender` | `produccion.preparar` | Marcar el aviso como atendido. |
 
 Los permisos se crean, pero no se conceden indiscriminadamente a roles; asignarlos mediante la administración de permisos existente.
 
@@ -97,7 +103,21 @@ Cancelación parcial mediante `DELETE /pedidos/:id/items/:item_id`:
 }
 ```
 
-`cantidad_cancelada` también es acumulada. Omitirla cancela todas las unidades no entregadas. `destino_preparado` es obligatorio si la cancelación afecta reservas: `DISPONIBLE` libera la porción o `MERMA` la da de baja. En ambos casos los ingredientes ya consumidos permanecen consumidos. La cancelación reduce el importe de las unidades pendientes. No se permite anular un pedido con productos entregados, pagos o comprobantes por este flujo: esos casos necesitan la devolución física y el reverso comercial correspondiente, que no se automatizan aquí.
+`cantidad_cancelada` también es acumulada. Omitirla cancela todas las unidades no entregadas. Primero se cancelan las unidades **sin plato preparado** y después las preparadas:
+
+| Situación de las unidades canceladas | Resultado |
+|---|---|
+| Sin preparar, línea *Enviada* | Sus ingredientes apartados vuelven a estar disponibles. |
+| Sin preparar, línea *En preparación* | `destino_insumos` obligatorio: `LIBERAR` (no se usaron) o `MERMA` (salida de merma de los ingredientes apartados). |
+| Ya preparadas | `destino_preparado` obligatorio: `DISPONIBLE` las guarda en inventario para revender, `MERMA` las da de baja. Sus ingredientes no se devuelven. |
+
+Toda cancelación exige autorización y motivo.
+
+```json
+{ "id_usuario_autoriza": 7, "motivo": "Mesa se retiró", "cantidad_cancelada": 3, "destino_insumos": "MERMA" }
+```
+
+Los ingredientes ya consumidos permanecen consumidos. La cancelación reduce el importe de las unidades pendientes. No se permite anular un pedido con productos entregados, pagos o comprobantes por este flujo: esos casos necesitan la devolución física y el reverso comercial correspondiente, que no se automatizan aquí.
 
 ## Integridad y pruebas
 

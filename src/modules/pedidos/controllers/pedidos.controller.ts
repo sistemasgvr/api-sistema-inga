@@ -16,7 +16,7 @@ import type { AuthenticatedUser } from '../../../common/interfaces/authenticated
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas as P } from '../../../common/constants/permiso-banderas';
 import {
-  EntregarItemDto,
+  EntregarItemDto, PreparacionItemDto,
   AbrirPedidoDto,
   AgregarItemDto,
   AnularPedidoDto,
@@ -93,6 +93,11 @@ export class PedidosController {
     return this.logic.ejecutar('anular_item', id, item, dto, req.user);
   }
 
+  @Put(':id/items/:item_id/preparacion') @Permisos(P.PRODUCCION_PREPARAR)
+  preparacion(@Param('id',ParseIntPipe) id:number,@Param('item_id',ParseIntPipe) item:number,
+    @Body() dto:PreparacionItemDto,@Req() req:AuthRequest) {
+      return this.logic.ejecutar('preparacion',id,item,dto,req.user);
+  }
   @Post(':id/items/:item_id/entregar')
   @Permisos(P.PEDIDOS_ENTREGAR)
   @ApiOperation({

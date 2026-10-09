@@ -101,7 +101,23 @@ export class PrepararDto {
   observacion?: string;
 }
 
+export class DisponibilidadDto {
+ @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_receta!: number;
+ @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_almacen!: number;
+ @ApiProperty() @Type(() => Number) @IsNumber({maxDecimalPlaces:4}) @Min(0.0001) cantidad!: number;
+ @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_pedido_detalle?: number;
+}
+export class CocinaFiltroDto {
+ @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_sucursal!: number;
+ @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_estacion?: number;
+ @ApiPropertyOptional() @IsOptional() @IsIn(['true','false']) historial?: string;
+ @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limite=50;
+ @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(0) offset=0;
+}
 export class FiltroInventarioDto {
+ @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) buscar?: string;
+ @ApiPropertyOptional() @IsOptional() @IsIn(['todos','alertas','normales']) estado?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
@@ -125,4 +141,8 @@ export class FiltroInventarioDto {
   @IsInt()
   @Min(0)
   offset = 0;
+}
+export class AvisosCocinaFiltroDto {
+ @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_sucursal!: number;
+ @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_estacion?: number;
 }

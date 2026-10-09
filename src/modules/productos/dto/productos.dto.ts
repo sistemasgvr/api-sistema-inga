@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
@@ -34,6 +34,10 @@ export class FiltroProductosDto extends FiltroPaginacionDto {
 }
 
 export class CreateProductoDto extends AuditoriaDto {
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(9999999999.9999) stock_inicial?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(9999999999.9999) stock_minimo?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(99999999.9999) costo_inicial?: number;
+
   @ApiProperty({ description: 'ID de la subcategoría', example: 1 })
   @IsInt()
   @IsNotEmpty()

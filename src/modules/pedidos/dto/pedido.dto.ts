@@ -143,6 +143,14 @@ export class AnularPedidoDto {
   @IsOptional()
   @IsIn(['DISPONIBLE', 'MERMA'])
   destino_preparado?: string;
+  @ApiPropertyOptional({
+    enum: ['LIBERAR', 'MERMA'],
+    description:
+      'Obligatorio si la línea está en preparación y se cancelan unidades sin plato preparado.',
+  })
+  @IsOptional()
+  @IsIn(['LIBERAR', 'MERMA'])
+  destino_insumos?: string;
 
   @ApiProperty({
     description:
@@ -159,6 +167,10 @@ export class EstadoPedidoDto {
   @IsOptional()
   @IsIn(['DISPONIBLE', 'MERMA'])
   destino_preparado?: string;
+  @ApiPropertyOptional({ enum: ['LIBERAR', 'MERMA'] })
+  @IsOptional()
+  @IsIn(['LIBERAR', 'MERMA'])
+  destino_insumos?: string;
   @ApiProperty({ enum: [2, 3, 4, 5] })
   @IsInt()
   @IsIn([2, 3, 4, 5])
@@ -203,4 +215,8 @@ export class FiltroPedidoDto extends FiltroPaginacionDto {
   )
   @IsBoolean()
   en_curso?: boolean;
+}
+
+export class PreparacionItemDto {
+ @ApiProperty({enum:[3,4]}) @IsInt() @IsIn([3,4]) estado_preparacion!: number;
 }

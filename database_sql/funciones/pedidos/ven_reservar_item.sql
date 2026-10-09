@@ -16,6 +16,8 @@ BEGIN
   IF s.estado<>1 THEN RAISE EXCEPTION 'Stock inactivo'; END IF;
   n:=LEAST(d.cantidad-d.cantidad_cancelada-d.cantidad_entregada-d.cantidad_reservada,s.stock_actual-s.stock_reservado);
   IF n>0 THEN
+    -- Esas unidades ya no se elaboran: sus ingredientes apartados vuelven a estar disponibles.
+    PERFORM ven_liberar_insumos(d.id,n,p_usuario);
     UPDATE alm_producto_stock SET stock_reservado=stock_reservado+n,id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=s.id;
     UPDATE ven_pedido_detalle SET cantidad_reservada=cantidad_reservada+n,id_almacen_reserva=s.id_almacen,
       estado_preparacion=CASE WHEN cantidad_reservada+n+cantidad_entregada+cantidad_cancelada=cantidad THEN 4 ELSE estado_preparacion END,

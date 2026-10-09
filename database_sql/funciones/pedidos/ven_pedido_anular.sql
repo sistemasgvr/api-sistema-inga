@@ -12,7 +12,7 @@ BEGIN
   IF EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido=p_id AND estado=1 AND cantidad_entregada>0) THEN
     RAISE EXCEPTION 'El pedido tiene productos entregados; requiere devolución física y reverso comercial'; END IF;
   FOR d IN SELECT * FROM ven_pedido_detalle WHERE id_pedido=p_id AND estado=1 AND tipo_linea<>3 ORDER BY id LOOP
-    PERFORM ven_cancelar_stock_item(d.id,d.cantidad,p_datos->>'destino_preparado',p_usuario);
+    PERFORM ven_cancelar_stock_item(d.id,d.cantidad,p_datos->>'destino_preparado',p_datos->>'destino_insumos',p_usuario);
     UPDATE ven_pedido_detalle SET id_usuario_autoriza=p_usuario,motivo_anulacion=btrim(p_datos->>'motivo'),
       id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=d.id;
   END LOOP;

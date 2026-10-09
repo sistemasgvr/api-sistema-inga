@@ -246,6 +246,143 @@ async function main() {
   check(Number(movLeido.registro.id),Number(confirmado));
   check(movLeido.registro.detalles.length>0,true);
   check((await q('SELECT alm_obtener_movimiento(9223372036854775807) r'))[0].r.registro,null);
+  // Consultas de formularios: disponibilidad real, filtrado y paginación en SQL.
+  const disponible=(await q('SELECT prod_disponibilidad($1,$2,2) r',[receta,almacen]))[0].r.registro;
+  check(disponible.ingredientes.length,1);
+  check(Number(disponible.ingredientes[0].requerido),0.22);
+  // 9.51 kg menos 0.11 apartados para el pedido que perdió la porción: (9.51-0.11)/0.11 = 85.
+  check(Number(disponible.posibles_preparar),85);
+  check(Number(disponible.ingredientes[0].faltante),0);
+  const personalizado=(await q('SELECT prod_disponibilidad($1,$2,1,$3) r',[receta,almacen,especial.items[0].id]))[0].r.registro;
+  check(Number(personalizado.ingredientes[0].requerido),0.16);
+  const preparables=(await q('SELECT prod_listar_productos($1) r',[sucursal]))[0].r;
+  check(preparables.some(p=>Number(p.id)===Number(plato)),true);
+  check((await q('SELECT prod_listar_productos($1) r',[otraSucursal]))[0].r.length,0);
+  const paginaStock=(await q("SELECT alm_buscar_stock(NULL,NULL,1,0,'BEBIDA','todos') r"))[0].r;
+  check(paginaStock.total,2);
+  check(paginaStock.registros.length,1);
+  check(Number(paginaStock.registros[0].id_unidad_medida),Number(kg));
+  check((await q("SELECT alm_buscar_stock(NULL,NULL,1,1,'BEBIDA','todos') r"))[0].r.registros.length,1);
+  const listaMotivos=(await q("SELECT id FROM gen_lista WHERE codigo='ALM_MOTIVO_MOVIMIENTO'"))[0].id;
+  const motivos=(await q('SELECT gen_filtrar_opciones_lista($1,4) r',[listaMotivos]))[0].r.registro.opciones;
+  check(motivos.length>0,true);
+  check(motivos.every(m=>m.valor_entero===4),true);
+
+  // Alta de producto + saldo inicial: una única operación con auditoría y rollback.
+  const alta={id_subcategoria:Number(subcategoria),id_unidad_medida:Number(kg),id_estacion:Number(barra),id_almacen_stock:Number(almacen),
+    codigo_interno:'ALTA-STOCK',nombre:'Nueva gaseosa',tipo_producto:6,stock_inicial:4,stock_minimo:2,costo_inicial:3};
+  const crearProducto=async data=>(await q('SELECT pro_crear_producto_stock($1::jsonb,$2) r',[JSON.stringify(data),usuario]))[0].r;
+  const creado=(await crearProducto(alta)).registro;
+  check(!!creado,true);
+  check(await stock(creado.id),4);
+  const stockInicial=(await q('SELECT * FROM alm_producto_stock WHERE id_producto=$1',[creado.id]))[0];
+  check(Number(stockInicial.stock_minimo),2);
+  check(Number(stockInicial.costo_promedio),3);
+  check(Number(stockInicial.id_usuario_creacion),Number(usuario));
+  check(Number((await q("SELECT count(*) n FROM vw_alm_kardex WHERE documento_tipo='PRODUCTO' AND documento_id=$1",[creado.id]))[0].n),1);
+  await rejects(()=>crearProducto({...alta,codigo_interno:'PLATO-INVALIDO',tipo_producto:3}),/preparación/);
+  const saldoInicial=await opcion('ALM_MOTIVO_MOVIMIENTO','SALDO_INICIAL');
+  await q('UPDATE gen_lista_opcion SET estado=0 WHERE id=$1',[saldoInicial]);
+  await rejects(()=>crearProducto({...alta,codigo_interno:'ALTA-ROLLBACK'}),/catálogo|Catálogo|motivo|Motivo/);
+  check(Number((await q("SELECT count(*) n FROM pro_producto WHERE codigo_interno='ALTA-ROLLBACK'"))[0].n),0);
+  await q('UPDATE gen_lista_opcion SET estado=1 WHERE id=$1',[saldoInicial]);
+
+  // Cocina: iniciar no descuenta; confirmar preparación sí, entrega no repite ingredientes.
+  let ronda=await llevar();ronda=await agregar(ronda.id,plato);ronda=await call('comandar',ronda.id);
+  const primera=ronda.items[0].id;
+  const antesCocina=await stock(insumo),movsCocina=await totalMov();
+  ronda=await call('preparacion',ronda.id,primera,{estado_preparacion:3});
+  check(ronda.items[0].estado_preparacion,3);
+  await call('preparacion',ronda.id,primera,{estado_preparacion:3});
+  check(await totalMov(),movsCocina);
+  check(await stock(insumo),antesCocina);
+  await rejects(()=>call('preparacion',ronda.id,primera,{estado_preparacion:4}),/producción/);
+  const cola=(await q('SELECT ven_listar_cocina($1,$2,false,200,0) r',[sucursal,cocina]))[0].r;
+  check(cola.registros.some(d=>Number(d.id)===Number(primera)),true);
+  check((await q('SELECT ven_listar_cocina($1,NULL,false,200,0) r',[otraSucursal]))[0].r.total,0);
+  await preparar('RONDA-COCINA',1,primera);
+  check(await stock(insumo),Number((antesCocina-0.11).toFixed(4)));
+  ronda=await call('entregar',ronda.id,primera,{cantidad_entregada:1});
+  check(ronda.items[0].estado_preparacion,5);
+  const despuesEntrega=await stock(insumo),movsEntrega=await totalMov();
+  await call('entregar',ronda.id,primera,{cantidad_entregada:1});
+  check(await totalMov(),movsEntrega);
+  ronda=await agregar(ronda.id,plato);ronda=await call('comandar',ronda.id);
+  check(ronda.items.find(i=>Number(i.id)===Number(primera)).estado_preparacion,5);
+  check(ronda.items.filter(i=>i.estado_preparacion===2).length,1);
+  check(await stock(insumo),despuesEntrega);
+  const pendientes=(await q('SELECT ven_listar_cocina($1,NULL,false,200,0) r',[sucursal]))[0].r;
+  check(pendientes.registros.some(d=>Number(d.id)===Number(primera)),false);
+  const historial=(await q('SELECT ven_listar_cocina($1,NULL,true,200,0) r',[sucursal]))[0].r;
+  check(historial.registros.some(d=>Number(d.id)===Number(primera)),true);
+
+  // Reserva de insumos al comandar (0.11 kg de insumo por plato).
+  const r4=x=>Number(Number(x).toFixed(4));
+  const reservaInsumo=async()=>r4(await reserva(insumo));
+  const reservaLinea=async item=>r4((await q('SELECT COALESCE(sum(cantidad),0) n FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=$1',[item]))[0].n);
+
+  // Comandar y anular sin preparar devuelve exactamente lo apartado.
+  const baseInsumo=await reservaInsumo(),basePlato=await reserva(plato);
+  let suelta=await llevar();suelta=await agregar(suelta.id,plato,2);suelta=await call('comandar',suelta.id);
+  check(await reservaInsumo(),r4(baseInsumo+0.22-0.11*Number(suelta.items[0].cantidad_reservada)));
+  await call('anular',suelta.id,null,{...anulacion,destino_preparado:'DISPONIBLE'});
+  check(await reservaInsumo(),baseInsumo);check(await reserva(plato),basePlato);
+
+  // 21 platos: toma los 5 preparados por adelantado y aparta ingredientes para los 16 restantes.
+  await preparar('LOTE-21',5);
+  const insumo21=await stock(insumo),reserva21=await reservaInsumo(),plato21=await reserva(plato);
+  let grande=await llevar();grande=await agregar(grande.id,plato,21);grande=await call('comandar',grande.id);
+  const lg=grande.items[0].id;
+  check(grande.items[0].cantidad_reservada,5);
+  check(await reserva(plato),plato21+5);
+  check(await reservaInsumo(),r4(reserva21+1.76));
+  check(await stock(insumo),insumo21); // Apartar no descuenta existencias.
+  // Lo apartado por la propia línea cuenta como disponible para prepararla.
+  const dispLinea=(await q('SELECT prod_disponibilidad($1,$2,16,$3) r',[receta,almacen,lg]))[0].r.registro;
+  check(Number(dispLinea.ingredientes[0].faltante),0);
+  await preparar('GRANDE-10',10,lg);
+  check(await stock(insumo),r4(insumo21-1.1));
+  check(await reservaLinea(lg),0.66);
+  grande=await obtener(grande.id);
+  check(grande.items[0].estado_preparacion,3);
+  // En preparación: cancelar unidades sin preparar exige elegir el destino de sus ingredientes.
+  await rejects(()=>call('anular_item',grande.id,lg,{...anulacion,cantidad_cancelada:3}),/destino_insumos/);
+  await call('anular_item',grande.id,lg,{...anulacion,cantidad_cancelada:3,destino_insumos:'LIBERAR'});
+  check(await reservaLinea(lg),0.33);check(await stock(insumo),r4(insumo21-1.1));
+  await call('anular_item',grande.id,lg,{...anulacion,cantidad_cancelada:5,destino_insumos:'MERMA'});
+  check(await reservaLinea(lg),0.11);check(await stock(insumo),r4(insumo21-1.32));
+  check(Number((await q("SELECT count(*) n FROM vw_alm_kardex WHERE motivo='MERMA' AND documento_id=$1 AND id_producto=$2",[lg,insumo]))[0].n),1);
+  // Cancelar 2 más: primero la última unidad sin preparar y luego un plato preparado.
+  await rejects(()=>call('anular_item',grande.id,lg,{...anulacion,cantidad_cancelada:7,destino_insumos:'LIBERAR'}),/destino_preparado/);
+  grande=await call('anular_item',grande.id,lg,{...anulacion,cantidad_cancelada:7,destino_insumos:'LIBERAR',destino_preparado:'DISPONIBLE'});
+  check(await reservaLinea(lg),0);check(grande.items[0].cantidad_reservada,14);
+  check(await reserva(plato),plato21+14);
+
+  // Sin insumos suficientes: se rechaza todo, sin comanda ni reservas, con faltantes para el aviso.
+  const comandas=async()=>Number((await q('SELECT count(*) n FROM ven_comanda'))[0].n);
+  const antesFalta={comandas:await comandas(),insumo:await reservaInsumo(),plato:await reserva(plato)};
+  let falta=await llevar();falta=await agregar(falta.id,plato,1000);
+  const errorFalta=await call('comandar',falta.id).then(()=>null,e=>e);
+  check(errorFalta?.code,'IN001');
+  check(/No hay stock suficiente para comandar: INSUMO \(falta [\d.]+ \S+\)/.test(errorFalta.message),true);
+  const faltantes=JSON.parse(errorFalta.detail);
+  check([faltantes[0].producto,faltantes[0].platos,faltantes[0].estaciones],['INSUMO',['PLATO'],[Number(cocina)]]);
+  check(await comandas(),antesFalta.comandas);check(await reservaInsumo(),antesFalta.insumo);check(await reserva(plato),antesFalta.plato);
+  check((await obtener(falta.id)).estado_pedido,1);
+  const avisar=async()=>(await q('SELECT ven_registrar_aviso_cocina($1,$2,$3::jsonb,$4) r',[falta.id,errorFalta.message,errorFalta.detail,mozo]))[0].r.registro;
+  const aviso=await avisar();await avisar(); // Reintentar la comanda no duplica el aviso pendiente.
+  const avisos=async estacion=>(await q('SELECT ven_listar_avisos_cocina($1,$2) r',[sucursal,estacion]))[0].r;
+  check((await avisos(cocina)).map(a=>Number(a.id)),[Number(aviso.id)]);
+  check((await avisos(barra)).length,0);
+  await q('SELECT ven_atender_aviso_cocina($1,$2)',[aviso.id,usuario]);
+  check((await avisos(null)).length,0);
+
+  // Producto directo sin existencias también rechaza la comanda.
+  let sinBebida=await llevar();sinBebida=await agregar(sinBebida.id,bebida,500);
+  await rejects(()=>call('comandar',sinBebida.id),/BEBIDA \(falta/);
+  // Un plato no ingresa por compra ni saldo inicial: solo por preparación de su receta.
+  await rejects(()=>registrar({codigo:'COMPRA-PLATO',id_tipo_movimiento:entrada,id_motivo_movimiento:compra,confirmar:true,
+    detalles:[{...linea,id_producto:Number(plato)}]}),/preparación de su receta/);
   console.log('Inventario: '+checks+' comprobaciones correctas');
 }
 main().catch(e=>{ console.error(e);process.exitCode=1; }).finally(async()=>{

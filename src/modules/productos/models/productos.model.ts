@@ -39,23 +39,7 @@ export class ProductosModel {
   }
 
   crear(dto: CreateProductoDto) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_crear_producto', [
-      dto.id_subcategoria,
-      dto.id_unidad_medida,
-      dto.codigo_interno,
-      dto.nombre,
-      dto.tipo_producto,
-      dto.id_estacion ?? null,
-      dto.id_almacen_stock ?? null,
-      dto.descripcion ?? null,
-      dto.precio_venta ?? 0,
-      dto.afecto_igv ?? true,
-      dto.controla_stock ?? false,
-      dto.disponible_venta ?? true,
-      dto.tiempo_prep_min ?? null,
-      dto.imagen_url ?? null,
-      dto.idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>('pro_crear_producto_stock', [JSON.stringify(dto), dto.idUsuarioAuditoria]);
   }
 
   actualizar(id: number, dto: UpdateProductoDto) {

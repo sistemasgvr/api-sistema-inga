@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query, ParseIntPipe } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
@@ -28,7 +28,7 @@ export class ListasController {
     summary: 'Obtener una lista por ID y sus opciones activas ordenadas',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  porId(@Param() params: ListaIdParamDto) {
-    return this.logic.obtenerOpciones(params.id);
+  porId(@Param() params: ListaIdParamDto, @Query('tipo_movimiento', new ParseIntPipe({optional:true})) tipo?: number) {
+    return tipo === undefined ? this.logic.obtenerOpciones(params.id) : this.logic.obtenerOpciones(params.id,tipo);
   }
 }

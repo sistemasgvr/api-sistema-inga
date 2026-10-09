@@ -9,7 +9,7 @@ import {
   OperacionInventario,
 } from '../models/inventario.model';
 import { mapSingleResult } from '../../../common/helpers/auth-response.helper';
-import { FiltroInventarioDto } from '../dto/inventario.dto';
+import { FiltroInventarioDto, DisponibilidadDto, CocinaFiltroDto, AvisosCocinaFiltroDto } from '../dto/inventario.dto';
 
 @Injectable()
 export class InventarioLogic {
@@ -39,6 +39,24 @@ export class InventarioLogic {
     }
   }
 
+  async disponibilidad(f: DisponibilidadDto) {
+    try { return mapSingleResult(await this.model.disponibilidad(f), 'Receta no encontrada'); }
+    catch(e) { const error=e as {code?:string;message?:string};
+      if(error.code==='P0001') throw new BadRequestException(error.message);
+      if(error.code==='P0002') throw new NotFoundException(error.message);
+      throw e;
+    }
+  }
+  productosPreparables(sucursal:number) { return this.model.productosPreparables(sucursal); }
+  cocina(f: CocinaFiltroDto) { return this.model.cocina(f); }
+  avisos(f: AvisosCocinaFiltroDto) { return this.model.avisos(f); }
+  async atenderAviso(id: number, usuario: number) {
+    try { return mapSingleResult(await this.model.atenderAviso(id, usuario), 'Aviso no encontrado'); }
+    catch(e) { const error=e as {code?:string;message?:string};
+      if(error.code==='P0002') throw new NotFoundException(error.message);
+      throw e;
+    }
+  }
   listar(tipo: 'stock' | 'kardex', filtros: FiltroInventarioDto) {
     return this.model.listar(tipo, filtros);
   }

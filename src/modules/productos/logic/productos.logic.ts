@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   mapActivateResult,
   mapDeleteResult,
@@ -27,8 +27,13 @@ export class ProductosLogic {
   }
 
   async crear(dto: CreateProductoDto) {
-    const result = await this.productosModel.crear(dto);
-    return mapSingleResult(result, 'No se pudo crear el producto');
+    try {
+      const result = await this.productosModel.crear(dto);
+      return mapSingleResult(result, 'No se pudo crear el producto');
+    } catch (error) {
+      if ((error as {code?:string}).code === 'P0001') throw new BadRequestException((error as Error).message);
+      throw error;
+    }
   }
 
   async actualizar(id: number, dto: UpdateProductoDto) {

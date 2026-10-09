@@ -33,6 +33,8 @@ BEGIN
     PERFORM ven_reservar_item(item,p_usuario);
     SELECT * INTO pd FROM ven_pedido_detalle WHERE id=item;
     IF v_cantidad>pd.cantidad-pd.cantidad_cancelada-pd.cantidad_entregada-pd.cantidad_reservada THEN RAISE EXCEPTION 'La preparación excede lo pendiente'; END IF;
+    -- Lo apartado al comandar se libera para consumirlo en esta misma transacción.
+    PERFORM ven_liberar_insumos(item,v_cantidad,p_usuario);
     FOR ins IN SELECT * FROM ven_consumos_item(item) LOOP
       IF ins.id_producto=pr.id THEN RAISE EXCEPTION 'El plato no puede ser insumo de sí mismo'; END IF;
       partes:=partes||jsonb_build_array(jsonb_build_object('id_producto',ins.id_producto,'id_almacen',ins.id_almacen,

@@ -14,7 +14,7 @@ import type { AuthenticatedUser } from '../../../common/interfaces/authenticated
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas as P } from '../../../common/constants/permiso-banderas';
 import {
-  FiltroInventarioDto,
+  FiltroInventarioDto, DisponibilidadDto, CocinaFiltroDto, AvisosCocinaFiltroDto,
   MovimientoDto,
   PrepararDto,
 } from '../dto/inventario.dto';
@@ -26,6 +26,19 @@ type AuthRequest = Request & { user: AuthenticatedUser };
 export class InventarioController {
   constructor(private readonly logic: InventarioLogic) {}
 
+  @Get('productos-preparables') @Permisos(P.PRODUCCION_PREPARAR)
+  productosPreparables(@Query('id_sucursal', ParseIntPipe) sucursal:number) { return this.logic.productosPreparables(sucursal); }
+  @Get('disponibilidad') @Permisos(P.PRODUCCION_PREPARAR)
+  disponibilidad(@Query() f: DisponibilidadDto) { return this.logic.disponibilidad(f); }
+  @Get('cocina') @Permisos(P.PRODUCCION_PREPARAR)
+  cocina(@Query() f: CocinaFiltroDto) { return this.logic.cocina(f); }
+  @Get('cocina/avisos') @Permisos(P.PRODUCCION_PREPARAR)
+  @ApiOperation({ summary: 'Comandas rechazadas por falta de insumos, pendientes de atender.' })
+  avisos(@Query() f: AvisosCocinaFiltroDto) { return this.logic.avisos(f); }
+  @Post('cocina/avisos/:id/atender') @Permisos(P.PRODUCCION_PREPARAR)
+  atenderAviso(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    return this.logic.atenderAviso(id, req.user.id);
+  }
   @Get('stock')
   @Permisos(P.INVENTARIO_VER)
   stock(@Query() filtros: FiltroInventarioDto) {

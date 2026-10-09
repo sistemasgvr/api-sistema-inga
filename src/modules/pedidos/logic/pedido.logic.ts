@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -16,8 +17,12 @@ import { FiltroPedidoDto } from '../dto/pedido.dto';
 import { AccionPedido, PedidoModel } from '../models/pedido.model';
 import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
 
+// SQLSTATE de ven_reservar_insumos_pedido: faltan insumos o productos para comandar.
+const STOCK_INSUFICIENTE = 'IN001';
+
 @Injectable()
 export class PedidoLogic {
+  private readonly logger = new Logger(PedidoLogic.name);
   constructor(
     private readonly model: PedidoModel,
     private readonly config: ConfigService,
@@ -56,9 +61,21 @@ export class PedidoLogic {
     ) {
       throw new ForbiddenException(`Se requiere el permiso ${permiso}`);
     }
-    return this.resolver(() =>
-      this.model.ejecutar(accion, id, item, payload, usuario.id),
-    ).then((result) => {
+    return this.resolver(async () => {
+      try {
+        return await this.model.ejecutar(accion, id, item, payload, usuario.id);
+      } catch (error: unknown) {
+        // La comanda ya se revirtió; el aviso se guarda en una transacción aparte.
+        const db = error as {
+          code?: string;
+          message?: string;
+          detail?: string;
+        };
+        if (db.code === STOCK_INSUFICIENTE && id !== null)
+          await this.avisarCocina(id, db, usuario.id);
+        throw error;
+      }
+    }).then((result) => {
       if (
         accion === 'comandar' ||
         (accion === 'estado' && payload.estado_pedido === 2)
@@ -69,11 +86,34 @@ export class PedidoLogic {
     });
   }
 
+  private async avisarCocina(
+    pedido: number,
+    db: { message?: string; detail?: string },
+    usuario: number,
+  ) {
+    try {
+      await this.model.registrarAvisoCocina(
+        pedido,
+        db.message ?? 'Stock insuficiente para comandar',
+        db.detail ?? '[]',
+        usuario,
+      );
+    } catch (error: unknown) {
+      // No ocultar el rechazo de la comanda si el aviso no pudo guardarse.
+      this.logger.error(
+        `No se registró el aviso a cocina del pedido ${pedido}`,
+        error as Error,
+      );
+    }
+  }
+
   private async resolver(operacion: () => Promise<AuthSingleResult>) {
     try {
       return mapSingleResult(await operacion(), 'Pedido no encontrado');
     } catch (error: unknown) {
       const db = error as { code?: string; message?: string };
+      if (db.code === STOCK_INSUFICIENTE)
+        throw new ConflictException(`${db.message}. Se avisó a cocina.`);
       if (db.code === 'P0002') throw new NotFoundException(db.message);
       if (db.code === '42501') throw new ForbiddenException(db.message);
       if (db.code === 'P0001') throw new BadRequestException(db.message);

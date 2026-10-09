@@ -9,7 +9,8 @@ BEGIN
     RAISE EXCEPTION 'El pedido tiene pagos o comprobantes; requiere reverso de cobro'; END IF;
   SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ítem no encontrado' USING ERRCODE='P0002'; END IF;
-  PERFORM ven_cancelar_stock_item(d.id,COALESCE((p_datos->>'cantidad_cancelada')::NUMERIC,d.cantidad-d.cantidad_entregada),p_datos->>'destino_preparado',p_usuario);
+  PERFORM ven_cancelar_stock_item(d.id,COALESCE((p_datos->>'cantidad_cancelada')::NUMERIC,d.cantidad-d.cantidad_entregada),
+    p_datos->>'destino_preparado',p_datos->>'destino_insumos',p_usuario);
   UPDATE ven_pedido_detalle SET id_usuario_autoriza=p_usuario,motivo_anulacion=btrim(p_datos->>'motivo'),
     id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=d.id;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);

@@ -17,7 +17,7 @@ BEGIN
       THEN RAISE EXCEPTION 'El producto requiere una estación activa de esta sucursal'; END IF;
     IF EXISTS(SELECT 1 FROM ven_pedido_detalle_adicional da JOIN pro_adicional a ON a.id = da.id_adicional
       WHERE da.id_pedido_detalle = d.id AND da.estado = 1 AND a.estado <> 1) THEN RAISE EXCEPTION 'El pedido contiene adicionales inactivos'; END IF;
-    -- Validación sin consumo: los ingredientes se descuentan al producir.
+    -- Validación sin consumo: los ingredientes se apartan al final y se descuentan al producir.
     PERFORM * FROM ven_consumos_item(d.id);
     v_pendientes := v_pendientes || jsonb_build_array(jsonb_build_object('id',d.id,'id_estacion',d.id_estacion));
   END LOOP;
@@ -34,9 +34,11 @@ BEGIN
       id_usuario_modificacion = p_usuario,fecha_modificacion = CURRENT_TIMESTAMP
       WHERE id IN (SELECT x.id FROM jsonb_to_recordset(v_pendientes) AS x(id BIGINT,id_estacion BIGINT) WHERE x.id_estacion = v_estacion);
   END LOOP;
+  -- Primero se toman platos ya preparados; para el resto se apartan ingredientes o se rechaza la comanda.
   FOR d IN SELECT x.id FROM jsonb_to_recordset(v_pendientes) AS x(id BIGINT,id_estacion BIGINT) ORDER BY x.id LOOP
     PERFORM ven_reservar_item(d.id,p_usuario);
   END LOOP;
+  PERFORM ven_reservar_insumos_pedido(ARRAY(SELECT x.id FROM jsonb_to_recordset(v_pendientes) AS x(id BIGINT,id_estacion BIGINT)),p_usuario);
   UPDATE ven_pedido SET estado_pedido = 2 WHERE id = p_id;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   RETURN ven_obtener_pedido(p_id);

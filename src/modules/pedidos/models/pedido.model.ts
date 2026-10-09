@@ -7,6 +7,7 @@ import {
 import { FiltroPedidoDto } from '../dto/pedido.dto';
 
 export type AccionPedido =
+  | 'preparacion'
   | 'entregar'
   | 'abrir'
   | 'agregar_item'
@@ -46,5 +47,17 @@ export class PedidoModel {
       JSON.stringify(datos),
       usuario,
     ]);
+  }
+
+  registrarAvisoCocina(
+    pedido: number,
+    mensaje: string,
+    faltantes: string,
+    usuario: number,
+  ) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'ven_registrar_aviso_cocina',
+      [pedido, mensaje, faltantes, usuario],
+    );
   }
 }

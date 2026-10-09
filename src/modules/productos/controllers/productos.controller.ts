@@ -16,12 +16,21 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import 'multer';
-import { ApiConsumes, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
-import { CreateProductoDto, FiltroProductosDto, UpdateProductoDto } from '../dto/productos.dto';
+import {
+  CreateProductoDto,
+  FiltroProductosDto,
+  UpdateProductoDto,
+} from '../dto/productos.dto';
 import { ProductosLogic } from '../logic/productos.logic';
 import { SupabaseStorageService } from '../../../integrations/supabase-storage/supabase-storage.service';
 
@@ -59,7 +68,7 @@ export class ProductosController {
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
   @ApiOperation({ summary: 'Crear un nuevo producto' })
   crear(@Body() dto: CreateProductoDto, @Req() req: any) {
-    const idUsuario = dto.idUsuarioAuditoria ?? req.user?.id ?? req.user?.id_usuario ?? 1;
+    const idUsuario = req.user.id;
 
     return this.productosLogic.crear({
       ...dto,
@@ -118,10 +127,7 @@ export class ProductosController {
   @Permisos(PermisoBanderas.PRODUCTOS_ACTIVAR)
   @ApiOperation({ summary: 'Activar producto inactivo' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
-  ) {
+  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
     return this.productosLogic.activar(id, dto.idUsuarioAuditoria);
   }
 
@@ -129,10 +135,7 @@ export class ProductosController {
   @Permisos(PermisoBanderas.PRODUCTOS_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar producto (baja lógica)' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
-  ) {
+  eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
     return this.productosLogic.eliminar(id, dto.idUsuarioAuditoria);
   }
 }

@@ -1,7 +1,9 @@
+-- Active: 1791304479826@@aws-0-us-west-2.pooler.supabase.com@5432@postgres@public
 \set ON_ERROR_STOP on
 BEGIN;
 \ir migraciones/02_ven_pedidos.sql
 \ir migraciones/04_inventario_unificado.sql
+\ir migraciones/05_reserva_insumos.sql
 \ir funciones/pedidos/ven_obtener_pedido.sql
 \ir funciones/pedidos/ven_bloquear_pedido.sql
 \ir funciones/pedidos/ven_validar_turno_pedido.sql
@@ -9,6 +11,8 @@ BEGIN;
 \ir funciones/pedidos/ven_factor_unidad.sql
 \ir funciones/pedidos/ven_recalcular_pedido.sql
 \ir funciones/pedidos/ven_consumos_item.sql
+\ir funciones/pedidos/ven_liberar_insumos.sql
+\ir funciones/pedidos/ven_reservar_insumos_pedido.sql
 \ir funciones/inventario/alm_bloquear.sql
 \ir funciones/inventario/alm_confirmar.sql
 \ir funciones/inventario/alm_registrar.sql
@@ -33,4 +37,16 @@ BEGIN;
 \ir funciones/inventario/alm_obtener_movimiento.sql
 \ir seeds/permisos/10_pedidos.sql
 \ir seeds/permisos/11_inventario.sql
+\ir funciones/general/listas/gen_filtrar_opciones_lista.sql
+\ir funciones/inventario/alm_buscar_stock.sql
+\ir funciones/pedidos/ven_pedido_preparacion.sql
+\ir funciones/pedidos/ven_listar_cocina.sql
+\ir funciones/produccion/prod_disponibilidad.sql
+\ir funciones/productos/productos/pro_obtener_producto.sql
+\ir funciones/productos/productos/pro_crear_producto.sql
+\ir funciones/productos/productos/pro_crear_producto_stock.sql
+\ir funciones/produccion/prod_listar_productos.sql
+\ir funciones/pedidos/ven_registrar_aviso_cocina.sql
+\ir funciones/pedidos/ven_listar_avisos_cocina.sql
+\ir funciones/pedidos/ven_atender_aviso_cocina.sql
 COMMIT;
