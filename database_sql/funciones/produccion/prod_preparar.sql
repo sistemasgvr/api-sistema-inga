@@ -28,7 +28,7 @@ BEGIN
   IF suc IS NULL THEN RAISE EXCEPTION 'Almacén destino inválido'; END IF;
   IF item IS NOT NULL THEN
     IF pd.id_producto<>pr.id OR pd.id_receta IS DISTINCT FROM rec.id OR pd.tipo_linea=3 OR pd.estado<>1
-      OR pd.id_comanda IS NULL OR pedido.estado_pedido<>2 OR pedido.id_sucursal<>suc THEN RAISE EXCEPTION 'Detalle no disponible para preparación'; END IF;
+      OR pd.id_comanda IS NULL OR pedido.estado_pedido NOT IN (2,3) OR pedido.id_sucursal<>suc THEN RAISE EXCEPTION 'Detalle no disponible para preparación'; END IF;
     IF almacen IS DISTINCT FROM COALESCE(pd.id_almacen_reserva,pr.id_almacen_stock) THEN RAISE EXCEPTION 'Use el almacén de reserva del pedido'; END IF;
     PERFORM ven_reservar_item(item,p_usuario);
     SELECT * INTO pd FROM ven_pedido_detalle WHERE id=item;

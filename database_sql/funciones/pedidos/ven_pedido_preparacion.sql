@@ -5,7 +5,7 @@ BEGIN
  v:=ven_bloquear_pedido(p_id);
  SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Detalle no encontrado' USING ERRCODE='P0002'; END IF;
- IF v.estado_pedido<>2 OR d.tipo_linea=3 OR d.id_comanda IS NULL OR d.cantidad_entregada+d.cantidad_cancelada>=d.cantidad THEN RAISE EXCEPTION 'El detalle no admite preparación'; END IF;
+ IF v.estado_pedido NOT IN (2,3) OR d.tipo_linea=3 OR d.id_comanda IS NULL OR d.cantidad_entregada+d.cantidad_cancelada>=d.cantidad THEN RAISE EXCEPTION 'El detalle no admite preparación'; END IF;
  IF destino NOT IN (3,4) OR destino IS NULL THEN RAISE EXCEPTION 'Estado de preparación inválido'; END IF;
  IF destino=d.estado_preparacion THEN RETURN ven_obtener_pedido(p_id); END IF;
  IF destino=3 AND d.estado_preparacion<>2 THEN RAISE EXCEPTION 'Solo un detalle enviado puede iniciar preparación'; END IF;

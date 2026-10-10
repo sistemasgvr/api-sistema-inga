@@ -425,6 +425,15 @@ CREATE TABLE IF NOT EXISTS cli_convenio (
     CONSTRAINT fk_cli_convenio_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
+-- Techo de la DEUDA que alcanza el convenio, no del cobro. Si es mayor que cero, al
+-- cobrar un pedido solo pasa a crédito lo que le falta al cliente para llegar al tope y
+-- el resto se cobra en efectivo. Un valor de 0 NO significa "crédito cero": es SIN TOPE,
+-- la cuenta de consorcio que se liquida a fin de período, y ahí entra el pedido completo.
+-- Quien tenga que cumplir esta regla: ven_pedido_cobrar.sql (cobra) y cxc_listar_saldos.sql
+-- (avisa). En el front, nivelCredito() en cuentas-por-cobrar/utils/formato.ts.
+COMMENT ON COLUMN cli_convenio.limite_credito IS
+    'Techo de la deuda del convenio. 0 = SIN TOPE (cuenta de consorcio liquidada a fin de período), no crédito cero.';
+
 -- Utilidad: clientes, proveedores y consumidores a crédito (ej. Billy Reaño).
 CREATE TABLE IF NOT EXISTS cli_persona (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

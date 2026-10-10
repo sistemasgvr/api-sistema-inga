@@ -1,23 +1,11 @@
--- Registro un abono: el consorcio paga, o se le descuenta de planilla al
--- trabajador. Reduce lo que nos debe.
---
--- Es el movimiento que el administrador hace cuando la empresa abona, a inicios
--- de cada mes, después de compartirle el reporte de la quincena.
---
--- Regla del alcance: **el abono no puede superar el saldo deudor**. Pagar más
--- de lo que se debe dejaría el saldo en negativo, que en este módulo no
--- significa nada: la cuenta es "cuánto nos deben", no una cuenta corriente con
--- saldo a favor. Si de verdad hubo un pago de más, se corrige con un ajuste
--- (tipo 3), que queda explícito en el historial.
---
--- A diferencia de CxP, acá NO exijo turno de caja: el abono del consorcio llega
--- por transferencia o descuento de planilla, no entra al cajón del día.
+DROP FUNCTION IF EXISTS cxc_registrar_abono(BIGINT, NUMERIC, DATE, VARCHAR, BIGINT);
 CREATE OR REPLACE FUNCTION cxc_registrar_abono(
     p_id_persona BIGINT,
     p_monto NUMERIC,
     p_fecha_movimiento DATE DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_pedido BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,10 +17,14 @@ DECLARE
     v_saldo NUMERIC(12,2);
     v_persona RECORD;
     v_quincena SMALLINT;
+    v_observacion VARCHAR;
+    v_codigo VARCHAR;
+    v_id_persona_pedido BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
     v_fecha := COALESCE(p_fecha_movimiento, CURRENT_DATE);
+    v_observacion := NULLIF(TRIM(p_observacion), '');
 
     SELECT
         p.es_cliente,
@@ -82,20 +74,44 @@ BEGIN
         );
     END IF;
 
+    -- Si es una corrección, el pedido tiene que existir y ser de esta misma persona:
+    -- si no, el abono queda flotando sin rastro del crédito que está corrigiendo.
+    IF p_id_pedido IS NOT NULL THEN
+        SELECT pd.codigo, pd.id_persona INTO v_codigo, v_id_persona_pedido
+          FROM ven_pedido pd WHERE pd.id = p_id_pedido;
+        IF NOT FOUND THEN
+            RETURN json_build_object('error', 'El pedido indicado no existe', 'registro', NULL);
+        END IF;
+        -- IS DISTINCT FROM y no "<>" a propósito: un pedido sin id_persona tampoco
+        -- es de este cliente, y con "<>" el NULL se colaría. Todo pedido que genera
+        -- un cargo a crédito tiene persona puesta (la asigna ven_pedido_cobrar), así
+        -- que si no la tiene es que el vínculo no es válido.
+        IF v_id_persona_pedido IS DISTINCT FROM p_id_persona THEN
+            RETURN json_build_object(
+                'error', 'El pedido ' || v_codigo || ' no está vinculado a este cliente',
+                'registro', NULL
+            );
+        END IF;
+        -- Si el cajero no escribió nada, la observación explica sola qué es este abono.
+        IF v_observacion IS NULL THEN
+            v_observacion := 'Corrección de crédito — Pedido ' || v_codigo;
+        END IF;
+    END IF;
+
     v_saldo := v_saldo_actual - p_monto;
     v_quincena := CASE WHEN EXTRACT(DAY FROM v_fecha) <= 15 THEN 1 ELSE 2 END;
 
     INSERT INTO cxc_movimiento (
-        id_persona, id_convenio, tipo_movimiento, monto, saldo_resultante,
+        id_persona, id_convenio, id_pedido, tipo_movimiento, monto, saldo_resultante,
         anio, mes, quincena, observacion,
         id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-        p_id_persona, v_persona.id_convenio, 2, p_monto, v_saldo,
+        p_id_persona, v_persona.id_convenio, p_id_pedido, 2, p_monto, v_saldo,
         EXTRACT(YEAR FROM v_fecha)::SMALLINT,
         EXTRACT(MONTH FROM v_fecha)::SMALLINT,
         v_quincena,
-        NULLIF(TRIM(p_observacion), ''),
+        v_observacion,
         p_id_usuario_auditoria, p_id_usuario_auditoria
     )
     RETURNING id INTO v_id;

@@ -8,7 +8,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Ítem no encontrado' USING ERRCODE='P0002'; END IF;
   IF objetivo IS NULL OR objetivo<=0 OR objetivo<>round(objetivo,4) THEN RAISE EXCEPTION 'Cantidad entregada inválida'; END IF;
   IF objetivo=d.cantidad_entregada THEN RETURN ven_obtener_pedido(p_id); END IF;
-  IF v.estado_pedido<>2 OR d.tipo_linea=3 OR d.id_comanda IS NULL OR objetivo<d.cantidad_entregada OR objetivo>d.cantidad-d.cantidad_cancelada THEN
+  IF v.estado_pedido NOT IN (2,3) OR d.tipo_linea=3 OR d.id_comanda IS NULL OR objetivo<d.cantidad_entregada OR objetivo>d.cantidad-d.cantidad_cancelada THEN
     RAISE EXCEPTION 'Entrega no permitida'; END IF;
   PERFORM ven_reservar_item(p_item,p_usuario);
   SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item;

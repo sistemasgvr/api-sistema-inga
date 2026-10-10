@@ -1,16 +1,3 @@
--- Estado de cuenta de una persona: sus datos, su saldo y su historial completo.
---
--- Es lo que se imprime o se le muestra al trabajador del consorcio cuando
--- pregunta "¿cuánto debo?". Por eso devuelvo todo junto en una sola llamada: la
--- pantalla no debería tener que pegar tres respuestas para armar un papel.
---
--- El historial va del más viejo al más nuevo, al revés que el listado general.
--- Un estado de cuenta se lee como una cartilla: empieza en cero y va sumando, y
--- así la columna saldo_resultante se sigue con el dedo hacia abajo.
---
--- Acepta un periodo opcional. Sin periodo trae todo; con periodo trae la
--- quincena que se está conciliando, más el saldo anterior para que el papel
--- cuadre.
 CREATE OR REPLACE FUNCTION cxc_obtener_estado_cuenta(
     p_id_persona BIGINT,
     p_anio SMALLINT DEFAULT NULL,
@@ -102,6 +89,10 @@ BEGIN
     FROM (
         SELECT
             m.id,
+            -- Redundante acá (todo es de una persona), pero el tipo MovimientoCxc lo
+            -- exige y sin él el front no puede armar la corrección de un cargo: necesita
+            -- el id para preseleccionar el cliente al abrir el abono.
+            m.id_persona,
             m.tipo_movimiento,
             CASE m.tipo_movimiento
                 WHEN 1 THEN 'Consumo'
@@ -115,8 +106,30 @@ BEGIN
             m.quincena,
             m.id_pedido,
             m.observacion,
+            -- Igual que en cxc_listar_movimientos: qué se pidió en el pedido del cargo,
+            -- por JOIN y no copiado. Acá la lista es de una sola persona, así que el
+            -- LATERAL es barato y el detalle sale siempre que el cargo traiga pedido.
+            items.detalle AS detalle_pedido,
             m.fecha_creacion
         FROM cxc_movimiento m
+        LEFT JOIN LATERAL (
+            SELECT string_agg(
+                     trim(trailing '.' FROM trim(trailing '0' FROM to_char(x.cantidad, 'FM999990.99')))
+                         || 'x ' || pr.nombre,
+                     ', ' ORDER BY pr.nombre) AS detalle
+              FROM (
+                  -- Un producto puede estar repartido en varias líneas del pedido;
+                  -- sin este GROUP BY salía repetido ("1x Arroz, 1x Arroz").
+                  SELECT d.id_producto, SUM(d.cantidad - d.cantidad_cancelada) AS cantidad
+                    FROM ven_pedido_detalle d
+                   WHERE d.id_pedido = m.id_pedido
+                     AND d.estado = 1
+                     AND d.tipo_linea <> 3
+                     AND d.cantidad > d.cantidad_cancelada
+                   GROUP BY d.id_producto
+              ) x
+              JOIN pro_producto pr ON pr.id = x.id_producto
+        ) items ON TRUE
         WHERE m.id_persona = p_id_persona
           AND m.estado = 1
           AND (p_anio IS NULL OR m.anio = p_anio)

@@ -7,6 +7,9 @@ import {
 import { FiltroPedidoDto } from '../dto/pedido.dto';
 
 export type AccionPedido =
+  | 'precuenta'
+  | 'cobrar'
+  | 'credito'
   | 'preparacion'
   | 'entregar'
   | 'abrir'

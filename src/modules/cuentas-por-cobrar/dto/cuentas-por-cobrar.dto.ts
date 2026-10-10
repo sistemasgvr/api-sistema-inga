@@ -167,6 +167,23 @@ export class CreateAbonoCxcDto extends AuditoriaDto {
   @IsString()
   @MaxLength(255)
   observacion?: string;
+
+  /**
+   * Solo para correcciones. Cuando el cajero vendió a crédito lo que el cliente
+   * iba a pagar en efectivo, en vez de anular la venta se registra un abono
+   * vinculado al pedido: la venta ocurrió y queda como fue, lo que se corrige
+   * es la deuda. Si viene informado, el backend completa la observación con el
+   * código del pedido y verifica que le pertenezca a esta misma persona.
+   */
+  @ApiPropertyOptional({
+    example: 20,
+    description: 'Pedido cuyo cargo a crédito se está corrigiendo',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_pedido?: number;
 }
 
 export class CreateAjusteCxcDto extends AuditoriaDto {

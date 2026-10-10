@@ -14,6 +14,7 @@ import { EstacionesModel } from '../models/estaciones.model';
 @Injectable()
 export class EstacionesLogic {
   constructor(private readonly estacionesModel: EstacionesModel) {}
+  async principal(id:number) { return mapSingleResult(await this.estacionesModel.principal(id),'Estación no encontrada'); }
 
   async listar(filtros: FiltroEstacionesDto) {
     const result = await this.estacionesModel.listar(filtros);

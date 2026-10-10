@@ -58,7 +58,7 @@ BEGIN
             lo.nombre AS tipo_estacion_nombre,
             e.impresora_nombre,
             e.impresora_ip,
-            e.usa_kds,
+            e.usa_kds, e.es_caja_principal,
             e.estado,
             e.fecha_creacion,
             e.fecha_modificacion,

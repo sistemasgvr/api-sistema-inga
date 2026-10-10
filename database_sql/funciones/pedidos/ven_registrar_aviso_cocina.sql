@@ -11,7 +11,7 @@ BEGIN
     FROM jsonb_array_elements(p_faltantes) f, jsonb_array_elements_text(COALESCE(f->'estaciones','[]')) e;
   UPDATE ven_aviso_cocina SET mensaje=p_mensaje,faltantes=p_faltantes,estaciones=v_estaciones,
     id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP
-    WHERE id_pedido=p_pedido AND estado=1 RETURNING * INTO aviso;
+    WHERE id_pedido=p_pedido AND estado=1 AND jsonb_array_length(faltantes)>0 RETURNING * INTO aviso;
   IF NOT FOUND THEN
     INSERT INTO ven_aviso_cocina(id_sucursal,id_pedido,estaciones,mensaje,faltantes,id_usuario_creacion,id_usuario_modificacion)
       VALUES(v.id_sucursal,p_pedido,v_estaciones,p_mensaje,p_faltantes,p_usuario,p_usuario) RETURNING * INTO aviso;

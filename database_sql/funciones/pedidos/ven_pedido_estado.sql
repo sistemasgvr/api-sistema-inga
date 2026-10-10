@@ -1,6 +1,7 @@
 CREATE OR REPLACE FUNCTION public.ven_pedido_estado(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; v_destino INTEGER := (p_datos->>'estado_pedido')::INTEGER; v_pagado NUMERIC;
+  v_turno_actual BIGINT;
 BEGIN
   -- Las transiciones que afectan inventario pasan por el mismo flujo que sus endpoints.
   IF v_destino = 2 THEN RETURN ven_pedido_comandar(p_id,p_item,p_datos,p_usuario); END IF;
@@ -9,7 +10,17 @@ BEGIN
   IF v_destino IS NULL OR v_destino NOT IN (3,4) THEN RAISE EXCEPTION 'Estado de destino inválido'; END IF;
   IF v.estado_pedido = v_destino THEN RETURN ven_obtener_pedido(p_id); END IF;
   IF NOT ((v.estado_pedido = 2 AND v_destino = 3) OR (v.estado_pedido = 3 AND v_destino = 4)) THEN RAISE EXCEPTION 'Transición de estado inválida: % a %',v.estado_pedido,v_destino; END IF;
-  PERFORM ven_validar_turno_pedido(v.id_turno,v.id_sucursal);
+  -- El turno de apertura se conserva como referencia histórica. Para cobrar,
+  -- validar un turno vigente de la sucursal, sin reasignar el pedido ni sus pagos.
+  SELECT t.id INTO v_turno_actual
+  FROM caj_turno t JOIN caj_caja c ON c.id=t.id_caja
+  WHERE t.estado=1 AND t.estado_turno=1 AND c.estado=1 AND c.id_sucursal=v.id_sucursal
+  ORDER BY (t.id=v.id_turno) DESC, (t.id_cajero=p_usuario) DESC, t.id DESC
+  LIMIT 1 FOR SHARE OF t,c;
+  IF v_turno_actual IS NULL THEN
+    RAISE EXCEPTION 'Se requiere un turno abierto de la misma sucursal';
+  END IF;
+  PERFORM ven_validar_turno_pedido(v_turno_actual,v.id_sucursal);
   IF EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3 AND (id_comanda IS NULL OR cantidad_entregada < cantidad - cantidad_cancelada))
     THEN RAISE EXCEPTION 'Hay ítems pendientes de entregar'; END IF;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);

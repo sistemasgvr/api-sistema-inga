@@ -80,6 +80,7 @@ export class CuentasPorCobrarModel {
       dto.fecha_movimiento ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      dto.id_pedido ?? null,
     ]);
   }
 

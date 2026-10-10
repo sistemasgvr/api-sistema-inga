@@ -3,7 +3,7 @@ RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; v_cantidad NUMERIC;
 BEGIN
   v := ven_bloquear_pedido(p_id);
-  IF v.estado_pedido NOT IN (1,2) THEN RAISE EXCEPTION 'El pedido no admite edición'; END IF;
+  IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite edición'; END IF;
   PERFORM ven_validar_turno_pedido(v.id_turno, v.id_sucursal);
   SELECT * INTO d FROM ven_pedido_detalle WHERE id = p_item AND id_pedido = p_id AND estado = 1 FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ítem no encontrado en el pedido' USING ERRCODE = 'P0002'; END IF;

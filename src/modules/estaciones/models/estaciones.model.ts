@@ -11,6 +11,7 @@ import { EstacionEstadoFiltro, FiltroEstacionesDto } from '../dto/estaciones.dto
 @Injectable()
 export class EstacionesModel {
   constructor(private readonly db: DatabaseService) {}
+  principal(id:number) { return this.db.callFunctionJson<AuthSingleResult>('gen_marcar_caja_principal',[id]); }
 
   private resolveEstadoFiltro(estado?: EstacionEstadoFiltro): number | null {
     if (estado === 'inactivos') return 0;

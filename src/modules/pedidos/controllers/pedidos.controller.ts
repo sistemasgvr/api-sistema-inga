@@ -17,6 +17,7 @@ import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas as P } from '../../../common/constants/permiso-banderas';
 import {
   EntregarItemDto, PreparacionItemDto,
+  PrecuentaPedidoDto, CobrarPedidoDto, CreditoPedidoDto,
   AbrirPedidoDto,
   AgregarItemDto,
   AnularPedidoDto,
@@ -32,6 +33,19 @@ type AuthRequest = Request & { user: AuthenticatedUser };
 @Controller('pedidos')
 export class PedidosController {
   constructor(private readonly logic: PedidoLogic) {}
+
+  @Post(':id/precuenta') @Permisos(P.PEDIDOS_ESTADO)
+  precuenta(@Param('id',ParseIntPipe) id:number,@Body() dto:PrecuentaPedidoDto,@Req() req:AuthRequest) {
+    return this.logic.ejecutar('precuenta',id,null,dto,req.user);
+  }
+  @Post(':id/cobrar') @Permisos(P.PEDIDOS_ESTADO)
+  cobrar(@Param('id',ParseIntPipe) id:number,@Body() dto:CobrarPedidoDto,@Req() req:AuthRequest) {
+    return this.logic.ejecutar('cobrar',id,null,dto,req.user);
+  }
+  @Post(':id/credito') @Permisos(P.PEDIDOS_ESTADO)
+  credito(@Param('id',ParseIntPipe) id:number,@Body() dto:CreditoPedidoDto,@Req() req:AuthRequest) {
+    return this.logic.ejecutar('credito',id,null,dto,req.user);
+  }
 
   @Get()
   @Permisos(P.PEDIDOS_VER)

@@ -127,6 +127,9 @@ export class EntregarItemDto {
 }
 
 export class AnularPedidoDto {
+  @IsOptional()
+  @IsBoolean()
+  solo_sin_preparar?: boolean;
   @ApiPropertyOptional({
     description:
       'Total acumulado cancelado de la línea. Omitir cancela todo lo no entregado.',
@@ -219,4 +222,17 @@ export class FiltroPedidoDto extends FiltroPaginacionDto {
 
 export class PreparacionItemDto {
  @ApiProperty({enum:[3,4]}) @IsInt() @IsIn([3,4]) estado_preparacion!: number;
+}
+
+export class PrecuentaPedidoDto {
+  @IsOptional() @IsInt() @Min(1) id_estacion?: number;
+}
+export class CobrarPedidoDto {
+  @IsInt() @IsIn([1,2,3]) tipo_comprobante!: number;
+  @IsInt() @Min(1) medio_pago!: number;
+  @IsOptional() @IsString() @MaxLength(20) documento?: string;
+}
+export class CreditoPedidoDto {
+  @IsOptional() @IsBoolean() efectivo_confirmado?: boolean;
+  @IsString() @Matches(/^[0-9]{8}$/) documento!: string;
 }

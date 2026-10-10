@@ -5,7 +5,7 @@ DECLARE v ven_pedido%ROWTYPE; pr pro_producto%ROWTYPE; v_receta BIGINT := (p_dat
   v_seleccion BIGINT[];
 BEGIN
   v := ven_bloquear_pedido(p_id);
-  IF v.estado_pedido NOT IN (1,2) THEN RAISE EXCEPTION 'Solo se agregan ítems a pedidos abiertos o comandados'; END IF;
+  IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'Solo se agregan ítems a pedidos abiertos o comandados'; END IF;
   PERFORM ven_validar_turno_pedido(v.id_turno, v.id_sucursal);
   SELECT * INTO pr FROM pro_producto WHERE id = (p_datos->>'id_producto')::BIGINT AND estado = 1 AND disponible_venta;
   IF NOT FOUND THEN RAISE EXCEPTION 'Producto no disponible'; END IF;

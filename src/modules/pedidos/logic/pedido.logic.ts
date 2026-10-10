@@ -78,6 +78,7 @@ export class PedidoLogic {
     }).then((result) => {
       if (
         accion === 'comandar' ||
+        accion === 'precuenta' ||
         (accion === 'estado' && payload.estado_pedido === 2)
       ) {
         this.impresion.notificar();

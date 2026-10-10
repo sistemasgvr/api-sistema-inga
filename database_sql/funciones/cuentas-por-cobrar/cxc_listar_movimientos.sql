@@ -1,17 +1,3 @@
--- Listo los movimientos de CxC con filtros. Es el "libro mayor" del módulo:
--- todo lo que pasó, de quién, cuándo y de qué tipo.
---
--- Filtros que puse y por qué cada uno:
---   p_id_persona  → el detalle de una persona.
---   p_id_convenio → todo lo de una empresa, que es como se factura.
---   p_tipo        → separar consumos de abonos cuando se concilia.
---   anio/mes/quincena → el corte quincenal, que es el corazón del negocio acá.
---   p_incluir_anulados → por defecto NO los traigo, porque ensucian la vista;
---                        pero para auditar hace falta poder verlos.
---
--- El resumen viene con los totales del filtro aplicado (no del universo, como en
--- cxc_listar_saldos): acá el usuario está mirando un periodo concreto y lo que
--- necesita es el total DE ESE periodo, que es el número que le manda a la empresa.
 CREATE OR REPLACE FUNCTION cxc_listar_movimientos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -80,6 +66,12 @@ BEGIN
             m.quincena,
             m.id_pedido,
             m.observacion,
+            -- Qué se pidió en el pedido que originó el cargo. Sale por JOIN, no copiado
+            -- a una tabla propia: el detalle de un pedido cerrado ya es inmutable y el
+            -- cargo no siempre es el pedido entero (con tope, parte del total va a
+            -- crédito y el resto en efectivo). El LATERAL solo corre si hay pedido, así
+            -- que abonos y ajustes no pagan el costo.
+            items.detalle AS detalle_pedido,
             m.estado,
             m.fecha_creacion,
             TRIM(COALESCE(uc.nombres, '') || ' ' || COALESCE(uc.apellidos, '')) AS nombre_usuario_creacion
@@ -87,6 +79,24 @@ BEGIN
         INNER JOIN cli_persona p ON m.id_persona = p.id
         LEFT JOIN cli_convenio c ON m.id_convenio = c.id
         LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
+        LEFT JOIN LATERAL (
+            SELECT string_agg(
+                     trim(trailing '.' FROM trim(trailing '0' FROM to_char(x.cantidad, 'FM999990.99')))
+                         || 'x ' || pr.nombre,
+                     ', ' ORDER BY pr.nombre) AS detalle
+              FROM (
+                  -- Un producto puede estar repartido en varias líneas del pedido;
+                  -- sin este GROUP BY salía repetido ("1x Arroz, 1x Arroz").
+                  SELECT d.id_producto, SUM(d.cantidad - d.cantidad_cancelada) AS cantidad
+                    FROM ven_pedido_detalle d
+                   WHERE d.id_pedido = m.id_pedido
+                     AND d.estado = 1
+                     AND d.tipo_linea <> 3
+                     AND d.cantidad > d.cantidad_cancelada
+                   GROUP BY d.id_producto
+              ) x
+              JOIN pro_producto pr ON pr.id = x.id_producto
+        ) items ON TRUE
         WHERE (p_incluir_anulados = TRUE OR m.estado = 1)
           AND (p_id_persona IS NULL OR m.id_persona = p_id_persona)
           AND (p_id_convenio IS NULL OR m.id_convenio = p_id_convenio)

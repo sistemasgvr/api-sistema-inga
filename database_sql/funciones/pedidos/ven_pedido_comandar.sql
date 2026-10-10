@@ -5,7 +5,7 @@ DECLARE v ven_pedido%ROWTYPE; d RECORD;
   v_comanda BIGINT; v_numero INTEGER; v_estacion BIGINT;
 BEGIN
   v := ven_bloquear_pedido(p_id);
-  IF v.estado_pedido NOT IN (1,2) THEN RAISE EXCEPTION 'Solo se comandan pedidos abiertos o comandados'; END IF;
+  IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'Solo se comandan pedidos abiertos o comandados'; END IF;
   PERFORM ven_validar_turno_pedido(v.id_turno,v.id_sucursal);
   IF NOT EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3) THEN RAISE EXCEPTION 'No se puede comandar un pedido sin ítems'; END IF;
   FOR d IN SELECT pd.id, pd.stock_descontado, pd.estado_preparacion, pr.id_estacion
@@ -39,7 +39,7 @@ BEGIN
     PERFORM ven_reservar_item(d.id,p_usuario);
   END LOOP;
   PERFORM ven_reservar_insumos_pedido(ARRAY(SELECT x.id FROM jsonb_to_recordset(v_pendientes) AS x(id BIGINT,id_estacion BIGINT)),p_usuario);
-  UPDATE ven_pedido SET estado_pedido = 2 WHERE id = p_id;
+  UPDATE ven_pedido SET estado_pedido = CASE WHEN estado_pedido=3 THEN 3 ELSE 2 END WHERE id = p_id;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   RETURN ven_obtener_pedido(p_id);
 END;

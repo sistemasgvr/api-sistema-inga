@@ -41,6 +41,11 @@ export class EstacionesController {
     return this.estacionesLogic.obtenerPorId(id);
   }
 
+
+  @Post(':id/caja-principal')
+  @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
+  principal(@Param('id',ParseIntPipe) id:number) { return this.estacionesLogic.principal(id); }
+
   @Post()
   @Permisos(PermisoBanderas.ESTACIONES_CREAR)
   @ApiOperation({ summary: 'Crear estación' })
