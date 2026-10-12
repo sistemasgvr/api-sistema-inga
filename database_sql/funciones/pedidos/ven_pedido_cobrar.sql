@@ -53,17 +53,27 @@ BEGIN
     IF medio IS NULL OR medio=4 OR NOT EXISTS(SELECT 1 FROM gen_lista_opcion o JOIN gen_lista l ON l.id=o.id_lista
       WHERE l.codigo='MEDIO_PAGO' AND l.estado=1 AND o.estado=1 AND o.valor_entero=medio) THEN RAISE EXCEPTION 'Seleccione un medio de pago válido'; END IF;
     IF tipo=2 AND COALESCE(p_datos->>'documento','') !~ '^[0-9]{11}$' THEN RAISE EXCEPTION 'La factura requiere RUC de once dígitos'; END IF;
+    IF tipo=1 AND COALESCE(p_datos->>'documento','') !~ '^([0-9]{8})?$' THEN RAISE EXCEPTION 'El DNI debe tener ocho dígitos'; END IF;
     IF tipo=2 THEN
       SELECT * INTO persona FROM cli_persona WHERE num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
       IF NOT FOUND OR NULLIF(btrim(persona.razon_social),'') IS NULL THEN RAISE EXCEPTION 'Registre al cliente con su RUC y razón social para facturar'; END IF;
+    ELSIF COALESCE(p_datos->>'documento','')='' THEN
+      -- Boleta sin DNI y nota de venta se emiten a "Clientes varios" (DNI 00000000).
+      SELECT * INTO persona FROM cli_persona WHERE tipo_documento=1 AND num_documento='00000000' AND estado=1;
+      IF NOT FOUND THEN RAISE EXCEPTION 'Registre el cliente "Clientes varios" (DNI 00000000) para cobrar sin documento'; END IF;
+    ELSE
+      -- Boleta con DNI: se vincula al cliente si está registrado; si no, queda solo el DNI.
+      SELECT * INTO persona FROM cli_persona WHERE tipo_documento=1 AND num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
     END IF;
     SELECT * INTO correlativo FROM gen_correlativo WHERE id_sucursal=v.id_sucursal AND tipo_documento=tipo AND estado=1
       ORDER BY id LIMIT 1 FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante en esta sucursal antes de cobrar'; END IF;
     UPDATE gen_correlativo SET ultimo_numero=ultimo_numero+1 WHERE id=correlativo.id RETURNING * INTO correlativo;
-    INSERT INTO ven_comprobante(id_pedido,id_persona,tipo_comprobante,receptor_num_doc,receptor_razon_social,serie,correlativo,
+    INSERT INTO ven_comprobante(id_pedido,id_persona,tipo_comprobante,receptor_tipo_doc,receptor_num_doc,receptor_razon_social,serie,correlativo,
       monto_gravado,monto_igv,monto_total,id_usuario_creacion,id_usuario_modificacion)
-    VALUES(p_id,persona.id,tipo,NULLIF(p_datos->>'documento',''),persona.razon_social,correlativo.serie,
+    VALUES(p_id,persona.id,tipo,COALESCE(persona.tipo_documento,CASE WHEN tipo=2 THEN 6 ELSE 1 END),
+      COALESCE(NULLIF(p_datos->>'documento',''),persona.num_documento),
+      COALESCE(NULLIF(btrim(persona.razon_social),''),NULLIF(btrim(concat_ws(' ',persona.nombres,persona.apellido_paterno,persona.apellido_materno)),'')),correlativo.serie,
       lpad(correlativo.ultimo_numero::TEXT,correlativo.longitud,'0'),v.monto_subtotal,v.monto_igv,v.monto_total,p_usuario,p_usuario) RETURNING id INTO comprobante;
     INSERT INTO ven_comprobante_detalle(id_comprobante,id_pedido_detalle,descripcion,cantidad,unidad,precio_unitario,monto_total)
     SELECT comprobante,d.id,p.nombre,d.cantidad-d.cantidad_cancelada,u.simbolo,d.precio_unitario,d.monto_subtotal
