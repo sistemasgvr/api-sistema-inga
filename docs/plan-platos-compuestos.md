@@ -1,6 +1,23 @@
 # Plan: platos hechos de otros platos (caso "Barco")
 
-> Estado: **pendiente de revisión**. No se ha implementado nada.
+> Estado: **implementado** (base de datos, API y frontend). Los 15 casos están en `npm run test:inventario:sql`.
+> Para aplicar en una base existente: `node test/inventario/actualizar-platos-compuestos.cjs` (usa `.env`).
+
+## Implementación
+
+| Pieza | Archivo |
+|---|---|
+| Migración (número 14, porque el 09 ya existía) | `migraciones/14_reserva_insumo_origen.sql`: `id_producto_origen`, **`es_preparado`** (reserva de un sub-plato ya preparado) y el UNIQUE por origen |
+| Receta vigente | `pro_receta_vigente(p_producto)` |
+| Explosión | `pro_explotar_receta(p_receta, p_cantidad, p_seleccionados, p_sucursal, p_explotar, …)` |
+| Platos libres primero, luego ingredientes | `prod_cubrir_subplato` (recursiva, con el stock libre en memoria) y `prod_explosion` (receta estándar) |
+| Comandar | `ven_consumos_item` (primer nivel, sub-platos marcados) y `ven_reservar_insumos_pedido` (faltantes con `ruta`) |
+| Preparar | `prod_preparar`: por pedido consume lo reservado; sin reserva usa el respaldo; anticipada usa `prod_explosion` |
+| Disponibilidad | `prod_disponibilidad`: `id_producto_origen`, `origen`, `ruta`, `preparado`, `libres`; búsqueda binaria con sub-platos (`prod_alcanza`) |
+| Cancelar | `ven_cancelar_stock_item`: en preparación, los sub-platos preparados siguen `destino_preparado` y los ingredientes `destino_insumos` |
+| Front | `subplatos_preparados` en cada línea (`ven_obtener_pedido`, `ven_listar_cocina`) para la pregunta extra; `stock_libre` en `prod_listar_productos` |
+
+Decisiones tomadas: los sub-platos con grupos de sustitución **se rechazan** (salvo que haya platos libres de ese sub-plato). El paso de cierre de turno para platos libres antiguos **queda pendiente**.
 
 ## Problema
 

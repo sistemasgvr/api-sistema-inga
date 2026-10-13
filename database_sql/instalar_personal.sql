@@ -23,6 +23,9 @@ BEGIN;
 \ir funciones/login/auth_obtener_usuario_por_login.sql
 \ir funciones/pedidos/ven_autorizar_anulacion.sql
 \ir funciones/pedidos/ven_listar_pedidos.sql
+-- ven_obtener_pedido informa los sub-platos preparados apartados de cada línea.
+\ir migraciones/05_reserva_insumos.sql
+\ir migraciones/14_reserva_insumo_origen.sql
 \ir funciones/pedidos/ven_obtener_pedido.sql
 \ir funciones/pedidos/ven_pedido_abrir.sql
 \ir funciones/personas/convenios/cli_listar_convenios.sql

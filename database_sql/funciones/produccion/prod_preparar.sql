@@ -2,7 +2,7 @@
 -- codigo es único; un reintento idéntico devuelve la orden ya registrada.
 CREATE OR REPLACE FUNCTION prod_preparar(p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE pr pro_producto%ROWTYPE; rec pro_receta%ROWTYPE; pd ven_pedido_detalle%ROWTYPE;
-  orden prod_orden%ROWTYPE; pedido ven_pedido%ROWTYPE; ins RECORD; partes JSONB:='[]'; salida BIGINT;
+  orden prod_orden%ROWTYPE; pedido ven_pedido%ROWTYPE; ins RECORD; partes JSONB:='[]'; libre JSONB:='{}'; salida BIGINT;
   v_cantidad NUMERIC:=(p_datos->>'cantidad')::NUMERIC; costo NUMERIC; suc BIGINT; almacen BIGINT:=(p_datos->>'id_almacen_destino')::BIGINT;
   item BIGINT:=(p_datos->>'id_pedido_detalle')::BIGINT; receta BIGINT:=(p_datos->>'id_receta')::BIGINT;
 BEGIN
@@ -33,27 +33,31 @@ BEGIN
     PERFORM ven_reservar_item(item,p_usuario);
     SELECT * INTO pd FROM ven_pedido_detalle WHERE id=item;
     IF v_cantidad>pd.cantidad-pd.cantidad_cancelada-pd.cantidad_entregada-pd.cantidad_reservada THEN RAISE EXCEPTION 'La preparación excede lo pendiente'; END IF;
-    -- Lo apartado al comandar se libera para consumirlo en esta misma transacción.
-    PERFORM ven_liberar_insumos(item,v_cantidad,p_usuario);
-    FOR ins IN SELECT * FROM ven_consumos_item(item) LOOP
-      IF ins.id_producto=pr.id THEN RAISE EXCEPTION 'El plato no puede ser insumo de sí mismo'; END IF;
-      partes:=partes||jsonb_build_array(jsonb_build_object('id_producto',ins.id_producto,'id_almacen',ins.id_almacen,
-        'id_unidad_medida',ins.id_unidad_medida,'cantidad',round(ins.cantidad*v_cantidad/pd.cantidad,4),'signo',-1));
-    END LOOP;
+    IF EXISTS(SELECT 1 FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=item AND cantidad>0) THEN
+      -- Se consume exactamente lo apartado al comandar (sub-platos preparados y/o ingredientes):
+      -- nada cambia entre comandar y preparar.
+      partes:=ven_liberar_insumos(item,v_cantidad,p_usuario);
+    ELSE
+      -- Respaldo para líneas sin reserva: se calcula con el stock del momento.
+      FOR ins IN SELECT x.*,round(x.cantidad*v_cantidad/pd.cantidad,4) AS parte FROM ven_consumos_item(item) x LOOP
+        IF ins.es_subplato THEN
+          SELECT x.p_necesidades,x.p_libre INTO partes,libre FROM prod_cubrir_subplato(partes,libre,ins.id_producto,ins.id_almacen,
+            ins.id_unidad_medida,ins.parte,NULL,ins.ruta,suc) x;
+        ELSE
+          partes:=partes||jsonb_build_array(jsonb_build_object('id_producto',ins.id_producto,'id_almacen',ins.id_almacen,
+            'id_unidad_medida',ins.id_unidad_medida,'cantidad',ins.parte));
+        END IF;
+      END LOOP;
+    END IF;
   ELSE
     IF EXISTS(SELECT 1 FROM pro_receta_insumo WHERE id_receta=rec.id AND estado=1 AND grupo_sustitucion IS NOT NULL) THEN
       RAISE EXCEPTION 'La producción anticipada requiere una receta sin grupos de sustitución; utilice preparación por pedido'; END IF;
-    FOR ins IN SELECT ri.*,p.id_unidad_medida AS unidad_base,p.id_almacen_stock,a.id_sucursal,p.controla_stock,p.estado AS estado_producto
-      FROM pro_receta_insumo ri JOIN pro_producto p ON p.id=ri.id_producto_insumo LEFT JOIN gen_almacen a ON a.id=p.id_almacen_stock
-      WHERE ri.id_receta=rec.id AND ri.estado=1 AND NOT ri.es_opcional
-    LOOP
-      IF ins.id_producto_insumo=pr.id OR ins.id_sucursal IS DISTINCT FROM suc OR NOT ins.controla_stock OR ins.estado_producto<>1 THEN
-        RAISE EXCEPTION 'Insumo inválido o de otra sucursal'; END IF;
-      partes:=partes||jsonb_build_array(jsonb_build_object('id_producto',ins.id_producto_insumo,'id_almacen',ins.id_almacen_stock,
-        'id_unidad_medida',ins.unidad_base,'cantidad',round(ins.cantidad*v_cantidad/rec.rendimiento_porciones*(1+ins.porcentaje_merma/100)
-          *ven_factor_unidad(ins.id_unidad_medida,ins.unidad_base),4),'signo',-1));
-    END LOOP;
+    -- Los sub-platos se cubren primero con platos preparados libres y el resto con ingredientes.
+    partes:=prod_explosion(rec.id,v_cantidad,suc);
   END IF;
+  SELECT alm_agrupar_detalles(jsonb_agg(x||'{"signo":-1}')) INTO partes FROM jsonb_array_elements(partes) x;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(partes) x WHERE (x->>'id_producto')::BIGINT=pr.id) THEN
+    RAISE EXCEPTION 'El plato no puede ser insumo de sí mismo'; END IF;
   IF jsonb_array_length(partes)=0 THEN RAISE EXCEPTION 'La receta no tiene consumos'; END IF;
   INSERT INTO prod_orden(id_sucursal,id_almacen_destino,codigo,tipo_produccion,tipo_preparacion,id_pedido_detalle,estado_orden,observacion,id_usuario_creacion,id_usuario_modificacion)
     VALUES(suc,almacen,p_datos->>'codigo',1,CASE WHEN item IS NULL THEN 'ANTICIPADA' ELSE 'POR_PEDIDO' END,item,2,p_datos->>'observacion',p_usuario,p_usuario)

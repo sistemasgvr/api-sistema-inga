@@ -140,7 +140,7 @@ async function main() {
 
 
   // Simula una BD anterior con kardex real, sin aplicar otra vez el saldo al migrar.
-  await q('DROP VIEW vw_alm_kardex; DROP TABLE alm_movimiento_detalle; DROP TABLE alm_movimiento');
+  await q('DROP VIEW vw_alm_kardex; DROP TABLE alm_movimiento_detalle; DROP TABLE alm_movimiento CASCADE');
   await q(fs.readFileSync(path.join(__dirname,'fixtures/inventario-anterior.sql'),'utf8'));
   await insert('alm_kardex',{id_producto:insumo,id_almacen:almacen,id_unidad_medida:kg,tipo_movimiento:1,signo:1,
     cantidad:10,stock_anterior:0,stock_nuevo:10,costo_unitario:5,id_usuario_creacion:usuario});
@@ -403,7 +403,8 @@ async function main() {
   check((await obtener(falta.id)).estado_pedido,1);
   const avisar=async()=>(await q('SELECT ven_registrar_aviso_cocina($1,$2,$3::jsonb,$4) r',[falta.id,errorFalta.message,errorFalta.detail,mozo]))[0].r.registro;
   const aviso=await avisar();await avisar(); // Reintentar la comanda no duplica el aviso pendiente.
-  const avisos=async estacion=>(await q('SELECT ven_listar_avisos_cocina($1,$2) r',[sucursal,estacion]))[0].r;
+  // Solo avisos de faltantes; las cancelaciones también generan avisos sin faltantes.
+  const avisos=async estacion=>(await q('SELECT ven_listar_avisos_cocina($1,$2) r',[sucursal,estacion]))[0].r.filter(a=>a.faltantes.length>0);
   check((await avisos(cocina)).map(a=>Number(a.id)),[Number(aviso.id)]);
   check((await avisos(barra)).length,0);
   await q('SELECT ven_atender_aviso_cocina($1,$2)',[aviso.id,usuario]);
@@ -415,6 +416,188 @@ async function main() {
   // Un plato no ingresa por compra ni saldo inicial: solo por preparación de su receta.
   await rejects(()=>registrar({codigo:'COMPRA-PLATO',id_tipo_movimiento:entrada,id_motivo_movimiento:compra,confirmar:true,
     detalles:[{...linea,id_producto:Number(plato)}]}),/preparación de su receta/);
+  // ===== Platos hechos de otros platos: Barco = Ceviche + Chicharrón + 50 g de canchita =====
+  const N=Number;
+  const und=(await q("SELECT id FROM pro_unidad_medida WHERE codigo='NIU'"))[0].id;
+  const crudo=codigo=>product(codigo,{tipo_producto:1});
+  const carta=codigo=>product(codigo,{tipo_producto:3,id_unidad_medida:und,disponible_venta:true,precio_venta:30});
+  const limon=await crudo('LIMON'),pescado=await crudo('PESCADO'),cerdo=await crudo('CERDO'),canchita=await crudo('CANCHITA');
+  const ceviche=await carta('CEVICHE'),chicharron=await carta('CHICHARRON'),barco=await carta('BARCO');
+  let compras=0;
+  const comprar=(producto,cantidad)=>registrar({codigo:'COMPRA-SUB-'+(++compras),id_tipo_movimiento:entrada,id_motivo_movimiento:compra,confirmar:true,
+    detalles:[{id_producto:N(producto),id_almacen:N(almacen),id_unidad_medida:N(kg),cantidad,signo:1,costo_unitario:2}]});
+  await comprar(limon,3);await comprar(pescado,10);await comprar(cerdo,10);await comprar(canchita,10);
+  const crearReceta=async(producto,componentes)=>{
+    const id=await insert('pro_receta',{id_producto:producto,rendimiento_porciones:1});
+    for(const [ins,cantidad,unidad,extra] of componentes)
+      await insert('pro_receta_insumo',{id_receta:id,id_producto_insumo:ins,cantidad,id_unidad_medida:unidad,...(extra||{})});
+    return id;
+  };
+  const recCeviche=await crearReceta(ceviche,[[pescado,200,gramos],[limon,100,gramos]]);
+  await crearReceta(chicharron,[[cerdo,300,gramos]]);
+  const recBarco=await crearReceta(barco,[[ceviche,1,und],[chicharron,1,und],[canchita,50,gramos]]);
+  const prep=async(codigo,rec,cantidad,item)=>(await q('SELECT prod_preparar($1::jsonb,$2) AS r',
+    [JSON.stringify({codigo,id_receta:N(rec),id_almacen_destino:N(almacen),cantidad,id_pedido_detalle:item?N(item):undefined}),usuario]))[0].r.registro;
+  const st=async id=>{
+    const s=(await q('SELECT stock_actual,stock_reservado FROM alm_producto_stock WHERE id_producto=$1 AND id_almacen=$2',[id,almacen]))[0];
+    const actual=r4(s?.stock_actual??0),reservado=r4(s?.stock_reservado??0);
+    return {actual,reservado,libre:r4(actual-reservado)};
+  };
+  // [producto, sub-plato de origen, es plato preparado, cantidad]
+  const reservas=async item=>(await q(`SELECT id_producto,id_producto_origen,es_preparado,cantidad FROM ven_pedido_reserva_insumo
+    WHERE id_pedido_detalle=$1 AND cantidad>0 ORDER BY id_producto,id_producto_origen NULLS FIRST`,[item]))
+    .map(r=>[N(r.id_producto),r.id_producto_origen===null?null:N(r.id_producto_origen),r.es_preparado,r4(r.cantidad)]);
+  const pedir=async(producto,cantidad=1,extras={})=>{
+    let p=await llevar();p=await agregar(p.id,producto,cantidad,extras);p=await call('comandar',p.id);
+    return {id:p.id,item:p.items[0].id,linea:p.items[0]};
+  };
+  const ingCeviche=[[N(limon),N(ceviche),false,0.1],[N(pescado),N(ceviche),false,0.2]];
+
+  // 1. Ceviche preparado para la mesa 3: el Barco no lo toma (está reservado) y usa ingredientes.
+  const mesa3=await pedir(ceviche);
+  check(await reservas(mesa3.item),[[N(limon),null,false,0.1],[N(pescado),null,false,0.2]]);
+  await prep('CEV-M3',recCeviche,1,mesa3.item);
+  check(await st(ceviche),{actual:1,reservado:1,libre:0});
+  const b1=await pedir(barco);
+  check(b1.linea.cantidad_reservada,0);
+  check(await reservas(b1.item),[...ingCeviche,[N(cerdo),N(chicharron),false,0.3],[N(canchita),null,false,0.05]]);
+  check((await st(ceviche)).reservado,1);
+  // 2. La mesa 3 cancela con "Guardar en stock": queda 1 Ceviche libre.
+  await call('anular',mesa3.id,null,{...anulacion,destino_preparado:'DISPONIBLE'});
+  check(await st(ceviche),{actual:1,reservado:0,libre:1});
+  // 3. El siguiente Barco toma ese Ceviche y solo el Chicharrón va con ingredientes.
+  const b2=await pedir(barco);
+  check(await reservas(b2.item),[[N(cerdo),N(chicharron),false,0.3],[N(canchita),null,false,0.05],[N(ceviche),null,true,1]]);
+  check(await st(ceviche),{actual:1,reservado:1,libre:0});
+  check(N((await obtener(b2.id)).items[0].subplatos_preparados),1); // El front pregunta guardar/desechar al cancelar.
+  // Vista del chef: lo apartado agrupado por sub-plato.
+  const vista=(await q('SELECT prod_disponibilidad($1,$2,1,$3) r',[recBarco,almacen,b2.item]))[0].r.registro;
+  const fila=id=>vista.ingredientes.find(i=>N(i.id_producto)===N(id));
+  check([fila(ceviche).preparado,fila(ceviche).origen,N(fila(ceviche).faltante)],[true,null,0]);
+  check([fila(cerdo).origen,fila(cerdo).preparado,N(fila(cerdo).requerido)],['CHICHARRON',false,0.3]);
+  check(N(vista.posibles_preparar),1);
+  // Flujo 4: se consume exactamente lo apartado; el Chicharrón no entra como stock propio.
+  const antesB2={cerdo:await st(cerdo),limon:await st(limon)};
+  await prep('BARCO-B2',recBarco,1,b2.item);
+  check(await st(ceviche),{actual:0,reservado:0,libre:0});
+  check(await st(cerdo),{actual:r4(antesB2.cerdo.actual-0.3),reservado:r4(antesB2.cerdo.reservado-0.3),libre:antesB2.cerdo.libre});
+  check(await st(limon),antesB2.limon);
+  check(await st(chicharron),{actual:0,reservado:0,libre:0});
+  check(await st(barco),{actual:1,reservado:1,libre:0});
+  check(await reservas(b2.item),[]);
+  // Flujo 5: entregar sale el Barco reservado.
+  await call('entregar',b2.id,b2.item,{cantidad_entregada:1});
+  check(await st(barco),{actual:0,reservado:0,libre:0});
+
+  // 4. Ceviche cancelado con "Desechar": merma, y el Barco usa ingredientes.
+  const mesa4=await pedir(ceviche);await prep('CEV-M4',recCeviche,1,mesa4.item);
+  await call('anular',mesa4.id,null,{...anulacion,destino_preparado:'MERMA'});
+  check(await st(ceviche),{actual:0,reservado:0,libre:0});
+  const b4=await pedir(barco);
+  check((await reservas(b4.item)).some(r=>r[2]),false);
+  // 5. Un Ceviche personalizado solo se desecha; nunca llega a un Barco.
+  const masLimon=await insert('pro_adicional',{id_producto:ceviche,nombre:'Más limón',precio_adicional:0,id_producto_insumo:limon,cantidad_insumo:50,id_unidad_medida:gramos});
+  const pers=await pedir(ceviche,1,{adicionales:[{id_adicional:N(masLimon)}]});
+  await prep('CEV-PERS',recCeviche,1,pers.item);
+  await rejects(()=>call('anular',pers.id,null,{...anulacion,destino_preparado:'DISPONIBLE'}),/personalizada/);
+  await call('anular',pers.id,null,{...anulacion,destino_preparado:'MERMA'});
+  check(await st(ceviche),{actual:0,reservado:0,libre:0});
+
+  // 6. Dos Ceviches anticipados libres; llegan 2 Barcos y 1 Ceviche, en ese orden.
+  await prep('CEV-ANT-2',recCeviche,2);
+  check(await st(ceviche),{actual:2,reservado:0,libre:2});
+  check((await q('SELECT prod_listar_productos($1) r',[sucursal]))[0].r.find(p=>N(p.id)===N(ceviche)).stock_libre,2);
+  const b6a=await pedir(barco),b6b=await pedir(barco),c6=await pedir(ceviche);
+  for(const b of [b6a,b6b]) check((await reservas(b.item)).find(r=>r[0]===N(ceviche)),[N(ceviche),null,true,1]);
+  check(c6.linea.cantidad_reservada,0);
+  check(await reservas(c6.item),[[N(limon),null,false,0.1],[N(pescado),null,false,0.2]]);
+  check(await st(ceviche),{actual:2,reservado:2,libre:0});
+  // 7. Dos comandas compiten por 1 Ceviche libre: solo una lo toma.
+  await prep('CEV-ANT-7',recCeviche,1);
+  let x7=await llevar(),y7=await llevar();x7=await agregar(x7.id,barco);y7=await agregar(y7.id,barco);
+  await Promise.all([call('comandar',x7.id),call('comandar',y7.id)]);
+  const tomados=(await reservas(x7.items[0].id)).filter(r=>r[2]).length+(await reservas(y7.items[0].id)).filter(r=>r[2]).length;
+  check(tomados,1);
+  check((await st(ceviche)).libre,0);
+  // 8. 1 Ceviche libre y la línea necesita 2: 1 del stock + 1 con ingredientes.
+  await prep('CEV-ANT-8',recCeviche,1);
+  const b8=await pedir(barco,2);
+  check(await reservas(b8.item),[...ingCeviche,[N(cerdo),N(chicharron),false,0.6],[N(canchita),null,false,0.1],[N(ceviche),null,true,1]]);
+  // 9. Sin Ceviche libre ni ingredientes: se rechaza y el aviso indica la ruta.
+  const sinLimon=await llevar();await agregar(sinLimon.id,barco,1000);
+  const e9=await call('comandar',sinLimon.id).then(()=>null,e=>e);
+  check(e9?.code,'IN001');
+  check(/BARCO › CEVICHE: LIMON \(falta [\d.]+ kg\)/.test(e9.message),true);
+  check(/(: |, )CANCHITA \(falta/.test(e9.message),true);
+  const f9=JSON.parse(e9.detail);
+  check([f9.find(f=>f.producto==='LIMON').ruta,f9.find(f=>f.producto==='CERDO').ruta,f9.find(f=>f.producto==='CANCHITA').ruta],
+    ['BARCO › CEVICHE','BARCO › CHICHARRON',null]);
+
+  // 10. Barco sin preparar que tomó un Ceviche del stock: el Ceviche vuelve libre y los ingredientes se devuelven.
+  const antes10={cev:await st(ceviche),cerdo:await st(cerdo)};
+  await call('anular',b6a.id,null,anulacion);
+  check(await st(ceviche),{actual:antes10.cev.actual,reservado:r4(antes10.cev.reservado-1),libre:r4(antes10.cev.libre+1)});
+  check(await st(cerdo),{...antes10.cerdo,reservado:r4(antes10.cerdo.reservado-0.3),libre:r4(antes10.cerdo.libre+0.3)});
+  check(await reservas(b6a.item),[]);
+  // 11. Barco en preparación: se elige qué hacer con el Ceviche apartado y con los ingredientes.
+  await call('preparacion',b6b.id,b6b.item,{estado_preparacion:3});
+  await rejects(()=>call('anular_item',b6b.id,b6b.item,{...anulacion,destino_insumos:'LIBERAR'}),/sub-platos preparados/);
+  await rejects(()=>call('anular_item',b6b.id,b6b.item,{...anulacion,destino_preparado:'MERMA'}),/destino_insumos/);
+  const antes11={cev:await st(ceviche),cerdo:await st(cerdo)};
+  await call('anular_item',b6b.id,b6b.item,{...anulacion,destino_preparado:'MERMA',destino_insumos:'LIBERAR'});
+  check(await st(ceviche),{actual:r4(antes11.cev.actual-1),reservado:r4(antes11.cev.reservado-1),libre:antes11.cev.libre});
+  check(await st(cerdo),{...antes11.cerdo,reservado:r4(antes11.cerdo.reservado-0.3),libre:r4(antes11.cerdo.libre+0.3)});
+  check(N((await q("SELECT count(*) n FROM vw_alm_kardex WHERE motivo='MERMA' AND documento_id=$1 AND id_producto=$2",[b6b.item,ceviche]))[0].n),1);
+  // Variante: guardar el Ceviche apartado y desechar los ingredientes del otro Ceviche.
+  await call('preparacion',b8.id,b8.item,{estado_preparacion:3});
+  const antes11b={cev:await st(ceviche),limon:await st(limon)};
+  await call('anular_item',b8.id,b8.item,{...anulacion,destino_preparado:'DISPONIBLE',destino_insumos:'MERMA'});
+  check((await st(ceviche)).libre,r4(antes11b.cev.libre+1));
+  check(await st(limon),{actual:r4(antes11b.limon.actual-0.1),reservado:r4(antes11b.limon.reservado-0.1),libre:antes11b.limon.libre});
+  // 12. Barco ya preparado y cancelado con "Guardar en stock": el próximo pedido lo toma completo.
+  const b12=await pedir(barco);await prep('BARCO-12',recBarco,1,b12.item);
+  await call('anular',b12.id,null,{...anulacion,destino_preparado:'DISPONIBLE'});
+  check((await st(barco)).libre,1);
+  const b12b=await pedir(barco);
+  check(b12b.linea.cantidad_reservada,1);
+  check(await reservas(b12b.item),[]);
+
+  // 13. Barco anticipado: usa Ceviches libres y luego ingredientes; el Barco queda libre.
+  await prep('CEV-ANT-13',recCeviche,1);
+  const a13={cev:await st(ceviche),limon:await st(limon),pescado:await st(pescado),cerdo:await st(cerdo),canchita:await st(canchita),barco:await st(barco)};
+  const posibles=(()=>{for(let n=0;;n++){const m=n+1,falta=Math.max(0,m-a13.cev.libre),e=1e-9;
+    if(falta*0.1>a13.limon.libre+e||falta*0.2>a13.pescado.libre+e||m*0.3>a13.cerdo.libre+e||m*0.05>a13.canchita.libre+e) return n;}})();
+  const disp13=(await q('SELECT prod_disponibilidad($1,$2,2) r',[recBarco,almacen]))[0].r.registro;
+  check(N(disp13.posibles_preparar),posibles);
+  check(disp13.ingredientes.find(i=>N(i.id_producto)===N(ceviche)).preparado,true);
+  check(disp13.ingredientes.find(i=>N(i.id_producto)===N(cerdo)).origen,'CHICHARRON');
+  const tomar13=Math.min(2,a13.cev.libre);
+  await prep('BARCO-ANT-13',recBarco,2);
+  check(await st(ceviche),{...a13.cev,actual:r4(a13.cev.actual-tomar13),libre:r4(a13.cev.libre-tomar13)});
+  check((await st(limon)).actual,r4(a13.limon.actual-(2-tomar13)*0.1));
+  check((await st(cerdo)).actual,r4(a13.cerdo.actual-0.6));
+  check((await st(canchita)).actual,r4(a13.canchita.actual-0.1));
+  check(await st(barco),{...a13.barco,actual:r4(a13.barco.actual+2),libre:r4(a13.barco.libre+2)});
+
+  // 14. Sub-plato con grupos de sustitución: se rechaza al comandar y al anticipar.
+  const salsa=await carta('SALSA'),aji=await crudo('AJI'),rocoto=await crudo('ROCOTO'),conSalsa=await carta('CON SALSA');
+  await crearReceta(salsa,[[aji,10,gramos,{grupo_sustitucion:1}],[rocoto,10,gramos,{grupo_sustitucion:1}]]);
+  const recConSalsa=await crearReceta(conSalsa,[[salsa,1,und],[canchita,10,gramos]]);
+  const ps=await llevar();await agregar(ps.id,conSalsa);
+  await rejects(()=>call('comandar',ps.id),/grupos de sustitución/);
+  await rejects(()=>prep('CON-SALSA-ANT',recConSalsa,1),/grupos de sustitución/);
+
+  // 15. Línea comandada sin reservas (antes de la migración): se prepara con el cálculo de respaldo.
+  // Los Barcos libres del caso 13 cubren parte de la línea; queda 1 unidad por preparar.
+  const legado=await pedir(barco,(await st(barco)).libre+1);
+  await q(`UPDATE alm_producto_stock s SET stock_reservado=s.stock_reservado-r.cantidad FROM ven_pedido_reserva_insumo r
+    WHERE r.id_pedido_detalle=$1 AND s.id_producto=r.id_producto AND s.id_almacen=r.id_almacen`,[legado.item]);
+  await q('DELETE FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=$1',[legado.item]);
+  const a15={cerdo:await st(cerdo),canchita:await st(canchita),barco:await st(barco)};
+  await prep('BARCO-LEGADO',recBarco,1,legado.item);
+  check((await st(cerdo)).actual,r4(a15.cerdo.actual-0.3));
+  check((await st(canchita)).actual,r4(a15.canchita.actual-0.05));
+  check((await st(barco)).reservado,r4(a15.barco.reservado+1));
   console.log('Inventario: '+checks+' comprobaciones correctas');
 }
 main().catch(e=>{ console.error(e);process.exitCode=1; }).finally(async()=>{

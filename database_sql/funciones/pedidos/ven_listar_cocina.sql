@@ -3,7 +3,8 @@ RETURNS JSON LANGUAGE sql AS $$
  WITH lineas AS (
  SELECT d.*,p.codigo AS codigo_pedido,p.id_sucursal,p.id_mesa,me.codigo AS codigo_mesa,pr.nombre AS nombre_producto,
   pr.id_almacen_stock,pr.id_estacion,e.nombre AS estacion,c.numero AS numero_comanda,
-  GREATEST(d.cantidad-d.cantidad_cancelada-d.cantidad_entregada,0) AS cantidad_pendiente
+  GREATEST(d.cantidad-d.cantidad_cancelada-d.cantidad_entregada,0) AS cantidad_pendiente,
+  (SELECT COALESCE(sum(ri.cantidad),0) FROM ven_pedido_reserva_insumo ri WHERE ri.id_pedido_detalle=d.id AND ri.es_preparado AND ri.cantidad>0) AS subplatos_preparados
  FROM ven_pedido_detalle d JOIN ven_pedido p ON p.id=d.id_pedido JOIN pro_producto pr ON pr.id=d.id_producto
  JOIN ven_comanda c ON c.id=d.id_comanda LEFT JOIN ven_mesa me ON me.id=p.id_mesa LEFT JOIN gen_estacion e ON e.id=pr.id_estacion
  WHERE d.estado=1 AND p.estado=1 AND p.id_sucursal=p_sucursal AND (p_estacion IS NULL OR pr.id_estacion=p_estacion)

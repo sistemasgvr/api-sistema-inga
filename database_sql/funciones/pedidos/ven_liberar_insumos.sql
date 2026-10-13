@@ -1,6 +1,7 @@
 -- Libera los ingredientes apartados para p_unidades de la línea que aún no tienen plato preparado.
 -- Llamar ANTES de modificar cantidad_reservada/cancelada/entregada: la proporción usa lo pendiente actual.
--- Devuelve lo liberado (formato de detalle de alm_aplicar) para consumirlo o registrarlo como merma.
+-- Devuelve lo liberado (formato de detalle de alm_aplicar) para consumirlo o registrarlo como merma;
+-- cada elemento indica además si era un sub-plato preparado (preparado) y de qué sub-plato sale (id_producto_origen).
 CREATE OR REPLACE FUNCTION ven_liberar_insumos(p_item BIGINT,p_unidades NUMERIC,p_usuario BIGINT) RETURNS JSONB LANGUAGE plpgsql AS $$
 DECLARE d ven_pedido_detalle%ROWTYPE; pendientes NUMERIC; r RECORD; liberar NUMERIC; liberados JSONB:='[]';
 BEGIN
@@ -18,7 +19,8 @@ BEGIN
     UPDATE ven_pedido_reserva_insumo SET cantidad=cantidad-liberar,id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP
       WHERE id=r.id;
     liberados:=liberados||jsonb_build_array(jsonb_build_object('id_producto',r.id_producto,'id_almacen',r.id_almacen,
-      'id_unidad_medida',r.id_unidad_medida,'cantidad',liberar,'signo',-1));
+      'id_unidad_medida',r.id_unidad_medida,'cantidad',liberar,'signo',-1,
+      'preparado',r.es_preparado,'id_producto_origen',r.id_producto_origen));
   END LOOP;
   RETURN liberados;
 END $$;

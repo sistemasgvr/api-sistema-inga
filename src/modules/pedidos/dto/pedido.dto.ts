@@ -141,7 +141,8 @@ export class AnularPedidoDto {
   cantidad_cancelada?: number;
   @ApiPropertyOptional({
     enum: ['DISPONIBLE', 'MERMA'],
-    description: 'Obligatorio si hay porciones reservadas.',
+    description:
+      'Obligatorio si hay porciones reservadas, o si la línea está en preparación y tiene sub-platos preparados apartados (p. ej. el Ceviche de un Barco).',
   })
   @IsOptional()
   @IsIn(['DISPONIBLE', 'MERMA'])

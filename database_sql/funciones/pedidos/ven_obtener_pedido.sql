@@ -9,6 +9,8 @@ RETURNS JSON LANGUAGE sql AS $$
       'nombre_mozo', (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario_datos u WHERE u.id = p.id_mozo),
       'items', COALESCE((SELECT jsonb_agg(to_jsonb(d) || jsonb_build_object(
         'nombre_producto', pr.nombre,
+        -- Sub-platos preparados apartados (p. ej. el Ceviche de un Barco): al cancelar se decide guardarlos o desecharlos.
+        'subplatos_preparados', (SELECT COALESCE(sum(ri.cantidad),0) FROM ven_pedido_reserva_insumo ri WHERE ri.id_pedido_detalle = d.id AND ri.es_preparado AND ri.cantidad > 0),
         'adicionales', COALESCE((SELECT jsonb_agg(to_jsonb(a) || jsonb_build_object('nombre', pa.nombre) ORDER BY a.id)
           FROM ven_pedido_detalle_adicional a JOIN pro_adicional pa ON pa.id = a.id_adicional
           WHERE a.id_pedido_detalle = d.id AND a.estado = 1), '[]'::JSONB)

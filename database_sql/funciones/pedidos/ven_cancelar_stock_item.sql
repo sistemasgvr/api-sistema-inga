@@ -1,9 +1,10 @@
 -- Cancelación acumulada de unidades no entregadas. Primero cancela las unidades sin plato preparado
--- (libera sus ingredientes apartados o, si la preparación ya inició, puede registrarlos como merma);
+-- (libera lo apartado o, si la preparación ya inició, puede registrarlo como merma: los ingredientes
+-- según destino_insumos y los sub-platos preparados apartados según destino_preparado);
 -- después las preparadas, que se conservan disponibles o se dan de baja por merma.
 CREATE OR REPLACE FUNCTION ven_cancelar_stock_item(p_item BIGINT,p_objetivo NUMERIC,p_destino TEXT,p_destino_insumos TEXT,p_usuario BIGINT)
 RETURNS VOID LANGUAGE plpgsql AS $$
-DECLARE d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE; n NUMERIC; sin_preparar NUMERIC; preparados NUMERIC; insumos JSONB;
+DECLARE d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE; n NUMERIC; sin_preparar NUMERIC; preparados NUMERIC; insumos JSONB; merma JSONB;
 BEGIN
   PERFORM alm_bloquear();
   SELECT * INTO STRICT d FROM ven_pedido_detalle WHERE id=p_item FOR UPDATE;
@@ -14,12 +15,22 @@ BEGIN
   sin_preparar:=LEAST(n,GREATEST(d.cantidad-d.cantidad_cancelada-d.cantidad_entregada-d.cantidad_reservada,0));
   preparados:=n-sin_preparar;
   IF sin_preparar>0 THEN
-    IF d.estado_preparacion=3 AND EXISTS(SELECT 1 FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=d.id AND cantidad>0)
-      AND (p_destino_insumos IS NULL OR p_destino_insumos NOT IN ('LIBERAR','MERMA')) THEN
-      RAISE EXCEPTION 'La preparación ya inició: indique destino_insumos LIBERAR o MERMA'; END IF;
+    IF d.estado_preparacion=3 THEN
+      IF EXISTS(SELECT 1 FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=d.id AND cantidad>0 AND NOT es_preparado)
+        AND (p_destino_insumos IS NULL OR p_destino_insumos NOT IN ('LIBERAR','MERMA')) THEN
+        RAISE EXCEPTION 'La preparación ya inició: indique destino_insumos LIBERAR o MERMA'; END IF;
+      IF EXISTS(SELECT 1 FROM ven_pedido_reserva_insumo WHERE id_pedido_detalle=d.id AND cantidad>0 AND es_preparado)
+        AND (p_destino IS NULL OR p_destino NOT IN ('DISPONIBLE','MERMA')) THEN
+        RAISE EXCEPTION 'La preparación ya inició y tiene sub-platos preparados apartados: indique destino_preparado DISPONIBLE o MERMA'; END IF;
+    END IF;
+    -- Sin preparación iniciada todo vuelve libre: ingredientes al almacén y sub-platos al stock de platos.
     insumos:=ven_liberar_insumos(d.id,sin_preparar,p_usuario);
-    IF d.estado_preparacion=3 AND p_destino_insumos='MERMA' AND jsonb_array_length(insumos)>0 THEN
-      PERFORM alm_aplicar('MERMA-INS-'||d.id||'-'||p_objetivo,'SALIDA','MERMA','PEDIDO_DETALLE',d.id,insumos,p_usuario);
+    IF d.estado_preparacion=3 THEN
+      SELECT alm_agrupar_detalles(jsonb_agg(x)) INTO merma FROM jsonb_array_elements(insumos) x
+        WHERE CASE WHEN (x->>'preparado')::BOOLEAN THEN p_destino='MERMA' ELSE p_destino_insumos='MERMA' END;
+      IF jsonb_array_length(merma)>0 THEN
+        PERFORM alm_aplicar('MERMA-INS-'||d.id||'-'||p_objetivo,'SALIDA','MERMA','PEDIDO_DETALLE',d.id,merma,p_usuario);
+      END IF;
     END IF;
   END IF;
   IF preparados>0 THEN

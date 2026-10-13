@@ -6,7 +6,7 @@ DECLARE v ven_pedido%ROWTYPE; d RECORD;
 BEGIN
   v := ven_bloquear_pedido(p_id);
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'Solo se comandan pedidos abiertos o comandados'; END IF;
-  PERFORM ven_validar_turno_pedido(v.id_turno,v.id_sucursal);
+  PERFORM ven_turno_vigente_pedido(v.id_sucursal,v.id_turno,p_usuario);
   IF NOT EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3) THEN RAISE EXCEPTION 'No se puede comandar un pedido sin ítems'; END IF;
   FOR d IN SELECT pd.id, pd.stock_descontado, pd.estado_preparacion, pr.id_estacion
     FROM ven_pedido_detalle pd JOIN pro_producto pr ON pr.id = pd.id_producto

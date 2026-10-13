@@ -12,5 +12,7 @@ BEGIN;
 \ir funciones/productos/productos/pro_crear_producto_stock.sql
 \ir funciones/productos/productos/pro_toggle_disponibilidad_producto.sql
 \ir funciones/inventario/alm_confirmar.sql
+\ir funciones/productos/productos-recetas-insumos/pro_receta_vigente.sql
+\ir funciones/productos/productos-recetas-insumos/pro_explotar_receta.sql
 \ir funciones/pedidos/ven_consumos_item.sql
 COMMIT;

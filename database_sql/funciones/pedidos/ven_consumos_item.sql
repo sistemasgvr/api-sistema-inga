@@ -1,5 +1,10 @@
+-- Componentes de primer nivel de una línea: receta con sus sustituciones, adicionales o el producto directo.
+-- Los sub-platos se devuelven marcados es_subplato, sin explotar: al reservar se decide si se usa
+-- el plato preparado libre o sus ingredientes (prod_cubrir_subplato).
+DROP FUNCTION IF EXISTS public.ven_consumos_item(BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_consumos_item(p_item BIGINT)
-RETURNS TABLE(id_producto BIGINT, id_almacen BIGINT, id_unidad_medida BIGINT, cantidad NUMERIC)
+RETURNS TABLE(id_producto BIGINT, id_almacen BIGINT, id_unidad_medida BIGINT, cantidad NUMERIC,
+  id_producto_origen BIGINT, ruta TEXT, es_subplato BOOLEAN)
 LANGUAGE plpgsql AS $$
 DECLARE d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE; r pro_receta%ROWTYPE;
   v_sucursal BIGINT; v RECORD; v_insumo pro_producto%ROWTYPE; v_cantidad NUMERIC;
@@ -28,27 +33,36 @@ BEGIN
   END IF;
 
   FOR v IN
-    SELECT pr.id AS producto, pr.id_unidad_medida AS unidad, d.cantidad AS consumo WHERE pr.controla_stock AND d.id_receta IS NULL
+    SELECT pr.id AS producto, pr.id_unidad_medida AS unidad, d.cantidad AS consumo, FALSE AS subplato, NULL::BIGINT AS almacen
+      WHERE pr.controla_stock AND d.id_receta IS NULL
     UNION ALL
-    SELECT ri.id_producto_insumo, ri.id_unidad_medida,
-      ri.cantidad * d.cantidad / r.rendimiento_porciones * (1 + ri.porcentaje_merma / 100)
-      FROM pro_receta_insumo ri WHERE ri.id_receta = d.id_receta AND ri.estado = 1
-        AND ((ri.grupo_sustitucion IS NULL AND NOT ri.es_opcional) OR ri.id = ANY(d.insumos_seleccionados))
+    -- Ya viene en la unidad base de cada insumo.
+    SELECT x.id_producto, x.id_unidad_medida, x.cantidad, x.es_subplato, x.id_almacen
+      FROM pro_explotar_receta(d.id_receta, d.cantidad, COALESCE(d.insumos_seleccionados,'{}'), v_sucursal, FALSE) x
+      WHERE d.id_receta IS NOT NULL
     UNION ALL
-    SELECT a.id_producto_insumo, a.id_unidad_medida, a.cantidad_insumo * d.cantidad
+    SELECT a.id_producto_insumo, a.id_unidad_medida, a.cantidad_insumo * d.cantidad, FALSE, NULL
       FROM ven_pedido_detalle_adicional da JOIN pro_adicional a ON a.id = da.id_adicional
       WHERE da.id_pedido_detalle = d.id AND da.estado = 1 AND a.id_producto_insumo IS NOT NULL
   LOOP
     SELECT * INTO v_insumo FROM pro_producto WHERE id = v.producto AND estado = 1;
-    IF NOT FOUND OR NOT v_insumo.controla_stock THEN RAISE EXCEPTION 'El insumo % debe estar activo y controlar stock', v.producto; END IF;
-    IF NOT EXISTS(SELECT 1 FROM gen_almacen a WHERE a.id = v_insumo.id_almacen_stock AND a.id_sucursal = v_sucursal AND a.estado = 1)
-    THEN RAISE EXCEPTION 'Configure un almacén activo de esta sucursal para el producto %', v_insumo.nombre; END IF;
-    v_cantidad := round(v.consumo * ven_factor_unidad(v.unidad, v_insumo.id_unidad_medida),4);
+    IF NOT FOUND OR (NOT v.subplato AND NOT v_insumo.controla_stock) THEN RAISE EXCEPTION 'El insumo % debe estar activo y controlar stock', v.producto; END IF;
+    IF v.subplato THEN
+      -- Sin almacén válido (v.almacen NULL) el sub-plato siempre se prepara con ingredientes.
+      v_cantidad := round(v.consumo,4);
+    ELSE
+      IF NOT EXISTS(SELECT 1 FROM gen_almacen a WHERE a.id = v_insumo.id_almacen_stock AND a.id_sucursal = v_sucursal AND a.estado = 1)
+      THEN RAISE EXCEPTION 'Configure un almacén activo de esta sucursal para el producto %', v_insumo.nombre; END IF;
+      v_cantidad := round(v.consumo * ven_factor_unidad(v.unidad, v_insumo.id_unidad_medida),4);
+    END IF;
     IF v_cantidad IS NULL OR v_cantidad <= 0 THEN RAISE EXCEPTION 'Consumo inválido o menor a la precisión de stock para %', v_insumo.nombre; END IF;
     id_producto := v_insumo.id;
-    id_almacen := v_insumo.id_almacen_stock;
+    id_almacen := CASE WHEN v.subplato THEN v.almacen ELSE v_insumo.id_almacen_stock END;
     id_unidad_medida := v_insumo.id_unidad_medida;
     cantidad := v_cantidad;
+    id_producto_origen := NULL;
+    ruta := pr.nombre;
+    es_subplato := v.subplato;
     RETURN NEXT;
   END LOOP;
 END;
