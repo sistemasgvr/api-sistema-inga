@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
-import { Permisos } from '../../../common/decorators/permisos.decorator';
+import { Permisos, PermisosAlguno } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import {
   CreateCategoriaProductoDto,
@@ -27,7 +27,7 @@ export class CategoriasProductoController {
   constructor(private readonly categoriasProductoLogic: CategoriasProductoLogic) {}
 
   @Get()
-  @Permisos(PermisoBanderas.CATEGORIAS_LISTAR)
+  @PermisosAlguno(PermisoBanderas.CATEGORIAS_LISTAR, PermisoBanderas.SUBCATEGORIAS_LISTAR)
   @ApiOperation({ summary: 'Listar categorías de producto' })
   listar(@Query() filtros: FiltroCategoriasProductoDto) {
     return this.categoriasProductoLogic.listar(filtros);

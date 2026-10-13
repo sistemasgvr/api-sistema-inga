@@ -58,11 +58,6 @@ export class CreateProductoDto extends AuditoriaDto {
   @IsInt()
   id_almacen_stock?: number | null;
 
-  @ApiProperty({ description: 'Código interno único del producto', example: 'PROD-0001' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo_interno!: string;
 
   @ApiProperty({ description: 'Nombre del producto o plato', example: 'Lomo Saltado' })
   @IsString()
@@ -133,11 +128,6 @@ export class UpdateProductoDto extends AuditoriaDto {
   @IsInt()
   id_almacen_stock?: number | null;
 
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo_interno?: string;
 
   @ApiPropertyOptional({ maxLength: 150 })
   @IsOptional()

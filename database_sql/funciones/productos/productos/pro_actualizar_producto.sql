@@ -4,7 +4,6 @@ CREATE OR REPLACE FUNCTION pro_actualizar_producto(
     p_id_unidad_medida BIGINT DEFAULT NULL,
     p_id_estacion BIGINT DEFAULT NULL,
     p_id_almacen_stock BIGINT DEFAULT NULL,
-    p_codigo_interno VARCHAR DEFAULT NULL,
     p_nombre VARCHAR DEFAULT NULL,
     p_descripcion TEXT DEFAULT NULL,
     p_tipo_producto SMALLINT DEFAULT NULL,
@@ -20,7 +19,6 @@ RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
 DECLARE
-    v_codigo_interno VARCHAR;
     v_nombre VARCHAR;
     v_controla_stock BOOLEAN;
     v_id_almacen BIGINT;
@@ -44,16 +42,8 @@ BEGIN
         RETURN json_build_object('error', 'Debe asignar una estación para este tipo de producto', 'registro', NULL);
     END IF;
 
-    v_codigo_interno := NULLIF(TRIM(p_codigo_interno), '');
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
-    IF v_codigo_interno IS NOT NULL AND EXISTS (
-        SELECT 1 FROM pro_producto
-        WHERE LOWER(TRIM(codigo_interno)) = LOWER(v_codigo_interno)
-          AND id <> p_id
-    ) THEN
-        RETURN json_build_object('error', 'Ya existe otro producto con el código ' || v_codigo_interno, 'registro', NULL);
-    END IF;
 
     IF p_id_subcategoria IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM pro_subcategoria WHERE id = p_id_subcategoria AND estado = 1
@@ -93,7 +83,6 @@ BEGIN
         id_unidad_medida = COALESCE(p_id_unidad_medida, id_unidad_medida),
         id_estacion = v_estacion,
         id_almacen_stock = CASE WHEN v_controla_stock THEN v_id_almacen ELSE NULL END,
-        codigo_interno = COALESCE(v_codigo_interno, codigo_interno),
         nombre = COALESCE(v_nombre, nombre),
         descripcion = CASE WHEN p_descripcion = '' THEN NULL ELSE COALESCE(p_descripcion, descripcion) END,
         tipo_producto = COALESCE(p_tipo_producto, tipo_producto),

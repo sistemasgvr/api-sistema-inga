@@ -49,7 +49,6 @@ export class ProductosModel {
       dto.id_unidad_medida ?? null,
       dto.id_estacion ?? null,
       dto.id_almacen_stock ?? null,
-      dto.codigo_interno ?? null,
       dto.nombre ?? null,
       dto.descripcion ?? null,
       dto.tipo_producto ?? null,

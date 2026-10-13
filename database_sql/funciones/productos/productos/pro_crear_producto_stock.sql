@@ -4,9 +4,9 @@ DECLARE r JSON; pr pro_producto%ROWTYPE; n NUMERIC:=COALESCE((p->>'stock_inicial
  minimo NUMERIC:=COALESCE((p->>'stock_minimo')::NUMERIC,0); costo NUMERIC:=COALESCE((p->>'costo_inicial')::NUMERIC,0);
 BEGIN
  IF n<0 OR minimo<0 OR costo<0 OR n<>round(n,4) THEN RAISE EXCEPTION 'Stock y costo inicial inválidos'; END IF;
- IF (n>0 OR costo>0) AND NOT EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=(p->>'tipo_producto')::INTEGER AND estado=1 AND permite_stock_inicial) THEN
+ IF (n>0 OR costo>0) AND NOT EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=(p->>'tipo_producto')::INTEGER AND estado=1 AND permite_stock_inicial AND NOT requiere_receta) THEN
    RAISE EXCEPTION 'Este tipo no permite stock ni costo inicial'; END IF;
- r:=pro_crear_producto((p->>'id_subcategoria')::BIGINT,(p->>'id_unidad_medida')::BIGINT,(p->>'codigo_interno')::VARCHAR,
+ r:=pro_crear_producto((p->>'id_subcategoria')::BIGINT,(p->>'id_unidad_medida')::BIGINT,
   (p->>'nombre')::VARCHAR,(p->>'tipo_producto')::SMALLINT,(p->>'id_estacion')::BIGINT,(p->>'id_almacen_stock')::BIGINT,
   (p->>'descripcion')::VARCHAR,COALESCE((p->>'precio_venta')::NUMERIC,0),COALESCE((p->>'afecto_igv')::BOOLEAN,TRUE),
   COALESCE((p->>'controla_stock')::BOOLEAN,FALSE),COALESCE((p->>'disponible_venta')::BOOLEAN,TRUE),

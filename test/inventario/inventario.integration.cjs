@@ -103,7 +103,7 @@ async function main() {
   check(!!duplicado.error, true);
   const tipos = (await q('SELECT pro_listar_tipos_producto() AS r'))[0].r;
   check(tipos.find(t => t.id === tipoNuevo.id).requiere_receta, true);
-  const nuevo = {id_subcategoria:subcategoria,id_unidad_medida:kg,codigo_interno:'DINAMICO',nombre:'Dinámico',
+  const nuevo = {id_subcategoria:subcategoria,id_unidad_medida:kg,nombre:'Dinámico',
     tipo_producto:tipoNuevo.id,controla_stock:true,id_almacen_stock:almacen,precio_venta:20,disponible_venta:true};
   const crear = async data => (await q('SELECT pro_crear_producto_stock($1::jsonb,$2) AS r',[JSON.stringify(data),usuario]))[0].r;
   check(!!(await crear(nuevo)).error, true); // Estación requerida para un ID nuevo.
@@ -118,8 +118,8 @@ async function main() {
   check(!!(await q('SELECT pro_toggle_disponibilidad_producto($1) AS r',[dinamico.id]))[0].r.error, true);
   const sinStock = (await q('SELECT pro_actualizar_producto(p_id => $1::bigint,p_controla_stock => false) AS r',[dinamico.id]))[0].r.registro;
   check(sinStock.id_almacen_stock, null);
-  check(!!(await crear({...nuevo,codigo_interno:'INVALIDO',tipo_producto:30000})).error, true);
-  const product = (codigo, data = {}) => insert('pro_producto', { id_subcategoria: subcategoria, id_unidad_medida: kg, id_estacion: cocina, id_almacen_stock: almacen, codigo_interno: codigo, nombre: codigo, tipo_producto: 2, controla_stock: true, precio_venta: 11.80, ...data });
+  check(!!(await crear({...nuevo,tipo_producto:30000})).error, true);
+  const product = (codigo, data = {}) => insert('pro_producto', { id_subcategoria: subcategoria, id_unidad_medida: kg, id_estacion: cocina, id_almacen_stock: almacen, nombre: codigo, tipo_producto: 2, controla_stock: true, precio_venta: 11.80, ...data });
   const insumo = await product('INSUMO');
   const bebida = await product('BEBIDA', { tipo_producto: 6, id_estacion: barra, afecto_igv: false, precio_venta: 10 });
   const plato = await product('PLATO', { tipo_producto: tipoNuevo.id, controla_stock: true });
@@ -302,7 +302,7 @@ async function main() {
 
   // Alta de producto + saldo inicial: una única operación con auditoría y rollback.
   const alta={id_subcategoria:Number(subcategoria),id_unidad_medida:Number(kg),id_estacion:Number(barra),id_almacen_stock:Number(almacen),
-    codigo_interno:'ALTA-STOCK',nombre:'Nueva gaseosa',tipo_producto:6,controla_stock:true,stock_inicial:4,stock_minimo:2,costo_inicial:3};
+    nombre:'Nueva gaseosa',tipo_producto:6,controla_stock:true,stock_inicial:4,stock_minimo:2,costo_inicial:3};
   const crearProducto=async data=>(await q('SELECT pro_crear_producto_stock($1::jsonb,$2) r',[JSON.stringify(data),usuario]))[0].r;
   const creado=(await crearProducto(alta)).registro;
   check(!!creado,true);
@@ -312,11 +312,11 @@ async function main() {
   check(Number(stockInicial.costo_promedio),3);
   check(Number(stockInicial.id_usuario_creacion),Number(usuario));
   check(Number((await q("SELECT count(*) n FROM vw_alm_kardex WHERE documento_tipo='PRODUCTO' AND documento_id=$1",[creado.id]))[0].n),1);
-  await rejects(()=>crearProducto({...alta,codigo_interno:'PLATO-INVALIDO',tipo_producto:3}),/no permite stock/);
+  await rejects(()=>crearProducto({...alta,tipo_producto:3}),/no permite stock/);
   const saldoInicial=await opcion('ALM_MOTIVO_MOVIMIENTO','SALDO_INICIAL');
   await q('UPDATE gen_lista_opcion SET estado=0 WHERE id=$1',[saldoInicial]);
-  await rejects(()=>crearProducto({...alta,codigo_interno:'ALTA-ROLLBACK'}),/catálogo|Catálogo|motivo|Motivo/);
-  check(Number((await q("SELECT count(*) n FROM pro_producto WHERE codigo_interno='ALTA-ROLLBACK'"))[0].n),0);
+  await rejects(()=>crearProducto({...alta,nombre:'ALTA-ROLLBACK'}),/catálogo|Catálogo|motivo|Motivo/);
+  check(Number((await q("SELECT count(*) n FROM pro_producto WHERE nombre='ALTA-ROLLBACK'"))[0].n),0);
   await q('UPDATE gen_lista_opcion SET estado=1 WHERE id=$1',[saldoInicial]);
 
   // Cocina: iniciar no descuenta; confirmar preparación sí, entrega no repite ingredientes.

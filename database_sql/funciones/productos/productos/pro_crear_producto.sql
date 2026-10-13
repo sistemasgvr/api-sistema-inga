@@ -1,7 +1,6 @@
 CREATE OR REPLACE FUNCTION pro_crear_producto(
     p_id_subcategoria BIGINT,
     p_id_unidad_medida BIGINT,
-    p_codigo_interno VARCHAR,
     p_nombre VARCHAR,
     p_tipo_producto SMALLINT,
     p_id_estacion BIGINT DEFAULT NULL,
@@ -20,16 +19,11 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
-    v_codigo_interno VARCHAR;
     v_controla_stock BOOLEAN;
     v_tipo pro_tipo_producto%ROWTYPE;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    v_codigo_interno := NULLIF(TRIM(p_codigo_interno), '');
-    IF v_codigo_interno IS NULL THEN
-        RETURN json_build_object('error', 'El código interno del producto es obligatorio', 'registro', NULL);
-    END IF;
 
     IF p_nombre IS NULL OR TRIM(p_nombre) = '' THEN
         RETURN json_build_object('error', 'El nombre del producto es obligatorio', 'registro', NULL);
@@ -52,12 +46,6 @@ BEGIN
     IF NOT v_tipo.requiere_receta THEN p_tiempo_prep_min := NULL; END IF;
     IF NOT v_controla_stock THEN p_id_almacen_stock := NULL; END IF;
 
-    IF EXISTS (
-        SELECT 1 FROM pro_producto
-        WHERE LOWER(TRIM(codigo_interno)) = LOWER(v_codigo_interno)
-    ) THEN
-        RETURN json_build_object('error', 'Ya existe un producto con el código ' || v_codigo_interno, 'registro', NULL);
-    END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM pro_subcategoria WHERE id = p_id_subcategoria AND estado = 1
@@ -96,7 +84,6 @@ BEGIN
         id_unidad_medida,
         id_estacion,
         id_almacen_stock,
-        codigo_interno,
         nombre,
         descripcion,
         tipo_producto,
@@ -114,7 +101,6 @@ BEGIN
         p_id_unidad_medida,
         p_id_estacion,
         p_id_almacen_stock,
-        v_codigo_interno,
         TRIM(p_nombre),
         p_descripcion,
         p_tipo_producto,

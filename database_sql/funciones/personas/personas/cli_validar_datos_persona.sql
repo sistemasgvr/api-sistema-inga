@@ -27,8 +27,8 @@ BEGIN
     -- El documento es opcional (ej. clientes de delivery que solo dan nombre y
     -- teléfono). Si se envía, debe venir con su tipo y cumplir el formato.
     -- 1 = DNI, 4 = CE, 6 = RUC (catálogo DOCUMENTO_TIPO, códigos SUNAT)
-    IF v_doc IS NOT NULL AND (p_tipo_documento IS NULL OR p_tipo_documento NOT IN (1, 4, 6)) THEN
-        RETURN 'El tipo de documento debe ser DNI, RUC o carné de extranjería';
+    IF v_doc IS NOT NULL AND (p_tipo_documento IS NULL OR p_tipo_documento NOT IN (1, 4, 6, 7)) THEN
+        RETURN 'El tipo de documento debe ser DNI, RUC, carné de extranjería o pasaporte';
     END IF;
 
     IF p_tipo_documento = 1 AND v_doc !~ '^[0-9]{8}$' THEN
@@ -41,6 +41,10 @@ BEGIN
 
     IF p_tipo_documento = 4 AND v_doc !~ '^[A-Za-z0-9]{8,12}$' THEN
         RETURN 'El carné de extranjería debe tener entre 8 y 12 caracteres alfanuméricos';
+    END IF;
+
+    IF p_tipo_documento = 7 AND v_doc !~ '^[A-Za-z0-9]{1,20}$' THEN
+        RETURN 'El pasaporte debe tener entre 1 y 20 caracteres alfanuméricos';
     END IF;
 
     -- Una empresa siempre va con RUC y razón social. Esto es lo que después

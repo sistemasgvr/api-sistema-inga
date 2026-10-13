@@ -26,11 +26,6 @@ export class FiltroConveniosDto extends FiltroPaginacionDto {
 }
 
 export class CreateConvenioDto extends AuditoriaDto {
-  @ApiProperty({ example: 'GVR', maxLength: 50, description: 'Se guarda en mayúsculas' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
 
   @ApiProperty({ example: 'GVR', maxLength: 150 })
   @IsString()
@@ -64,11 +59,6 @@ export class CreateConvenioDto extends AuditoriaDto {
 }
 
 export class UpdateConvenioDto extends AuditoriaDto {
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
 
   @ApiPropertyOptional({ maxLength: 150 })
   @IsOptional()

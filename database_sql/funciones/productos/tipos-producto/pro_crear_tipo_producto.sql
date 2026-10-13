@@ -13,7 +13,7 @@ BEGIN
   INSERT INTO pro_tipo_producto(nombre, permite_venta, requiere_receta, requiere_estacion,
     permite_stock_inicial, id_usuario_creacion, id_usuario_modificacion)
   VALUES(trim(p_nombre), p_permite_venta, p_requiere_receta, p_requiere_estacion,
-    p_permite_stock_inicial, p_usuario, p_usuario) RETURNING * INTO v_tipo;
+    p_permite_stock_inicial AND NOT p_requiere_receta, p_usuario, p_usuario) RETURNING * INTO v_tipo;
   RETURN json_build_object('registro', to_json(v_tipo));
 EXCEPTION WHEN unique_violation THEN
   RETURN json_build_object('error', 'Ya existe un tipo de producto con ese nombre', 'registro', NULL);

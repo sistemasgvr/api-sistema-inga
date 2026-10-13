@@ -34,8 +34,8 @@ const datos = () => JSON.stringify({ documento: DNI, efectivo_confirmado: true }
 
   // Convenio sin tope -> el pedido completo entra a crédito (rama A que elegiste).
   const { rows: [c] } = await client.query(
-    `INSERT INTO cli_convenio (codigo, nombre, id_condicion_pago, limite_credito, corte_quincenal)
-     VALUES ('TEST-DTL', 'Prueba Detalle', (SELECT id FROM gen_condicion_pago LIMIT 1), 0, TRUE)
+    `INSERT INTO cli_convenio (nombre, id_condicion_pago, limite_credito, corte_quincenal)
+     VALUES ('Prueba Detalle', (SELECT id FROM gen_condicion_pago LIMIT 1), 0, TRUE)
      RETURNING id`);
   const { rows: [pRaw] } = await client.query(
     `INSERT INTO cli_persona (tipo_persona, tipo_documento, num_documento, nombres, apellido_paterno, es_cliente, id_convenio)

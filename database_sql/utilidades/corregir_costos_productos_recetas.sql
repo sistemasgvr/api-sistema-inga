@@ -74,7 +74,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(p.codigo_interno) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(p.descripcion, '')) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(sc.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(c.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -91,7 +90,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(p.codigo_interno) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(p.descripcion, '')) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(sc.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(c.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -112,7 +110,6 @@ BEGIN
             e.nombre AS nombre_estacion,
             p.id_almacen_stock,
             a.nombre AS nombre_almacen,
-            p.codigo_interno,
             p.nombre,
             p.imagen_url,
             p.tipo_producto,
@@ -146,7 +143,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(p.codigo_interno) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(COALESCE(p.descripcion, '')) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(COALESCE(sc.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(COALESCE(c.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -192,7 +188,6 @@ BEGIN
             e.nombre AS nombre_estacion,
             p.id_almacen_stock,
             a.nombre AS nombre_almacen,
-            p.codigo_interno,
             p.nombre,
             p.descripcion,
             p.tipo_producto,
@@ -240,7 +235,7 @@ BEGIN
  IF n<0 OR minimo<0 OR costo<0 OR n<>round(n,4) THEN RAISE EXCEPTION 'Stock y costo inicial inválidos'; END IF;
  IF (n>0 OR costo>0) AND NOT EXISTS (SELECT 1 FROM pro_tipo_producto WHERE id=(p->>'tipo_producto')::INTEGER AND estado=1 AND permite_stock_inicial) THEN
    RAISE EXCEPTION 'Este tipo no permite stock ni costo inicial'; END IF;
- r:=pro_crear_producto((p->>'id_subcategoria')::BIGINT,(p->>'id_unidad_medida')::BIGINT,(p->>'codigo_interno')::VARCHAR,
+ r:=pro_crear_producto((p->>'id_subcategoria')::BIGINT,(p->>'id_unidad_medida')::BIGINT,
   (p->>'nombre')::VARCHAR,(p->>'tipo_producto')::SMALLINT,(p->>'id_estacion')::BIGINT,(p->>'id_almacen_stock')::BIGINT,
   (p->>'descripcion')::VARCHAR,COALESCE((p->>'precio_venta')::NUMERIC,0),COALESCE((p->>'afecto_igv')::BOOLEAN,TRUE),
   COALESCE((p->>'controla_stock')::BOOLEAN,FALSE),COALESCE((p->>'disponible_venta')::BOOLEAN,TRUE),

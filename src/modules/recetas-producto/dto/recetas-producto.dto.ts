@@ -7,6 +7,8 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
@@ -19,7 +21,7 @@ import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
  * mismos filtros que el catálogo de productos en vez de fijar un tipo.
  */
 export class FiltroInsumosRecetaDto {
-  @ApiPropertyOptional({ description: 'Texto a buscar en nombre o código' })
+  @ApiPropertyOptional({ description: 'Texto a buscar en nombre' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -74,6 +76,7 @@ export class GuardarRecetaInsumoDto extends AuditoriaDto {
   @ApiProperty({ description: 'Cantidad necesaria', example: 150.0 })
   @IsNumber()
   @IsNotEmpty()
+  @Min(0.0001)
   cantidad!: number;
 
   @ApiProperty({
@@ -90,6 +93,8 @@ export class GuardarRecetaInsumoDto extends AuditoriaDto {
   })
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(100)
   porcentaje_merma?: number;
 
   @ApiPropertyOptional({

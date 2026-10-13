@@ -23,7 +23,6 @@ BEGIN
     FROM (
         SELECT 
             p.id,
-            p.codigo_interno,
             p.nombre,
             p.id_unidad_medida,
             um.nombre AS nombre_unidad_medida,
@@ -61,7 +60,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(p.codigo_interno) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY p.nombre ASC
     ) t;

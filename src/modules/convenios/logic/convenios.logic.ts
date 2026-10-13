@@ -40,7 +40,6 @@ export class ConveniosLogic {
 
   async crear(dto: CreateConvenioDto) {
     const result = await this.conveniosModel.crear(
-      dto.codigo,
       dto.nombre,
       dto.id_condicion_pago,
       dto.limite_credito ?? 0,
@@ -53,7 +52,6 @@ export class ConveniosLogic {
   async actualizar(id: number, dto: UpdateConvenioDto) {
     const result = await this.conveniosModel.actualizar(
       id,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.id_condicion_pago ?? null,
       // Uso `?? null` y no `|| null` a propósito: con `||`, un límite de

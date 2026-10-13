@@ -9,7 +9,7 @@ import {
   type PermisoBandera,
 } from '../constants/permiso-banderas';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { PERMISOS_KEY } from '../decorators/permisos.decorator';
+import { PERMISOS_KEY, PERMISOS_ALGUNO_KEY } from '../decorators/permisos.decorator';
 import type { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
 
 @Injectable()
@@ -40,7 +40,8 @@ export class PermisosGuard implements CanActivate {
     console.log('--- PERMISOS REQUERIDOS ---', required);
     console.log('--- USUARIO EN REQUEST ---', context.switchToHttp().getRequest().user);
 
-    if (!required?.length) {
+    const anyRequired = this.reflector.getAllAndOverride<PermisoBandera[]>(PERMISOS_ALGUNO_KEY, [context.getHandler(), context.getClass()]);
+    if (!required?.length && !anyRequired?.length) {
       return true;
     }
 
@@ -60,11 +61,14 @@ export class PermisosGuard implements CanActivate {
       throw new ForbiddenException('No tiene permisos suficientes');
     }
 
-    const faltantes = required.filter((p) => !user.permisos.includes(p));
+    if (anyRequired?.length && !anyRequired.some(permission => user.permisos.includes(permission))) {
+      throw new ForbiddenException("No tiene permiso para consultar categorías y subcategorías");
+    }
+    const faltantes = (required ?? []).filter((p) => !user.permisos.includes(p));
 
     if (faltantes.length > 0) {
       throw new ForbiddenException(
-        `Permisos requeridos: ${required.join(', ')}`,
+        `Permisos requeridos: ${(required ?? []).join(', ')}`,
       );
     }
 

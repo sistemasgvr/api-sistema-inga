@@ -22,7 +22,6 @@ BEGIN
             e.nombre AS nombre_estacion,
             p.id_almacen_stock,
             a.nombre AS nombre_almacen,
-            p.codigo_interno,
             p.nombre,
             p.descripcion,
             p.tipo_producto,

@@ -48,7 +48,6 @@ export class ConveniosModel {
   }
 
   crear(
-    codigo: string,
     nombre: string,
     idCondicionPago: number,
     limiteCredito: number,
@@ -56,7 +55,6 @@ export class ConveniosModel {
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_crear_convenio', [
-      codigo,
       nombre,
       idCondicionPago,
       limiteCredito,
@@ -67,7 +65,6 @@ export class ConveniosModel {
 
   actualizar(
     id: number,
-    codigo: string | null,
     nombre: string | null,
     idCondicionPago: number | null,
     limiteCredito: number | null,
@@ -76,7 +73,6 @@ export class ConveniosModel {
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_actualizar_convenio', [
       id,
-      codigo,
       nombre,
       idCondicionPago,
       limiteCredito,

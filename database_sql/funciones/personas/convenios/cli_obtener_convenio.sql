@@ -16,7 +16,6 @@ BEGIN
     FROM (
         SELECT
             c.id,
-            c.codigo,
             c.nombre,
             c.id_condicion_pago,
             cp.nombre AS nombre_condicion_pago,

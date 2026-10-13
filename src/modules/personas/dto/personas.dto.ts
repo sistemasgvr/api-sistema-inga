@@ -88,14 +88,14 @@ export class CreatePersonaDto extends AuditoriaDto {
   tipo_persona!: number;
 
   @ApiPropertyOptional({
-    enum: [1, 4, 6],
+    enum: [1, 4, 6, 7],
     example: 1,
     description:
-      '1 = DNI, 4 = CE, 6 = RUC. Obligatorio si se envía num_documento',
+      '1 = DNI, 4 = CE, 6 = RUC, 7 = Pasaporte. Obligatorio si se envía num_documento',
   })
   @IsOptional()
   @IsInt()
-  @IsIn([1, 4, 6])
+  @IsIn([1, 4, 6, 7])
   tipo_documento?: number;
 
   @ApiPropertyOptional({
@@ -199,10 +199,10 @@ export class UpdatePersonaDto extends AuditoriaDto {
   @IsIn([1, 2])
   tipo_persona?: number;
 
-  @ApiPropertyOptional({ enum: [1, 4, 6] })
+  @ApiPropertyOptional({ enum: [1, 4, 6, 7] })
   @IsOptional()
   @IsInt()
-  @IsIn([1, 4, 6])
+  @IsIn([1, 4, 6, 7])
   tipo_documento?: number;
 
   @ApiPropertyOptional({ maxLength: 20 })

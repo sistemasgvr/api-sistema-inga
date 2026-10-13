@@ -33,7 +33,6 @@ BEGIN
     WHERE (
         p_busqueda = ''
         OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-        OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
     );
 
     -- Este total sí respeta el filtro de estado: es el que usa la paginación.
@@ -43,14 +42,12 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
       );
 
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::JSON) INTO v_registros
     FROM (
         SELECT
             c.id,
-            c.codigo,
             c.nombre,
             c.id_condicion_pago,
             cp.nombre AS nombre_condicion_pago,
@@ -77,7 +74,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY c.nombre ASC
         LIMIT p_limite

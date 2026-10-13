@@ -40,7 +40,7 @@ async function main() {
   const categoria = await insert('pro_categoria', { codigo: 'TEST', nombre: 'Test' });
   const sub = await insert('pro_subcategoria', { id_categoria: categoria, codigo: 'TEST', nombre: 'Test' });
   const unidad = (await q('SELECT id FROM pro_unidad_medida LIMIT 1'))[0].id;
-  const producto = await insert('pro_producto', { id_subcategoria: sub, id_unidad_medida: unidad, id_estacion: estacion, codigo_interno: 'PLATO', nombre: 'Pollo', tipo_producto: 3, controla_stock: false, precio_venta: 10 });
+  const producto = await insert('pro_producto', { id_subcategoria: sub, id_unidad_medida: unidad, id_estacion: estacion, nombre: 'Pollo', tipo_producto: 3, controla_stock: false, precio_venta: 10 });
   const pedido = await insert('ven_pedido', { id_sucursal: sucursal, id_mozo: usuario, tipo_pedido: 2, codigo: 'PRINT-1' });
   const tx = await pool.connect();
   let comanda;

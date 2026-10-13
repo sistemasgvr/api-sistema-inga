@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.alm_listar_stock(
       aps.id_almacen,
       a.nombre AS almacen_nombre,
       aps.id_producto,
-      p.codigo_interno AS producto_codigo,
+      
       p.nombre AS producto_nombre,
       p.tipo_producto,
       (EXISTS(SELECT 1 FROM pro_tipo_producto tp WHERE tp.id=p.tipo_producto AND tp.requiere_receta)

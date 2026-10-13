@@ -158,7 +158,7 @@ JOIN pro_producto p ON p.id=d.id_producto JOIN gen_almacen a ON a.id=d.id_almace
 JOIN pro_unidad_medida u ON u.id=d.id_unidad_medida WHERE m.estado=2;
 
 CREATE OR REPLACE VIEW vw_stock_alerta AS
-SELECT s.id,a.id_sucursal,a.tipo_almacen,a.nombre AS almacen,p.codigo_interno,p.nombre AS producto,p.tipo_producto,
+SELECT s.id,a.id_sucursal,a.tipo_almacen,a.nombre AS almacen,p.nombre AS producto,p.tipo_producto,
   s.stock_actual,s.stock_minimo,(s.stock_actual<=s.stock_minimo) AS alerta_activa,u.simbolo AS um
 FROM alm_producto_stock s JOIN gen_almacen a ON a.id=s.id_almacen JOIN pro_producto p ON p.id=s.id_producto
 JOIN pro_unidad_medida u ON u.id=p.id_unidad_medida WHERE s.estado=1 AND p.controla_stock AND s.stock_actual<=s.stock_minimo;

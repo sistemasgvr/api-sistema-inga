@@ -24,7 +24,6 @@ AS $function$
             FROM (
                 SELECT
                     pr.id,
-                    pr.codigo_interno,
                     pr.nombre,
                     pr.id_unidad_medida,
                     um.nombre AS nombre_unidad,
@@ -54,7 +53,7 @@ AS $function$
                   AND pr.controla_stock
                   AND NOT COALESCE(tp.requiere_receta AND NOT tp.permite_stock_inicial, FALSE)
                   AND (COALESCE(p_buscar, '') = ''
-                       OR concat_ws(' ', pr.nombre, pr.codigo_interno) ILIKE '%' || p_buscar || '%')
+                       OR pr.nombre ILIKE '%' || p_buscar || '%')
             ) x
         ), '[]'::JSON),
         'almacenes', COALESCE((

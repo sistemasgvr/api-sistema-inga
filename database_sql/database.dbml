@@ -375,7 +375,6 @@ TableGroup clientes {
 
 Table cli_convenio {
   id bigint [pk, increment]
-  codigo varchar(50) [not null, unique]
   nombre varchar(150) [not null]
   id_condicion_pago bigint [not null]
   limite_credito decimal(12,2) [not null, default: 0]
@@ -547,7 +546,6 @@ Table pro_producto {
   id_unidad_medida bigint [not null]
   id_estacion bigint
   id_almacen_stock bigint
-  codigo_interno varchar(50) [not null, unique]
   nombre varchar(150) [not null]
   descripcion text
   tipo_producto smallint [not null, note: '1 crudo, 2 procesado, 3 carta, 4 menú, 5 trago, 6 botella, 7 adicional']

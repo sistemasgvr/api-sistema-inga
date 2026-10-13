@@ -409,7 +409,6 @@ CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
 -- Utilidad: empresas del consorcio con crédito (GVR, 4G, ApuSalud, Jurisconta).
 CREATE TABLE IF NOT EXISTS cli_convenio (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(150) NOT NULL,
     id_condicion_pago       BIGINT       NOT NULL,
     limite_credito          NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -419,7 +418,6 @@ CREATE TABLE IF NOT EXISTS cli_convenio (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_cli_convenio_codigo UNIQUE (codigo),
     CONSTRAINT fk_convenio_condicion FOREIGN KEY (id_condicion_pago) REFERENCES gen_condicion_pago (id),
     CONSTRAINT fk_cli_convenio_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_cli_convenio_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -576,7 +574,6 @@ CREATE TABLE IF NOT EXISTS pro_producto (
     id_unidad_medida        BIGINT       NOT NULL,
     id_estacion             BIGINT,
     id_almacen_stock        BIGINT,
-    codigo_interno          VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(150) NOT NULL,
     descripcion             TEXT,
     tipo_producto           SMALLINT     NOT NULL,
@@ -592,7 +589,6 @@ CREATE TABLE IF NOT EXISTS pro_producto (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pro_producto_codigo UNIQUE (codigo_interno),
     CONSTRAINT fk_producto_subcategoria FOREIGN KEY (id_subcategoria) REFERENCES pro_subcategoria (id),
     CONSTRAINT fk_producto_unidad FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
     CONSTRAINT fk_producto_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
@@ -1778,13 +1774,13 @@ CREATE INDEX IF NOT EXISTS ix_kds_estacion_estado ON kds_ticket (id_estacion, es
 -- VISTAS DE OPERACIÓN / DASHBOARD
 -- =============================================================================
 
+DROP VIEW IF EXISTS vw_stock_alerta;
 CREATE OR REPLACE VIEW vw_stock_alerta AS
 SELECT
     s.id,
     a.id_sucursal,
     a.tipo_almacen,
     a.nombre AS almacen,
-    p.codigo_interno,
     p.nombre AS producto,
     p.tipo_producto,
     s.stock_actual,
@@ -2009,6 +2005,7 @@ JOIN (
     ('DOCUMENTO_TIPO', 'DNI', 'DNI', 1, 1),
     ('DOCUMENTO_TIPO', 'RUC', 'RUC', 6, 2),
     ('DOCUMENTO_TIPO', 'CE', 'Carné extranjería', 4, 3),
+    ('DOCUMENTO_TIPO', 'PASAPORTE', 'Pasaporte', 7, 4),
     ('SALIDA_DESTINO', 'COCINA', 'Cocina', 1, 1),
     ('SALIDA_DESTINO', 'BARRA', 'Barra', 2, 2),
     ('TURNO_ESTADO', 'ABIERTO', 'Abierto', 1, 1),
@@ -2029,16 +2026,11 @@ INSERT INTO gen_condicion_pago (codigo, nombre, dias_credito) VALUES
     ('CREDITO_30', 'Crédito 30 días', 30)
 ON CONFLICT (codigo) DO NOTHING;
 
-INSERT INTO cli_convenio (codigo, nombre, id_condicion_pago, limite_credito, corte_quincenal)
-SELECT v.codigo, v.nombre, c.id, 0, TRUE
-FROM (VALUES
-    ('GVR', 'GVR'),
-    ('4G', '4G'),
-    ('APUSALUD', 'ApuSalud'),
-    ('JURISCONTA', 'Jurisconta')
-) AS v(codigo, nombre)
+INSERT INTO cli_convenio (nombre, id_condicion_pago, limite_credito, corte_quincenal)
+SELECT v.nombre, c.id, 0, TRUE
+FROM (VALUES ('GVR'), ('4G'), ('ApuSalud'), ('Jurisconta')) AS v(nombre)
 JOIN gen_condicion_pago c ON c.codigo = 'CREDITO_15'
-ON CONFLICT (codigo) DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM cli_convenio existente WHERE existente.nombre = v.nombre);
 
 INSERT INTO pro_unidad_medida (codigo, codigo_sunat, nombre, simbolo, es_fraccionable) VALUES
     ('NIU', 'NIU', 'Unidad', 'und', FALSE),
