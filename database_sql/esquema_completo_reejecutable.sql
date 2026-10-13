@@ -1313,9 +1313,11 @@ CREATE TABLE IF NOT EXISTS cxc_movimiento (
     id_convenio             BIGINT,
     id_pedido               BIGINT,
     id_pago                 BIGINT,
+    id_turno                BIGINT,
     tipo_movimiento         SMALLINT     NOT NULL,
     monto                   NUMERIC(12, 2) NOT NULL,
     saldo_resultante        NUMERIC(12, 2) NOT NULL,
+    medio_pago              SMALLINT,
     anio                    SMALLINT     NOT NULL,
     mes                     SMALLINT     NOT NULL,
     quincena                SMALLINT     NOT NULL,
@@ -1332,12 +1334,17 @@ CREATE TABLE IF NOT EXISTS cxc_movimiento (
     CONSTRAINT fk_cxc_convenio FOREIGN KEY (id_convenio) REFERENCES cli_convenio (id),
     CONSTRAINT fk_cxc_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
     CONSTRAINT fk_cxc_pago FOREIGN KEY (id_pago) REFERENCES ven_pago (id),
+    CONSTRAINT fk_cxc_movimiento_turno FOREIGN KEY (id_turno) REFERENCES caj_turno (id),
     CONSTRAINT fk_cxc_movimiento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_cxc_movimiento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN cxc_movimiento.tipo_movimiento IS '1 cargo (consumo), 2 abono (pago / descuento planilla), 3 ajuste';
 COMMENT ON COLUMN cxc_movimiento.quincena IS '1 = días 1-15, 2 = días 16-fin. Reporte a quincena y a fin de mes.';
+COMMENT ON COLUMN cxc_movimiento.medio_pago IS
+    'Solo en abonos. Catalogo MEDIO_PAGO: 1 efectivo, 2 yape, 3 tarjeta/transferencia. Solo el efectivo afecta el cajon.';
+COMMENT ON COLUMN cxc_movimiento.id_turno IS
+    'Turno de caja donde entro el abono. Obligatorio si medio_pago = 1 (efectivo), para que el cuadre del dia cierre.';
 
 
 -- =============================================================================
@@ -1690,7 +1697,10 @@ COMMENT ON COLUMN gdo_gasto_dia.total_efectivo IS
 CREATE TABLE IF NOT EXISTS gdo_gasto_detalle (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_gasto_dia            BIGINT       NOT NULL,
-    id_insumo               BIGINT       NOT NULL,
+    id_insumo               BIGINT,
+    id_producto             BIGINT,
+    id_almacen              BIGINT,
+    id_alm_movimiento       BIGINT,
     id_unidad_medida        BIGINT,
     id_proveedor            BIGINT,
     id_cxp_movimiento       BIGINT,
@@ -1707,8 +1717,15 @@ CREATE TABLE IF NOT EXISTS gdo_gasto_detalle (
     CONSTRAINT ck_gdo_detalle_cantidad CHECK (cantidad > 0),
     CONSTRAINT ck_gdo_detalle_precio CHECK (precio_unitario >= 0),
     CONSTRAINT ck_gdo_detalle_forma CHECK (forma_pago IN (1, 2, 3)),
+    CONSTRAINT ck_gdo_detalle_item CHECK (
+        (id_insumo IS NOT NULL AND id_producto IS NULL AND id_almacen IS NULL)
+        OR (id_insumo IS NULL AND id_producto IS NOT NULL AND id_almacen IS NOT NULL)
+    ),
     CONSTRAINT fk_gdo_detalle_dia FOREIGN KEY (id_gasto_dia) REFERENCES gdo_gasto_dia (id),
     CONSTRAINT fk_gdo_detalle_insumo FOREIGN KEY (id_insumo) REFERENCES gdo_insumo (id),
+    CONSTRAINT fk_gdo_detalle_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
+    CONSTRAINT fk_gdo_detalle_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
+    CONSTRAINT fk_gdo_detalle_alm_movimiento FOREIGN KEY (id_alm_movimiento) REFERENCES alm_movimiento (id),
     CONSTRAINT fk_gdo_detalle_unidad FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
     CONSTRAINT fk_gdo_detalle_proveedor FOREIGN KEY (id_proveedor) REFERENCES cli_persona (id),
     CONSTRAINT fk_gdo_detalle_cxp FOREIGN KEY (id_cxp_movimiento) REFERENCES cxp_movimiento (id),
@@ -1716,6 +1733,12 @@ CREATE TABLE IF NOT EXISTS gdo_gasto_detalle (
     CONSTRAINT fk_gdo_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
+COMMENT ON COLUMN gdo_gasto_detalle.id_producto IS
+    'Producto del inventario comprado. Excluye a id_insumo: si viene, la compra ingresa stock al almacen.';
+COMMENT ON COLUMN gdo_gasto_detalle.id_almacen IS
+    'Almacen donde entra el stock. Solo en lineas de producto de inventario.';
+COMMENT ON COLUMN gdo_gasto_detalle.id_alm_movimiento IS
+    'Entrada de inventario (motivo COMPRA) generada por la linea. Permite revertirla si la linea se anula.';
 COMMENT ON COLUMN gdo_gasto_detalle.forma_pago IS
     '1 contado efectivo (sale del cajon), 2 contado Yape, 3 credito (genera deuda al proveedor en CxP).';
 COMMENT ON COLUMN gdo_gasto_detalle.id_proveedor IS
@@ -1746,6 +1769,7 @@ CREATE INDEX IF NOT EXISTS ix_ven_pago_medio_fecha ON ven_pago (medio_pago, fech
 CREATE INDEX IF NOT EXISTS ix_ven_comp_emision ON ven_comprobante (fecha_emision DESC);
 CREATE INDEX IF NOT EXISTS ix_cxc_persona_periodo ON cxc_movimiento (id_persona, anio, mes, quincena);
 CREATE INDEX IF NOT EXISTS ix_cxc_convenio_periodo ON cxc_movimiento (id_convenio, anio, mes, quincena);
+CREATE INDEX IF NOT EXISTS ix_cxc_movimiento_turno ON cxc_movimiento (id_turno) WHERE id_turno IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_prod_req_fecha ON prod_requerimiento (id_sucursal, fecha_necesaria DESC);
 CREATE INDEX IF NOT EXISTS ix_prod_orden_fecha ON prod_orden (id_sucursal, fecha_produccion DESC);
 CREATE INDEX IF NOT EXISTS ix_com_compra_fecha ON com_compra (fecha_emision DESC);

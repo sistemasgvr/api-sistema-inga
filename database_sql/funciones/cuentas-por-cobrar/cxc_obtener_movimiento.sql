@@ -36,6 +36,13 @@ BEGIN
             m.quincena,
             m.id_pedido,
             m.id_pago,
+            m.medio_pago,
+            CASE m.medio_pago
+                WHEN 1 THEN 'Efectivo'
+                WHEN 2 THEN 'Yape'
+                WHEN 3 THEN 'Tarjeta / transferencia'
+            END AS medio_pago_nombre,
+            m.id_turno,
             m.observacion,
             m.estado,
             m.fecha_creacion,

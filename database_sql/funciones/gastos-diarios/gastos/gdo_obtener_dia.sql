@@ -51,9 +51,16 @@ BEGIN
         SELECT
             det.id,
             det.id_insumo,
-            i.nombre AS nombre_insumo,
+            -- Una línea es insumo libre o producto de inventario: muestro el
+            -- nombre del que sea, y al producto lo agrupo como "Inventario".
+            COALESCE(i.nombre, pr.nombre) AS nombre_insumo,
             i.id_categoria,
-            cat.nombre AS nombre_categoria,
+            COALESCE(cat.nombre, 'Inventario') AS nombre_categoria,
+            det.id_producto,
+            det.id_almacen,
+            alm.nombre AS nombre_almacen,
+            det.id_alm_movimiento,
+            (det.id_producto IS NOT NULL) AS es_inventario,
             det.id_unidad_medida,
             um.nombre AS nombre_unidad,
             um.simbolo AS simbolo_unidad,
@@ -76,8 +83,10 @@ BEGIN
             det.estado,
             det.fecha_creacion
         FROM gdo_gasto_detalle det
-        INNER JOIN gdo_insumo i ON det.id_insumo = i.id
-        INNER JOIN gdo_categoria cat ON i.id_categoria = cat.id
+        LEFT JOIN gdo_insumo i ON det.id_insumo = i.id
+        LEFT JOIN gdo_categoria cat ON i.id_categoria = cat.id
+        LEFT JOIN pro_producto pr ON det.id_producto = pr.id
+        LEFT JOIN gen_almacen alm ON det.id_almacen = alm.id
         LEFT JOIN pro_unidad_medida um ON det.id_unidad_medida = um.id
         LEFT JOIN cli_persona p ON det.id_proveedor = p.id
         WHERE det.id_gasto_dia = p_id AND det.estado = 1

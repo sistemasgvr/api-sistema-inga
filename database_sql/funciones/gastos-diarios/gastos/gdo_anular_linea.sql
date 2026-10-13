@@ -11,6 +11,11 @@
 --
 -- También bloqueo anular una línea en efectivo cuyo turno ya se cerró: ese
 -- turno se arqueó contra el conteo físico.
+--
+-- Si la línea era un producto del inventario, su compra ingresó stock: lo
+-- saco con una SALIDA (motivo ANULACION_COMPRA) que referencia la entrada
+-- original. Si ese stock ya se consumió, la anulación falla: no puedo sacar
+-- del almacén lo que ya no está.
 CREATE OR REPLACE FUNCTION gdo_anular_linea(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
@@ -23,10 +28,13 @@ DECLARE
     v_linea RECORD;
     v_estado_turno SMALLINT;
     v_reverso JSONB;
+    v_disponible NUMERIC;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
     SELECT det.id, det.id_gasto_dia, det.forma_pago, det.id_cxp_movimiento,
+           det.id_alm_movimiento, det.id_producto, det.id_almacen,
+           det.id_unidad_medida, det.cantidad, det.precio_unitario,
            dia.id_turno
     INTO v_linea
     FROM gdo_gasto_detalle det
@@ -49,24 +57,75 @@ BEGIN
         END IF;
     END IF;
 
-    -- Reverso del cargo en CxP.
-    IF v_linea.id_cxp_movimiento IS NOT NULL THEN
-        v_reverso := cxp_anular_movimiento(
-            v_linea.id_cxp_movimiento,
-            'Anulación de compra diaria',
-            p_id_usuario_auditoria
-        )::JSONB;
+    IF v_linea.id_alm_movimiento IS NOT NULL THEN
+        IF p_id_usuario_auditoria IS NULL THEN
+            RETURN json_build_object('error', 'No se identificó al usuario que anula la compra', 'registro', NULL);
+        END IF;
 
-        IF (v_reverso->>'eliminado')::BOOLEAN = FALSE THEN
+        SELECT COALESCE(stock_actual - stock_reservado, 0) INTO v_disponible
+        FROM alm_producto_stock
+        WHERE id_producto = v_linea.id_producto AND id_almacen = v_linea.id_almacen;
+
+        IF COALESCE(v_disponible, 0) < v_linea.cantidad THEN
             RETURN json_build_object(
-                'error', COALESCE(
-                    v_reverso->>'error',
-                    'No se pudo revertir la deuda generada en cuentas por pagar.'
-                ),
+                'error', 'No se puede anular: el stock que ingresó esta compra ya se usó (disponible ' ||
+                         TRIM(TO_CHAR(COALESCE(v_disponible, 0), 'FM999999990.####')) ||
+                         '). Corrige el inventario con un ajuste.',
                 'registro', NULL
             );
         END IF;
     END IF;
+
+    -- Los reversos van en un bloque: si sacar el stock falla, tampoco queda
+    -- anulada la deuda en CxP.
+    BEGIN
+        -- Reverso del cargo en CxP.
+        IF v_linea.id_cxp_movimiento IS NOT NULL THEN
+            v_reverso := cxp_anular_movimiento(
+                v_linea.id_cxp_movimiento,
+                'Anulación de compra diaria',
+                p_id_usuario_auditoria
+            )::JSONB;
+
+            IF (v_reverso->>'eliminado')::BOOLEAN = FALSE THEN
+                RETURN json_build_object(
+                    'error', COALESCE(
+                        v_reverso->>'error',
+                        'No se pudo revertir la deuda generada en cuentas por pagar.'
+                    ),
+                    'registro', NULL
+                );
+            END IF;
+        END IF;
+
+        -- Reverso del ingreso a inventario.
+        IF v_linea.id_alm_movimiento IS NOT NULL THEN
+            PERFORM alm_registrar(jsonb_build_object(
+                'codigo', 'GDO-ANU-' || v_linea.id,
+                'id_tipo_movimiento', (
+                    SELECT o.id FROM gen_lista_opcion o JOIN gen_lista l ON l.id = o.id_lista
+                    WHERE l.codigo = 'ALM_TIPO_MOVIMIENTO' AND o.codigo = 'SALIDA'),
+                'id_motivo_movimiento', (
+                    SELECT o.id FROM gen_lista_opcion o JOIN gen_lista l ON l.id = o.id_lista
+                    WHERE l.codigo = 'ALM_MOTIVO_MOVIMIENTO' AND o.codigo = 'ANULACION_COMPRA'),
+                'documento_tipo', 'gdo_gasto_detalle',
+                'documento_id', v_linea.id,
+                'id_movimiento_referencia', v_linea.id_alm_movimiento,
+                'observacion', 'Anulación de compra del día: ' ||
+                               COALESCE(NULLIF(TRIM(p_motivo), ''), 'sin motivo indicado'),
+                'confirmar', TRUE,
+                'detalles', jsonb_build_array(jsonb_build_object(
+                    'id_producto', v_linea.id_producto,
+                    'id_almacen', v_linea.id_almacen,
+                    'id_unidad_medida', v_linea.id_unidad_medida,
+                    'cantidad', v_linea.cantidad,
+                    'signo', -1
+                ))
+            ), p_id_usuario_auditoria);
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RETURN json_build_object('error', 'No se pudo anular la compra: ' || SQLERRM, 'registro', NULL);
+    END;
 
     UPDATE gdo_gasto_detalle
     SET estado = 0,

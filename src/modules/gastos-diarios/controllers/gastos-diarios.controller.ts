@@ -21,6 +21,7 @@ import {
   CreateLineaDto,
   FiltroDiasDto,
   FiltroInsumosDto,
+  FiltroProductosInventarioDto,
   FiltroReporteDiaDto,
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
@@ -40,6 +41,17 @@ export class GastosDiariosController {
   })
   listarInsumos(@Query() filtros: FiltroInsumosDto) {
     return this.logic.listarInsumos(filtros);
+  }
+
+  @Get('productos-inventario')
+  @Permisos(PermisoBanderas.GDO_LISTAR)
+  @ApiOperation({
+    summary:
+      'Productos del inventario que se compran (incluye los que están en stock cero), ' +
+      'con su stock por almacén, y los almacenes activos',
+  })
+  listarProductosInventario(@Query() filtros: FiltroProductosInventarioDto) {
+    return this.logic.listarProductosInventario(filtros);
   }
 
   @Get('insumos/:id')

@@ -12,6 +12,9 @@
 --      cerrada cualquiera anterior a la quincena en curso. Si el corte ya se le
 --      envió a la empresa, cambiarle el pasado le rompe la conciliación: para
 --      eso está el ajuste.
+--   3. No se anula un abono que entró en un turno de caja ya cerrado: su
+--      dinero ya se contó en el arqueo, y sacarlo ahora dejaría ese cierre
+--      descuadrado. Tampoco uno en efectivo si el cajón ya no tiene ese monto.
 CREATE OR REPLACE FUNCTION cxc_anular_movimiento(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
@@ -25,6 +28,7 @@ DECLARE
     v_anio_actual SMALLINT;
     v_mes_actual SMALLINT;
     v_quincena_actual SMALLINT;
+    v_estado_turno SMALLINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
@@ -55,6 +59,25 @@ BEGIN
                      ' ya está cerrada. Corrige con un ajuste para no romper el corte enviado.',
             'registro', NULL
         );
+    END IF;
+
+    IF v_mov.id_turno IS NOT NULL THEN
+        SELECT estado_turno INTO v_estado_turno FROM caj_turno WHERE id = v_mov.id_turno;
+
+        IF v_estado_turno = 2 THEN
+            RETURN json_build_object(
+                'error', 'Este abono entró en un turno de caja que ya se cerró. Corrige con un ajuste para no descuadrar el arqueo.',
+                'registro', NULL
+            );
+        END IF;
+
+        IF v_mov.medio_pago = 1
+           AND v_mov.monto > (caj_calcular_totales_turno(v_mov.id_turno)::JSONB->>'efectivo_esperado')::NUMERIC THEN
+            RETURN json_build_object(
+                'error', 'No se puede anular: el cajón ya no tiene ese efectivo disponible',
+                'registro', NULL
+            );
+        END IF;
     END IF;
 
     UPDATE cxc_movimiento

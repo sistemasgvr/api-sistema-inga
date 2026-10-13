@@ -81,6 +81,8 @@ export class CuentasPorCobrarModel {
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
       dto.id_pedido ?? null,
+      dto.medio_pago,
+      dto.id_turno ?? null,
     ]);
   }
 

@@ -68,15 +68,17 @@ BEGIN
     INTO v_por_categoria
     FROM (
         SELECT
-            cat.id AS id_categoria,
-            cat.nombre AS nombre_categoria,
+            -- Las compras de productos del inventario no tienen categoría de
+            -- insumo: van juntas como "Inventario" (id 0).
+            COALESCE(cat.id, 0) AS id_categoria,
+            COALESCE(cat.nombre, 'Inventario') AS nombre_categoria,
             SUM(det.subtotal) AS monto,
             COUNT(*) AS cantidad
         FROM gdo_gasto_detalle det
-        INNER JOIN gdo_insumo i ON det.id_insumo = i.id
-        INNER JOIN gdo_categoria cat ON i.id_categoria = cat.id
+        LEFT JOIN gdo_insumo i ON det.id_insumo = i.id
+        LEFT JOIN gdo_categoria cat ON i.id_categoria = cat.id
         WHERE det.id_gasto_dia = v_id_dia AND det.estado = 1
-        GROUP BY cat.id, cat.nombre
+        GROUP BY COALESCE(cat.id, 0), COALESCE(cat.nombre, 'Inventario')
     ) x;
 
     -- Solo las compras a crédito: es lo que suma deuda y se abona después.

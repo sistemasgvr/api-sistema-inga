@@ -1,11 +1,26 @@
+-- Registro un abono del cliente: el pago de la empresa o el descuento por planilla.
+--
+-- El medio de pago es obligatorio y decide cómo entra el dinero a la caja:
+--
+--   - Efectivo (1): exige turno de caja abierto. Ese dinero entra al cajón y
+--     caj_calcular_totales_turno lo suma al efectivo esperado; sin el vínculo,
+--     el arqueo del día saldría con sobrante.
+--   - Yape (2) / tarjeta-transferencia (3): el turno es opcional. Si viene, el
+--     abono aparece en el resumen del turno por medio de pago, pero no toca el
+--     efectivo esperado: ese dinero nunca pasó por el cajón.
+--
+-- Misma regla que el abono de CxP (M15), planilla (M17) y gastos (M16).
 DROP FUNCTION IF EXISTS cxc_registrar_abono(BIGINT, NUMERIC, DATE, VARCHAR, BIGINT);
+DROP FUNCTION IF EXISTS cxc_registrar_abono(BIGINT, NUMERIC, DATE, VARCHAR, BIGINT, BIGINT);
 CREATE OR REPLACE FUNCTION cxc_registrar_abono(
     p_id_persona BIGINT,
     p_monto NUMERIC,
     p_fecha_movimiento DATE DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
     p_id_usuario_auditoria BIGINT DEFAULT NULL,
-    p_id_pedido BIGINT DEFAULT NULL
+    p_id_pedido BIGINT DEFAULT NULL,
+    p_medio_pago SMALLINT DEFAULT NULL,
+    p_id_turno BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -20,6 +35,7 @@ DECLARE
     v_observacion VARCHAR;
     v_codigo VARCHAR;
     v_id_persona_pedido BIGINT;
+    v_estado_turno SMALLINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
@@ -54,6 +70,37 @@ BEGIN
 
     IF v_fecha > CURRENT_DATE THEN
         RETURN json_build_object('error', 'No se puede registrar un abono con fecha futura', 'registro', NULL);
+    END IF;
+
+    -- Sin crédito (4): un abono es plata que entra, no otra deuda.
+    IF p_medio_pago IS NULL OR p_medio_pago NOT IN (1, 2, 3) THEN
+        RETURN json_build_object(
+            'error', 'Seleccione el medio de pago: efectivo, Yape o tarjeta/transferencia',
+            'registro', NULL
+        );
+    END IF;
+
+    IF p_medio_pago = 1 AND p_id_turno IS NULL THEN
+        RETURN json_build_object(
+            'error', 'Un abono en efectivo debe registrarse contra un turno de caja abierto',
+            'registro', NULL
+        );
+    END IF;
+
+    IF p_id_turno IS NOT NULL THEN
+        SELECT estado_turno INTO v_estado_turno
+        FROM caj_turno WHERE id = p_id_turno AND estado = 1;
+
+        IF NOT FOUND THEN
+            RETURN json_build_object('error', 'El turno de caja indicado no existe', 'registro', NULL);
+        END IF;
+
+        IF v_estado_turno = 2 THEN
+            RETURN json_build_object(
+                'error', 'No se puede registrar el abono: el turno de caja ya está cerrado',
+                'registro', NULL
+            );
+        END IF;
     END IF;
 
     v_saldo_actual := cxc_calcular_saldo_persona(p_id_persona);
@@ -102,12 +149,13 @@ BEGIN
     v_quincena := CASE WHEN EXTRACT(DAY FROM v_fecha) <= 15 THEN 1 ELSE 2 END;
 
     INSERT INTO cxc_movimiento (
-        id_persona, id_convenio, id_pedido, tipo_movimiento, monto, saldo_resultante,
-        anio, mes, quincena, observacion,
+        id_persona, id_convenio, id_pedido, id_turno, tipo_movimiento, monto, saldo_resultante,
+        medio_pago, anio, mes, quincena, observacion,
         id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-        p_id_persona, v_persona.id_convenio, p_id_pedido, 2, p_monto, v_saldo,
+        p_id_persona, v_persona.id_convenio, p_id_pedido, p_id_turno, 2, p_monto, v_saldo,
+        p_medio_pago,
         EXTRACT(YEAR FROM v_fecha)::SMALLINT,
         EXTRACT(MONTH FROM v_fecha)::SMALLINT,
         v_quincena,

@@ -98,7 +98,8 @@ export class CuentasPorCobrarController {
   @ApiOperation({
     summary:
       'Registrar el pago de la empresa o el descuento por planilla (reduce la deuda). ' +
-      'No puede superar el saldo pendiente.',
+      'No puede superar el saldo pendiente. Exige medio de pago; en efectivo, ' +
+      'además, turno de caja abierto: así el abono se refleja en la caja.',
   })
   registrarAbono(@Body() dto: CreateAbonoCxcDto) {
     return this.logic.registrarAbono(dto);

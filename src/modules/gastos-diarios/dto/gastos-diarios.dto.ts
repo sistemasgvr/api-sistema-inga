@@ -141,11 +141,54 @@ export class AbrirDiaDto extends AuditoriaDto {
   id_turno?: number;
 }
 
-export class CreateLineaDto extends AuditoriaDto {
-  @ApiProperty({ example: 15 })
+export class FiltroProductosInventarioDto {
+  @ApiPropertyOptional({
+    description: 'Busca por nombre o código del producto',
+  })
+  @IsOptional()
+  @IsString()
+  buscar?: string;
+
+  @ApiPropertyOptional({ description: 'Limita los almacenes a una sucursal' })
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
-  @IsNotEmpty()
-  id_insumo!: number;
+  id_sucursal?: number;
+}
+
+/**
+ * Una línea es un insumo libre (solo gasto) o un producto del inventario
+ * (gasto + entrada de stock). Exactamente uno de los dos: la regla la valida
+ * gdo_agregar_linea, que es donde tiene que estar.
+ */
+export class CreateLineaDto extends AuditoriaDto {
+  @ApiPropertyOptional({
+    example: 15,
+    description: 'Insumo de la lista libre. No mueve stock.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_insumo?: number;
+
+  @ApiPropertyOptional({
+    example: 23,
+    description:
+      'Producto del inventario. La compra ingresa stock en su unidad base.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_producto?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Almacén donde entra el producto. Por defecto, el habitual del producto o el principal.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_almacen?: number;
 
   @ApiProperty({ example: 2.5 })
   @Type(() => Number)

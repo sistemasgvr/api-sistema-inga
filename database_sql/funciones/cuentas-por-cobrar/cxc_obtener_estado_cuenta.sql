@@ -105,6 +105,13 @@ BEGIN
             m.mes,
             m.quincena,
             m.id_pedido,
+            m.medio_pago,
+            CASE m.medio_pago
+                WHEN 1 THEN 'Efectivo'
+                WHEN 2 THEN 'Yape'
+                WHEN 3 THEN 'Tarjeta / transferencia'
+            END AS medio_pago_nombre,
+            m.id_turno,
             m.observacion,
             -- Igual que en cxc_listar_movimientos: qué se pidió en el pedido del cargo,
             -- por JOIN y no copiado. Acá la lista es de una sola persona, así que el

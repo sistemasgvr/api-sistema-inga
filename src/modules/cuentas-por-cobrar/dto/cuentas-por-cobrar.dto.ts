@@ -157,6 +157,27 @@ export class CreateAbonoCxcDto extends AuditoriaDto {
   @Min(0.01, { message: 'El monto debe ser mayor a cero' })
   monto!: number;
 
+  /**
+   * Cómo pagó el cliente. Sin crédito: un abono es plata que entra. El efectivo
+   * entra al cajón y suma al efectivo esperado del turno; Yape y transferencia
+   * se muestran en el resumen del turno pero no tocan el cajón.
+   */
+  @ApiProperty({ enum: [1, 2, 3], description: '1 efectivo, 2 yape, 3 tarjeta/transferencia' })
+  @Type(() => Number)
+  @IsInt()
+  @IsIn([1, 2, 3], {
+    message: 'Seleccione el medio de pago: efectivo, Yape o tarjeta/transferencia',
+  })
+  medio_pago!: number;
+
+  @ApiPropertyOptional({
+    description: 'Turno de caja donde entra el abono. Obligatorio cuando medio_pago = 1 (efectivo).',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  id_turno?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()

@@ -25,13 +25,22 @@ BEGIN
         RETURN json_build_object('registro', NULL);
     END IF;
 
+    -- Movimientos manuales de caja + lo que cobraron o pagaron otros módulos
+    -- contra este turno (proveedores, gastos, planilla, compras, cobranzas).
+    -- `clave` es única entre orígenes: los id se repiten de una tabla a otra.
+    -- Los externos se anulan en su propio módulo, no desde la caja.
     SELECT COALESCE(json_agg(row_to_json(t) ORDER BY t.fecha_creacion), '[]'::JSON)
     INTO v_movimientos
     FROM (
         SELECT
+            'CAJA-' || m.id AS clave,
+            'CAJA' AS origen,
+            'Caja' AS origen_nombre,
             m.id,
             m.tipo_movimiento,
             lo.nombre AS tipo_movimiento_nombre,
+            1 AS medio_pago,
+            'Efectivo' AS medio_pago_nombre,
             m.monto,
             m.motivo,
             m.id_usuario_autoriza,
@@ -42,6 +51,28 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = m.tipo_movimiento
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'CAJA_MOV_TIPO')
         WHERE m.id_turno = p_id AND m.estado = 1
+
+        UNION ALL
+
+        SELECT
+            x.origen || '-' || x.id,
+            x.origen,
+            x.origen_nombre,
+            x.id,
+            x.tipo_movimiento,
+            CASE x.tipo_movimiento WHEN 1 THEN 'Ingreso' ELSE 'Egreso' END,
+            x.medio_pago,
+            CASE x.medio_pago
+                WHEN 1 THEN 'Efectivo'
+                WHEN 2 THEN 'Yape'
+                ELSE 'Tarjeta / transferencia'
+            END,
+            x.monto,
+            x.motivo,
+            NULL,
+            NULL,
+            x.fecha_creacion
+        FROM caj_movimientos_externos(p_id) x
     ) t;
 
     SELECT

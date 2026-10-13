@@ -10,6 +10,7 @@ import {
   CreateLineaDto,
   FiltroDiasDto,
   FiltroInsumosDto,
+  FiltroProductosInventarioDto,
   FiltroReporteDiaDto,
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
@@ -30,6 +31,14 @@ export class GastosDiariosLogic {
    */
   async listarInsumos(filtros: FiltroInsumosDto) {
     return await this.model.listarInsumos(filtros);
+  }
+
+  /**
+   * Productos del inventario que se pueden comprar, con su stock por almacén
+   * y los almacenes activos. Igual que los insumos: lista completa, sin paginar.
+   */
+  async listarProductosInventario(filtros: FiltroProductosInventarioDto) {
+    return await this.model.listarProductosInventario(filtros);
   }
 
   async obtenerInsumo(id: number) {

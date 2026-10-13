@@ -11,6 +11,7 @@ import {
   CreateLineaDto,
   FiltroDiasDto,
   FiltroInsumosDto,
+  FiltroProductosInventarioDto,
   FiltroReporteDiaDto,
   InsumoEstadoFiltro,
   UpdateInsumoDto,
@@ -107,7 +108,7 @@ export class GastosDiariosModel {
   agregarLinea(idGastoDia: number, dto: CreateLineaDto) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_agregar_linea', [
       idGastoDia,
-      dto.id_insumo,
+      dto.id_insumo ?? null,
       dto.cantidad,
       dto.precio_unitario,
       dto.forma_pago ?? 1,
@@ -115,6 +116,18 @@ export class GastosDiariosModel {
       dto.id_proveedor ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      dto.id_producto ?? null,
+      dto.id_almacen ?? null,
+    ]);
+  }
+
+  listarProductosInventario(filtros: FiltroProductosInventarioDto) {
+    return this.db.callFunctionJson<{
+      productos: unknown[];
+      almacenes: unknown[];
+    }>('gdo_listar_productos_inventario', [
+      filtros.buscar ?? '',
+      filtros.id_sucursal ?? null,
     ]);
   }
 

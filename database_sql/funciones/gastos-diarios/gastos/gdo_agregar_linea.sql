@@ -18,6 +18,15 @@
 -- Al final actualizo el precio_referencial del insumo con lo que se acaba de
 -- pagar. Así la próxima compra sugiere el precio real más reciente, que es como
 -- el cliente lo tiene en su cabeza.
+--
+-- La línea puede ser un INSUMO libre (p_id_insumo) o un PRODUCTO del inventario
+-- (p_id_producto), nunca ambos. El producto, además de ser gasto, ingresa stock:
+-- genero una ENTRADA con motivo COMPRA en el almacén y guardo el movimiento en
+-- la línea para revertirlo si se anula. Entra en la unidad base del producto,
+-- que es la única que acepta el kardex, y al costo pagado (alimenta el costo
+-- promedio). Da igual que el producto tenga stock en cero o que nunca haya
+-- tenido: comprarlo es justamente cómo se repone.
+DROP FUNCTION IF EXISTS gdo_agregar_linea(BIGINT, BIGINT, NUMERIC, NUMERIC, SMALLINT, BIGINT, BIGINT, VARCHAR, BIGINT);
 CREATE OR REPLACE FUNCTION gdo_agregar_linea(
     p_id_gasto_dia BIGINT,
     p_id_insumo BIGINT,
@@ -27,7 +36,9 @@ CREATE OR REPLACE FUNCTION gdo_agregar_linea(
     p_id_unidad_medida BIGINT DEFAULT NULL,
     p_id_proveedor BIGINT DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_producto BIGINT DEFAULT NULL,
+    p_id_almacen BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -43,10 +54,14 @@ DECLARE
     -- así que lo casteo al asignarlo.
     v_cargo JSONB;
     v_nombre_insumo VARCHAR;
+    v_producto RECORD;
+    v_id_unidad BIGINT;
+    v_id_almacen BIGINT;
+    v_id_mov BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    SELECT id, id_turno, fecha_gasto, estado
+    SELECT id, id_sucursal, id_turno, fecha_gasto, estado
     INTO v_dia
     FROM gdo_gasto_dia WHERE id = p_id_gasto_dia AND estado = 1;
 
@@ -54,11 +69,74 @@ BEGIN
         RETURN json_build_object('error', 'El gasto del día no existe o fue anulado', 'registro', NULL);
     END IF;
 
-    SELECT nombre INTO v_nombre_insumo
-    FROM gdo_insumo WHERE id = p_id_insumo AND estado = 1;
+    IF (p_id_insumo IS NULL) = (p_id_producto IS NULL) THEN
+        RETURN json_build_object(
+            'error', 'Elija un producto del inventario o un insumo de la lista, no ambos',
+            'registro', NULL
+        );
+    END IF;
 
-    IF v_nombre_insumo IS NULL THEN
-        RETURN json_build_object('error', 'El insumo indicado no existe o está inactivo', 'registro', NULL);
+    v_id_unidad := p_id_unidad_medida;
+
+    IF p_id_insumo IS NOT NULL THEN
+        SELECT nombre INTO v_nombre_insumo
+        FROM gdo_insumo WHERE id = p_id_insumo AND estado = 1;
+
+        IF v_nombre_insumo IS NULL THEN
+            RETURN json_build_object('error', 'El insumo indicado no existe o está inactivo', 'registro', NULL);
+        END IF;
+    ELSE
+        SELECT pr.nombre, pr.id_unidad_medida, pr.id_almacen_stock, pr.controla_stock,
+               COALESCE(tp.requiere_receta AND NOT tp.permite_stock_inicial, FALSE) AS solo_receta
+        INTO v_producto
+        FROM pro_producto pr
+        LEFT JOIN pro_tipo_producto tp ON tp.id = pr.tipo_producto
+        WHERE pr.id = p_id_producto AND pr.estado = 1;
+
+        IF NOT FOUND THEN
+            RETURN json_build_object('error', 'El producto indicado no existe o está inactivo', 'registro', NULL);
+        END IF;
+
+        IF NOT v_producto.controla_stock THEN
+            RETURN json_build_object(
+                'error', v_producto.nombre || ' no controla stock: regístrelo como insumo de la lista',
+                'registro', NULL
+            );
+        END IF;
+
+        -- Misma regla que alm_confirmar para el motivo COMPRA.
+        IF v_producto.solo_receta THEN
+            RETURN json_build_object(
+                'error', v_producto.nombre || ' se prepara con su receta, no se compra',
+                'registro', NULL
+            );
+        END IF;
+
+        -- El alta en alm_movimiento exige autor: sin él no hay kardex.
+        IF p_id_usuario_auditoria IS NULL THEN
+            RETURN json_build_object('error', 'No se identificó al usuario que registra la compra', 'registro', NULL);
+        END IF;
+
+        v_nombre_insumo := v_producto.nombre;
+        v_id_unidad := v_producto.id_unidad_medida;
+
+        -- Almacén: el elegido; si no, el habitual del producto; si no, el
+        -- principal de crudos de la sucursal del día.
+        v_id_almacen := COALESCE(p_id_almacen, v_producto.id_almacen_stock);
+        IF v_id_almacen IS NULL THEN
+            SELECT a.id INTO v_id_almacen
+            FROM gen_almacen a
+            WHERE a.estado = 1 AND a.tipo_almacen = 1
+              AND (v_dia.id_sucursal IS NULL OR a.id_sucursal = v_dia.id_sucursal)
+            ORDER BY a.es_principal DESC, a.id
+            LIMIT 1;
+        END IF;
+
+        IF v_id_almacen IS NULL OR NOT EXISTS (
+            SELECT 1 FROM gen_almacen WHERE id = v_id_almacen AND estado = 1
+        ) THEN
+            RETURN json_build_object('error', 'Indique un almacén activo donde ingresar la compra', 'registro', NULL);
+        END IF;
     END IF;
 
     IF p_cantidad IS NULL OR p_cantidad <= 0 THEN
@@ -76,8 +154,8 @@ BEGIN
         );
     END IF;
 
-    IF p_id_unidad_medida IS NOT NULL AND NOT EXISTS (
-        SELECT 1 FROM pro_unidad_medida WHERE id = p_id_unidad_medida AND estado = 1
+    IF v_id_unidad IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM pro_unidad_medida WHERE id = v_id_unidad AND estado = 1
     ) THEN
         RETURN json_build_object('error', 'La unidad de medida indicada no existe', 'registro', NULL);
     END IF;
@@ -124,55 +202,83 @@ BEGIN
         END IF;
     END IF;
 
-    -- Acá se cierra el circuito con M15: el cargo automático.
-    IF p_forma_pago = 3 THEN
-        v_cargo := cxp_registrar_cargo(
-            p_id_proveedor,
-            v_subtotal,
-            v_dia.fecha_gasto,
-            NULL,
-            NULL, -- el id de la línea se enlaza justo después del INSERT
-            'Compra diaria: ' || v_nombre_insumo,
-            p_id_usuario_auditoria
-        )::JSONB;
+    -- Todo lo que escribe va en un bloque: si el ingreso a inventario falla (lo
+    -- valida alm_confirmar), se deshacen también el cargo en CxP y la línea.
+    BEGIN
+        -- Acá se cierra el circuito con M15: el cargo automático.
+        IF p_forma_pago = 3 THEN
+            v_cargo := cxp_registrar_cargo(
+                p_id_proveedor,
+                v_subtotal,
+                v_dia.fecha_gasto,
+                NULL,
+                NULL, -- el id de la línea se enlaza justo después del INSERT
+                'Compra diaria: ' || v_nombre_insumo,
+                p_id_usuario_auditoria
+            )::JSONB;
 
-        -- Si CxP rechazó el cargo, corto acá y no dejo la línea a medias.
-        IF v_cargo->>'error' IS NOT NULL THEN
-            RETURN json_build_object(
-                'error', 'No se pudo generar la deuda al proveedor: ' || (v_cargo->>'error'),
-                'registro', NULL
-            );
+            -- Si CxP rechazó el cargo, corto acá y no dejo la línea a medias.
+            IF v_cargo->>'error' IS NOT NULL THEN
+                RETURN json_build_object(
+                    'error', 'No se pudo generar la deuda al proveedor: ' || (v_cargo->>'error'),
+                    'registro', NULL
+                );
+            END IF;
+
+            v_id_cxp := (v_cargo->'registro'->>'id')::BIGINT;
         END IF;
 
-        v_id_cxp := (v_cargo->'registro'->>'id')::BIGINT;
-    END IF;
+        INSERT INTO gdo_gasto_detalle (
+            id_gasto_dia, id_insumo, id_producto, id_almacen, id_unidad_medida,
+            id_proveedor, id_cxp_movimiento,
+            cantidad, precio_unitario, subtotal, forma_pago, observacion,
+            id_usuario_creacion, id_usuario_modificacion
+        )
+        VALUES (
+            p_id_gasto_dia, p_id_insumo, p_id_producto, v_id_almacen, v_id_unidad,
+            p_id_proveedor, v_id_cxp,
+            p_cantidad, p_precio_unitario, v_subtotal,
+            COALESCE(p_forma_pago, 1),
+            NULLIF(TRIM(p_observacion), ''),
+            p_id_usuario_auditoria, p_id_usuario_auditoria
+        )
+        RETURNING id INTO v_id;
 
-    INSERT INTO gdo_gasto_detalle (
-        id_gasto_dia, id_insumo, id_unidad_medida, id_proveedor, id_cxp_movimiento,
-        cantidad, precio_unitario, subtotal, forma_pago, observacion,
-        id_usuario_creacion, id_usuario_modificacion
-    )
-    VALUES (
-        p_id_gasto_dia, p_id_insumo, p_id_unidad_medida,
-        p_id_proveedor, v_id_cxp,
-        p_cantidad, p_precio_unitario, v_subtotal,
-        COALESCE(p_forma_pago, 1),
-        NULLIF(TRIM(p_observacion), ''),
-        p_id_usuario_auditoria, p_id_usuario_auditoria
-    )
-    RETURNING id INTO v_id;
+        -- Cierro el enlace en la otra dirección, para que desde el movimiento de
+        -- CxP se pueda llegar a la línea que lo originó.
+        IF v_id_cxp IS NOT NULL THEN
+            UPDATE cxp_movimiento SET id_gasto_diario = v_id WHERE id = v_id_cxp;
+        END IF;
 
-    -- Cierro el enlace en la otra dirección, para que desde el movimiento de
-    -- CxP se pueda llegar a la línea que lo originó.
-    IF v_id_cxp IS NOT NULL THEN
-        UPDATE cxp_movimiento SET id_gasto_diario = v_id WHERE id = v_id_cxp;
-    END IF;
+        -- Producto de inventario: la compra ingresa stock al almacén.
+        IF p_id_producto IS NOT NULL THEN
+            v_id_mov := alm_aplicar(
+                'GDO-' || v_id, 'ENTRADA', 'COMPRA', 'gdo_gasto_detalle', v_id,
+                jsonb_build_array(jsonb_build_object(
+                    'id_producto', p_id_producto,
+                    'id_almacen', v_id_almacen,
+                    'id_unidad_medida', v_id_unidad,
+                    'cantidad', p_cantidad,
+                    'signo', 1,
+                    'costo_unitario', p_precio_unitario,
+                    'observacion', 'Compra del día ' || TO_CHAR(v_dia.fecha_gasto, 'DD/MM/YYYY')
+                )),
+                p_id_usuario_auditoria
+            );
+
+            UPDATE gdo_gasto_detalle SET id_alm_movimiento = v_id_mov WHERE id = v_id;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RETURN json_build_object('error', 'No se pudo registrar la compra: ' || SQLERRM, 'registro', NULL);
+    END;
 
     -- El precio referencial sigue al último precio pagado.
-    UPDATE gdo_insumo
-    SET precio_referencial = p_precio_unitario,
-        id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id_insumo;
+    IF p_id_insumo IS NOT NULL THEN
+        UPDATE gdo_insumo
+        SET precio_referencial = p_precio_unitario,
+            id_usuario_modificacion = p_id_usuario_auditoria
+        WHERE id = p_id_insumo;
+    END IF;
 
     PERFORM gdo_recalcular_totales_dia(p_id_gasto_dia);
 
