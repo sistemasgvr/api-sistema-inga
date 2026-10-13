@@ -13,7 +13,6 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   AnularGastoDto,
   CreateCategoriaGastoDto,
@@ -25,6 +24,7 @@ import {
   UpdateGastoDto,
 } from '../dto/gastos-administrativos.dto';
 import { GastosAdministrativosLogic } from '../logic/gastos-administrativos.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Gastos administrativos')
 @Controller('gastos-administrativos')
@@ -55,8 +55,11 @@ export class GastosAdministrativosController {
   @ApiOperation({
     summary: 'Crear categoría o subcategoría (solo un nivel de anidación)',
   })
-  crearCategoria(@Body() dto: CreateCategoriaGastoDto) {
-    return this.logic.crearCategoria(dto);
+  crearCategoria(
+    @Body() dto: CreateCategoriaGastoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.crearCategoria({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch('categorias/:id')
@@ -66,8 +69,9 @@ export class GastosAdministrativosController {
   actualizarCategoria(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoriaGastoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.actualizarCategoria(id, dto);
+    return this.logic.actualizarCategoria(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch('categorias/:id/activar')
@@ -76,9 +80,9 @@ export class GastosAdministrativosController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activarCategoria(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.activarCategoria(id, dto.idUsuarioAuditoria);
+    return this.logic.activarCategoria(id, idUsuarioAuditoria);
   }
 
   @Delete('categorias/:id')
@@ -89,9 +93,9 @@ export class GastosAdministrativosController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminarCategoria(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.eliminarCategoria(id, dto.idUsuarioAuditoria);
+    return this.logic.eliminarCategoria(id, idUsuarioAuditoria);
   }
 
   /* -------------------------------- Gastos -------------------------------- */
@@ -131,8 +135,11 @@ export class GastosAdministrativosController {
   @ApiOperation({
     summary: 'Registrar gasto. En efectivo exige un turno de caja abierto',
   })
-  registrarGasto(@Body() dto: CreateGastoDto) {
-    return this.logic.registrarGasto(dto);
+  registrarGasto(
+    @Body() dto: CreateGastoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarGasto({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -144,8 +151,9 @@ export class GastosAdministrativosController {
   actualizarGasto(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGastoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.actualizarGasto(id, dto);
+    return this.logic.actualizarGasto(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete(':id')
@@ -154,7 +162,11 @@ export class GastosAdministrativosController {
     summary: 'Anular gasto (falla si fue en efectivo y su turno ya se cerró)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  anularGasto(@Param('id', ParseIntPipe) id: number, @Body() dto: AnularGastoDto) {
-    return this.logic.anularGasto(id, dto.motivo, dto.idUsuarioAuditoria);
+  anularGasto(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AnularGastoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.anularGasto(id, dto.motivo, idUsuarioAuditoria);
   }
 }

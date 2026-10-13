@@ -16,6 +16,7 @@ import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { FiltroRolDto } from '../dto/filtros-rol.dto';
 import { AsignarPermisosRolDto, AsignarRolesUsuarioDto, CreateRolDto, UpdateRolDto } from '../dto/roles.dto';
 import { RolesLogic } from '../logic/roles.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Auth - Roles')
 @Controller('auth/roles')
@@ -40,16 +41,22 @@ export class RolesController {
   @Post()
   @Permisos(PermisoBanderas.ROLES_CREAR)
   @ApiOperation({ summary: 'Crear rol' })
-  crear(@Body() dto: CreateRolDto) {
-    return this.rolesLogic.crear(dto);
+  crear(
+    @Body() dto: CreateRolDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.rolesLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.ROLES_ACTIVAR)
   @ApiOperation({ summary: 'Activar rol' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesLogic.activar(id);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.rolesLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Patch(':id/permisos')
@@ -58,8 +65,9 @@ export class RolesController {
   asignarPermisos(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AsignarPermisosRolDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.rolesLogic.asignarPermisos(id, dto);
+    return this.rolesLogic.asignarPermisos(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch('usuario/:idUsuario')
@@ -68,8 +76,12 @@ export class RolesController {
   asignarRolesAUsuario(
     @Param('idUsuario', ParseIntPipe) idUsuario: number,
     @Body() dto: AsignarRolesUsuarioDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.rolesLogic.asignarRolesAUsuario(idUsuario, dto);
+    return this.rolesLogic.asignarRolesAUsuario(idUsuario, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id')
@@ -78,14 +90,18 @@ export class RolesController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRolDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.rolesLogic.actualizar(id, dto);
+    return this.rolesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.ROLES_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar rol (baja lógica)' })
-  desactivar(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesLogic.eliminar(id);
+  desactivar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.rolesLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

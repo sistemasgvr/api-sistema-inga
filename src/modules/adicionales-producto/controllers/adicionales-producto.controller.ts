@@ -12,9 +12,9 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { CreateAdicionalDto, UpdateAdicionalDto } from '../dto/adicionales-producto.dto';
 import { AdicionalesProductoLogic } from '../logic/adicionales-producto.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Productos - Adicionales')
 @Controller('productos')
@@ -42,8 +42,12 @@ export class AdicionalesProductoController {
   crear(
     @Param('idProducto', ParseIntPipe) idProducto: number,
     @Body() dto: CreateAdicionalDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.adicionalesLogic.crear(idProducto, dto);
+    return this.adicionalesLogic.crear(idProducto, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch('adicionales/:id')
@@ -53,8 +57,9 @@ export class AdicionalesProductoController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAdicionalDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.adicionalesLogic.actualizar(id, dto);
+    return this.adicionalesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete('adicionales/:id')
@@ -62,8 +67,8 @@ export class AdicionalesProductoController {
   @ApiOperation({ summary: 'Dar de baja un adicional' })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.adicionalesLogic.eliminar(id, dto.idUsuarioAuditoria);
+    return this.adicionalesLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

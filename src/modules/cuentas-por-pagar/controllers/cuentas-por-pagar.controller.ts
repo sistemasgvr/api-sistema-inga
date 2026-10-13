@@ -22,6 +22,7 @@ import {
   FiltroSaldosDto,
 } from '../dto/cuentas-por-pagar.dto';
 import { CuentasPorPagarLogic } from '../logic/cuentas-por-pagar.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Cuentas por Pagar - Proveedores')
 @Controller('cuentas-por-pagar')
@@ -80,8 +81,11 @@ export class CuentasPorPagarController {
     summary:
       'Registrar compra a crédito (aumenta la deuda). M14 la llamará automáticamente.',
   })
-  registrarCargo(@Body() dto: CreateCargoDto) {
-    return this.logic.registrarCargo(dto);
+  registrarCargo(
+    @Body() dto: CreateCargoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarCargo({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('abonos')
@@ -90,8 +94,11 @@ export class CuentasPorPagarController {
     summary:
       'Registrar el abono semanal (reduce la deuda). No puede superar el saldo pendiente.',
   })
-  registrarAbono(@Body() dto: CreateAbonoDto) {
-    return this.logic.registrarAbono(dto);
+  registrarAbono(
+    @Body() dto: CreateAbonoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('ajustes')
@@ -100,8 +107,11 @@ export class CuentasPorPagarController {
     summary:
       'Ajuste manual del saldo. Monto con signo: positivo aumenta, negativo reduce.',
   })
-  registrarAjuste(@Body() dto: CreateAjusteDto) {
-    return this.logic.registrarAjuste(dto);
+  registrarAjuste(
+    @Body() dto: CreateAjusteDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarAjuste({ ...dto, idUsuarioAuditoria });
   }
 
   @Delete('movimientos/:id')
@@ -114,7 +124,8 @@ export class CuentasPorPagarController {
   anularMovimiento(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularMovimientoCxpDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.anularMovimiento(id, dto.motivo, dto.idUsuarioAuditoria);
+    return this.logic.anularMovimiento(id, dto.motivo, idUsuarioAuditoria);
   }
 }

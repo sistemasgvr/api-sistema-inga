@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 import { CreateTipoProductoDto } from '../dto/tipos-producto.dto';
 import { TiposProductoLogic } from '../logic/tipos-producto.logic';
 
@@ -18,8 +19,8 @@ export class TiposProductoController {
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
   crear(
     @Body() dto: CreateTipoProductoDto,
-    @Req() req: { user: { id: number } },
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.crear({ ...dto, idUsuarioAuditoria: req.user.id });
+    return this.logic.crear({ ...dto, idUsuarioAuditoria });
   }
 }

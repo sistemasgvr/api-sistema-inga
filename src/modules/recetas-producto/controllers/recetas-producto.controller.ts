@@ -7,15 +7,14 @@ import {
   ParseIntPipe,
   Post,
   Query,
-  Req
 } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { CreateRecetaDto, FiltroInsumosRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
 import { RecetasProductoLogic } from '../logic/recetas-producto.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Productos - Recetas y Recetario')
 @Controller('productos')
@@ -53,8 +52,12 @@ export class RecetasProductoController {
   crearReceta(
     @Param('idProducto', ParseIntPipe) idProducto: number,
     @Body() dto: CreateRecetaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.recetasLogic.crearReceta(idProducto, dto);
+    return this.recetasLogic.crearReceta(idProducto, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Post('recetas/:idReceta/insumos')
@@ -63,12 +66,11 @@ export class RecetasProductoController {
   guardarInsumo(
     @Param('idReceta', ParseIntPipe) idReceta: number,
     @Body() dto: GuardarRecetaInsumoDto,
-    @Req() req: any,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    const idUsuario = dto.idUsuarioAuditoria ?? req.user?.id ?? req.user?.id_usuario;
     return this.recetasLogic.guardarInsumo(idReceta, {
       ...dto,
-      idUsuarioAuditoria: idUsuario,
+      idUsuarioAuditoria,
     });
   }
 
@@ -77,9 +79,9 @@ export class RecetasProductoController {
   @ApiOperation({ summary: 'Dar de baja un insumo de la receta' })
   eliminarInsumo(
     @Param('idInsumoReceta', ParseIntPipe) idInsumoReceta: number,
-    @Body() dto?: AuditoriaDto, 
+    @UsuarioAuditoria() idUsuarioAuditoria: number, 
   ) {
-    return this.recetasLogic.eliminarInsumo(idInsumoReceta, dto?.idUsuarioAuditoria);
+    return this.recetasLogic.eliminarInsumo(idInsumoReceta, idUsuarioAuditoria);
   }
 
   @Delete('recetas/:id')
@@ -87,8 +89,8 @@ export class RecetasProductoController {
   @ApiOperation({ summary: 'Dar de baja una receta completa' })
   eliminarReceta(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto?: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.recetasLogic.eliminarReceta(id, dto?.idUsuarioAuditoria);
+    return this.recetasLogic.eliminarReceta(id, idUsuarioAuditoria);
   }
 }

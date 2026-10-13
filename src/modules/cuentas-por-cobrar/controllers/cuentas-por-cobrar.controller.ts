@@ -23,6 +23,7 @@ import {
   FiltroSaldosCxcDto,
 } from '../dto/cuentas-por-cobrar.dto';
 import { CuentasPorCobrarLogic } from '../logic/cuentas-por-cobrar.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Cuentas por Cobrar - Consorcio')
 @Controller('cuentas-por-cobrar')
@@ -89,8 +90,11 @@ export class CuentasPorCobrarController {
       'al cobrar un pedido con medio de pago crédito. Devuelve supera_limite cuando ' +
       'el saldo pasa el tope del convenio: advierte, no bloquea.',
   })
-  registrarConsumo(@Body() dto: CreateConsumoDto) {
-    return this.logic.registrarConsumo(dto);
+  registrarConsumo(
+    @Body() dto: CreateConsumoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarConsumo({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('abonos')
@@ -101,8 +105,11 @@ export class CuentasPorCobrarController {
       'No puede superar el saldo pendiente. Exige medio de pago; en efectivo, ' +
       'además, turno de caja abierto: así el abono se refleja en la caja.',
   })
-  registrarAbono(@Body() dto: CreateAbonoCxcDto) {
-    return this.logic.registrarAbono(dto);
+  registrarAbono(
+    @Body() dto: CreateAbonoCxcDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('ajustes')
@@ -112,8 +119,11 @@ export class CuentasPorCobrarController {
       'Ajuste manual del saldo. Monto con signo: positivo aumenta, negativo reduce. ' +
       'Exige motivo.',
   })
-  registrarAjuste(@Body() dto: CreateAjusteCxcDto) {
-    return this.logic.registrarAjuste(dto);
+  registrarAjuste(
+    @Body() dto: CreateAjusteCxcDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.registrarAjuste({ ...dto, idUsuarioAuditoria });
   }
 
   @Delete('movimientos/:id')
@@ -127,7 +137,8 @@ export class CuentasPorCobrarController {
   anularMovimiento(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularMovimientoCxcDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.anularMovimiento(id, dto.motivo, dto.idUsuarioAuditoria);
+    return this.logic.anularMovimiento(id, dto.motivo, idUsuarioAuditoria);
   }
 }

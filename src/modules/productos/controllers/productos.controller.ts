@@ -9,7 +9,6 @@ import {
   Post,
   Put,
   Query,
-  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -24,7 +23,6 @@ import {
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateProductoDto,
   FiltroProductosDto,
@@ -32,6 +30,7 @@ import {
 } from '../dto/productos.dto';
 import { ProductosLogic } from '../logic/productos.logic';
 import { ProductoImagenLogic } from '../logic/producto-imagen.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Productos - Catálogo Principal')
 @Controller('productos')
@@ -66,13 +65,11 @@ export class ProductosController {
   @Post()
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
   @ApiOperation({ summary: 'Crear un nuevo producto' })
-  crear(@Body() dto: CreateProductoDto, @Req() req: any) {
-    const idUsuario = req.user.id;
-
-    return this.productosLogic.crear({
-      ...dto,
-      idUsuarioAuditoria: idUsuario,
-    });
+  crear(
+    @Body() dto: CreateProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.productosLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('upload-imagen')
@@ -91,8 +88,9 @@ export class ProductosController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.productosLogic.actualizar(id, dto);
+    return this.productosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Put(':id/disponibilidad')
@@ -101,24 +99,30 @@ export class ProductosController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   toggleDisponibilidad(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.productosLogic.toggleDisponibilidad(id, dto.idUsuarioAuditoria);
+    return this.productosLogic.toggleDisponibilidad(id, idUsuarioAuditoria);
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.PRODUCTOS_ACTIVAR)
   @ApiOperation({ summary: 'Activar producto inactivo' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.productosLogic.activar(id, dto.idUsuarioAuditoria);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.productosLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.PRODUCTOS_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar producto (baja lógica)' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.productosLogic.eliminar(id, dto.idUsuarioAuditoria);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.productosLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

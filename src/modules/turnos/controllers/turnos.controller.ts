@@ -12,7 +12,6 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   AbrirTurnoDto,
   CerrarTurnoDto,
@@ -21,6 +20,7 @@ import {
   GuardarArqueoDto,
 } from '../dto/turnos.dto';
 import { TurnosLogic } from '../logic/turnos.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Caja - Turnos, movimientos y arqueo')
 @Controller('caja/turnos')
@@ -77,8 +77,11 @@ export class TurnosController {
   @ApiOperation({
     summary: 'Abrir turno (falla si la caja o el cajero ya tienen uno abierto)',
   })
-  abrir(@Body() dto: AbrirTurnoDto) {
-    return this.turnosLogic.abrir(dto);
+  abrir(
+    @Body() dto: AbrirTurnoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.turnosLogic.abrir({ ...dto, idUsuarioAuditoria });
   }
 
   @Post(':id/cerrar')
@@ -87,8 +90,12 @@ export class TurnosController {
     summary: 'Cerrar turno declarando el efectivo contado y guardar la diferencia',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  cerrar(@Param('id', ParseIntPipe) id: number, @Body() dto: CerrarTurnoDto) {
-    return this.turnosLogic.cerrar(id, dto);
+  cerrar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CerrarTurnoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.turnosLogic.cerrar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Post(':id/movimientos')
@@ -97,8 +104,12 @@ export class TurnosController {
   registrarMovimiento(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateMovimientoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.turnosLogic.registrarMovimiento(id, dto);
+    return this.turnosLogic.registrarMovimiento(id, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Post(':id/arqueo')
@@ -109,8 +120,9 @@ export class TurnosController {
   guardarArqueo(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: GuardarArqueoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.turnosLogic.guardarArqueo(id, dto);
+    return this.turnosLogic.guardarArqueo(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete('movimientos/:idMovimiento')
@@ -121,8 +133,8 @@ export class TurnosController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   anularMovimiento(
     @Param('idMovimiento', ParseIntPipe) idMovimiento: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.turnosLogic.anularMovimiento(idMovimiento, dto.idUsuarioAuditoria);
+    return this.turnosLogic.anularMovimiento(idMovimiento, idUsuarioAuditoria);
   }
 }

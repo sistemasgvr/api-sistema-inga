@@ -13,13 +13,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateSubCategoriaProductoDto,
   FiltroSubCategoriasProductoDto,
   UpdateSubCategoriaProductoDto,
 } from '../dto/subcategorias-producto.dto';
 import { SubCategoriasProductoLogic } from '../logic/subcategorias-producto.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Productos - Subcategorías')
 @Controller('productos/subcategorias')
@@ -44,8 +44,11 @@ export class SubCategoriasProductoController {
   @Post()
   @Permisos(PermisoBanderas.SUBCATEGORIAS_CREAR)
   @ApiOperation({ summary: 'Crear subcategoría de producto' })
-  crear(@Body() dto: CreateSubCategoriaProductoDto) {
-    return this.subCategoriasLogic.crear(dto);
+  crear(
+    @Body() dto: CreateSubCategoriaProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.subCategoriasLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -55,8 +58,12 @@ export class SubCategoriasProductoController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSubCategoriaProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.subCategoriasLogic.actualizar(id, dto);
+    return this.subCategoriasLogic.actualizar(id, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id/activar')
@@ -65,9 +72,9 @@ export class SubCategoriasProductoController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.subCategoriasLogic.activar(id, dto.idUsuarioAuditoria);
+    return this.subCategoriasLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -76,8 +83,8 @@ export class SubCategoriasProductoController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.subCategoriasLogic.eliminar(id, dto.idUsuarioAuditoria);
+    return this.subCategoriasLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

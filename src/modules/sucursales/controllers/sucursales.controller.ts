@@ -16,6 +16,7 @@ import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { FiltroSucursalDto } from '../dto/filtros-sucursal.dto';
 import { CreateSucursalDto, UpdateSucursalDto } from '../dto/sucursales.dto';
 import { SucursalesLogic } from '../logic/sucursales.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('General - Sucursales')
 @Controller('general/sucursales')
@@ -40,16 +41,22 @@ export class SucursalesController {
   @Post()
   @Permisos(PermisoBanderas.SUCURSALES_CREAR)
   @ApiOperation({ summary: 'Crear sucursal' })
-  crear(@Body() dto: CreateSucursalDto) {
-    return this.sucursalesLogic.crear(dto);
+  crear(
+    @Body() dto: CreateSucursalDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.sucursalesLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.SUCURSALES_ACTIVAR)
   @ApiOperation({ summary: 'Activar sucursal' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number) {
-    return this.sucursalesLogic.activar(id);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.sucursalesLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Patch(':id')
@@ -59,15 +66,19 @@ export class SucursalesController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSucursalDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.sucursalesLogic.actualizar(id, dto);
+    return this.sucursalesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.SUCURSALES_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar sucursal' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number) {
-    return this.sucursalesLogic.eliminar(id);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.sucursalesLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

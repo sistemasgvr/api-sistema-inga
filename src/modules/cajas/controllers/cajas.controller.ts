@@ -13,9 +13,9 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { CreateCajaDto, FiltroCajasDto, UpdateCajaDto } from '../dto/cajas.dto';
 import { CajasLogic } from '../logic/cajas.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Caja - Cajas físicas')
 @Controller('caja/cajas')
@@ -42,8 +42,11 @@ export class CajasController {
   @Post()
   @Permisos(PermisoBanderas.CAJAS_CREAR)
   @ApiOperation({ summary: 'Crear caja física' })
-  crear(@Body() dto: CreateCajaDto) {
-    return this.cajasLogic.crear(dto);
+  crear(
+    @Body() dto: CreateCajaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.cajasLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -53,16 +56,20 @@ export class CajasController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCajaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.cajasLogic.actualizar(id, dto);
+    return this.cajasLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.CAJAS_ACTIVAR)
   @ApiOperation({ summary: 'Reactivar caja' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.cajasLogic.activar(id, dto.idUsuarioAuditoria);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.cajasLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -71,7 +78,10 @@ export class CajasController {
     summary: 'Dar de baja caja (falla si tiene un turno abierto)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.cajasLogic.eliminar(id, dto.idUsuarioAuditoria);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.cajasLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

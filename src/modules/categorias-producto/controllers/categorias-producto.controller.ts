@@ -13,13 +13,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateCategoriaProductoDto,
   FiltroCategoriasProductoDto,
   UpdateCategoriaProductoDto,
 } from '../dto/categorias-producto.dto';
 import { CategoriasProductoLogic } from '../logic/categorias-producto.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Productos - Categorías')
 @Controller('productos/categorias')
@@ -44,8 +44,11 @@ export class CategoriasProductoController {
   @Post()
   @Permisos(PermisoBanderas.CATEGORIAS_CREAR)
   @ApiOperation({ summary: 'Crear categoría de producto' })
-  crear(@Body() dto: CreateCategoriaProductoDto) {
-    return this.categoriasProductoLogic.crear(dto);
+  crear(
+    @Body() dto: CreateCategoriaProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.categoriasProductoLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -55,8 +58,12 @@ export class CategoriasProductoController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoriaProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.categoriasProductoLogic.actualizar(id, dto);
+    return this.categoriasProductoLogic.actualizar(id, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id/activar')
@@ -65,9 +72,9 @@ export class CategoriasProductoController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.categoriasProductoLogic.activar(id, dto.idUsuarioAuditoria);
+    return this.categoriasProductoLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -76,8 +83,8 @@ export class CategoriasProductoController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.categoriasProductoLogic.eliminar(id, dto.idUsuarioAuditoria);
+    return this.categoriasProductoLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

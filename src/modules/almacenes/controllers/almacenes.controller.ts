@@ -13,13 +13,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateAlmacenDto,
   FiltroAlmacenesDto,
   UpdateAlmacenDto,
 } from '../dto/almacenes.dto';
 import { AlmacenesLogic } from '../logic/almacenes.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('General - Almacenes')
 @Controller('almacenes')
@@ -44,8 +44,11 @@ export class AlmacenesController {
   @Post()
   @Permisos(PermisoBanderas.ALMACENES_CREAR)
   @ApiOperation({ summary: 'Crear almacén' })
-  crear(@Body() dto: CreateAlmacenDto) {
-    return this.almacenLogic.crear(dto);
+  crear(
+    @Body() dto: CreateAlmacenDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.almacenLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -55,8 +58,9 @@ export class AlmacenesController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAlmacenDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.almacenLogic.actualizar(id, dto);
+    return this.almacenLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
@@ -65,9 +69,9 @@ export class AlmacenesController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.almacenLogic.activar(id, dto.idUsuarioAuditoria);
+    return this.almacenLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -76,8 +80,8 @@ export class AlmacenesController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.almacenLogic.eliminar(id, dto.idUsuarioAuditoria);
+    return this.almacenLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

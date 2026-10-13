@@ -13,13 +13,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateEstacionDto,
   FiltroEstacionesDto,
   UpdateEstacionDto,
 } from '../dto/estaciones.dto';
 import { EstacionesLogic } from '../logic/estaciones.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('General - Estaciones')
 @Controller('estaciones')
@@ -49,8 +49,11 @@ export class EstacionesController {
   @Post()
   @Permisos(PermisoBanderas.ESTACIONES_CREAR)
   @ApiOperation({ summary: 'Crear estación' })
-  crear(@Body() dto: CreateEstacionDto) {
-    return this.estacionesLogic.crear(dto);
+  crear(
+    @Body() dto: CreateEstacionDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.estacionesLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -60,8 +63,9 @@ export class EstacionesController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEstacionDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.estacionesLogic.actualizar(id, dto);
+    return this.estacionesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
@@ -70,9 +74,9 @@ export class EstacionesController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.estacionesLogic.activar(id, dto.idUsuarioAuditoria);
+    return this.estacionesLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -81,8 +85,8 @@ export class EstacionesController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.estacionesLogic.eliminar(id, dto.idUsuarioAuditoria);
+    return this.estacionesLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

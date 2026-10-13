@@ -16,6 +16,7 @@ import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { FiltroUsuarioDto } from '../dto/filtros-usuario.dto';
 import { CreateUsuarioDto, UpdateUsuarioDto } from '../dto/usuarios.dto';
 import { UsuariosLogic } from '../logic/usuarios.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Auth - Usuarios')
 @Controller('auth/usuarios')
@@ -55,16 +56,22 @@ export class UsuariosController {
   @Post()
   @Permisos(PermisoBanderas.USUARIOS_CREAR)
   @ApiOperation({ summary: 'Crear usuario' })
-  crear(@Body() dto: CreateUsuarioDto) {
-    return this.usuariosLogic.crear(dto);
+  crear(
+    @Body() dto: CreateUsuarioDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.usuariosLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.USUARIOS_ACTIVAR)
   @ApiOperation({ summary: 'Activar usuario' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosLogic.activar(id);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.usuariosLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Patch(':id')
@@ -74,15 +81,19 @@ export class UsuariosController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUsuarioDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.usuariosLogic.actualizar(id, dto);
+    return this.usuariosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.USUARIOS_ELIMINAR)
   @ApiOperation({ summary: 'Desactivar usuario' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosLogic.eliminar(id);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.usuariosLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

@@ -13,7 +13,6 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   AnularPagoDto,
   CreatePagoDto,
@@ -24,6 +23,7 @@ import {
   UpdateTrabajadorDto,
 } from '../dto/planilla.dto';
 import { PlanillaLogic } from '../logic/planilla.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Planilla - Trabajadores y pagos')
 @Controller('planilla')
@@ -51,8 +51,11 @@ export class PlanillaController {
   @Post('trabajadores')
   @Permisos(PermisoBanderas.TRABAJADORES_CREAR)
   @ApiOperation({ summary: 'Registrar trabajador' })
-  crearTrabajador(@Body() dto: CreateTrabajadorDto) {
-    return this.planillaLogic.crearTrabajador(dto);
+  crearTrabajador(
+    @Body() dto: CreateTrabajadorDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.planillaLogic.crearTrabajador({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch('trabajadores/:id')
@@ -62,8 +65,12 @@ export class PlanillaController {
   actualizarTrabajador(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTrabajadorDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.planillaLogic.actualizarTrabajador(id, dto);
+    return this.planillaLogic.actualizarTrabajador(id, {
+      ...dto,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch('trabajadores/:id/activar')
@@ -72,9 +79,9 @@ export class PlanillaController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   activarTrabajador(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.planillaLogic.activarTrabajador(id, dto.idUsuarioAuditoria);
+    return this.planillaLogic.activarTrabajador(id, idUsuarioAuditoria);
   }
 
   @Delete('trabajadores/:id')
@@ -83,9 +90,9 @@ export class PlanillaController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminarTrabajador(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AuditoriaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.planillaLogic.eliminarTrabajador(id, dto.idUsuarioAuditoria);
+    return this.planillaLogic.eliminarTrabajador(id, idUsuarioAuditoria);
   }
 
   @Get('pagos')
@@ -120,8 +127,11 @@ export class PlanillaController {
     summary:
       'Registrar pago. La quincena se deduce de la fecha; en efectivo exige turno abierto',
   })
-  registrarPago(@Body() dto: CreatePagoDto) {
-    return this.planillaLogic.registrarPago(dto);
+  registrarPago(
+    @Body() dto: CreatePagoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.planillaLogic.registrarPago({ ...dto, idUsuarioAuditoria });
   }
 
   @Delete('pagos/:id')
@@ -134,11 +144,8 @@ export class PlanillaController {
   anularPago(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularPagoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.planillaLogic.anularPago(
-      id,
-      dto.motivo,
-      dto.idUsuarioAuditoria,
-    );
+    return this.planillaLogic.anularPago(id, dto.motivo, idUsuarioAuditoria);
   }
 }

@@ -13,7 +13,6 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   AbrirDiaDto,
   AnularLineaDto,
@@ -26,6 +25,7 @@ import {
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
 import { GastosDiariosLogic } from '../logic/gastos-diarios.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Gastos Diarios Operativos')
 @Controller('gastos-diarios')
@@ -68,8 +68,11 @@ export class GastosDiariosController {
     summary:
       'Crear insumo. Lo usa también el registro rápido para crear "al vuelo" lo que no está en la lista.',
   })
-  crearInsumo(@Body() dto: CreateInsumoDto) {
-    return this.logic.crearInsumo(dto);
+  crearInsumo(
+    @Body() dto: CreateInsumoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.crearInsumo({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch('insumos/:id')
@@ -79,16 +82,20 @@ export class GastosDiariosController {
   actualizarInsumo(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInsumoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.actualizarInsumo(id, dto);
+    return this.logic.actualizarInsumo(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete('insumos/:id')
   @Permisos(PermisoBanderas.GDO_INSUMOS_GESTIONAR)
   @ApiOperation({ summary: 'Dar de baja o reactivar un insumo (alterna el estado)' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  toggleInsumo(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.logic.toggleInsumo(id, dto.idUsuarioAuditoria);
+  toggleInsumo(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.toggleInsumo(id, idUsuarioAuditoria);
   }
 
   /* ------------------------------ Gasto del día ---------------------------- */
@@ -125,8 +132,11 @@ export class GastosDiariosController {
   @ApiOperation({
     summary: 'Abrir el gasto del día. Idempotente: si ya existe, lo devuelve.',
   })
-  abrirDia(@Body() dto: AbrirDiaDto) {
-    return this.logic.abrirDia(dto);
+  abrirDia(
+    @Body() dto: AbrirDiaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.abrirDia({ ...dto, idUsuarioAuditoria });
   }
 
   @Post('dias/:id/lineas')
@@ -138,8 +148,9 @@ export class GastosDiariosController {
   agregarLinea(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateLineaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.logic.agregarLinea(id, dto);
+    return this.logic.agregarLinea(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Delete('lineas/:id')
@@ -148,7 +159,11 @@ export class GastosDiariosController {
     summary: 'Anular una compra. Si era a crédito, revierte la deuda generada en CxP.',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  anularLinea(@Param('id', ParseIntPipe) id: number, @Body() dto: AnularLineaDto) {
-    return this.logic.anularLinea(id, dto.motivo, dto.idUsuarioAuditoria);
+  anularLinea(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AnularLineaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.logic.anularLinea(id, dto.motivo, idUsuarioAuditoria);
   }
 }

@@ -13,7 +13,6 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   BuscarPersonasDto,
   CreatePersonaDto,
@@ -21,6 +20,7 @@ import {
   UpdatePersonaDto,
 } from '../dto/personas.dto';
 import { PersonasLogic } from '../logic/personas.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Personas - Clientes y proveedores')
 @Controller('personas')
@@ -60,8 +60,11 @@ export class PersonasController {
   @Post()
   @Permisos(PermisoBanderas.PERSONAS_CREAR)
   @ApiOperation({ summary: 'Crear persona' })
-  crear(@Body() dto: CreatePersonaDto) {
-    return this.personasLogic.crear(dto);
+  crear(
+    @Body() dto: CreatePersonaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.personasLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -71,16 +74,20 @@ export class PersonasController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePersonaDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.personasLogic.actualizar(id, dto);
+    return this.personasLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.PERSONAS_ACTIVAR)
   @ApiOperation({ summary: 'Reactivar persona' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.personasLogic.activar(id, dto.idUsuarioAuditoria);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.personasLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -90,7 +97,10 @@ export class PersonasController {
       'Dar de baja persona (baja lógica; falla si tiene deuda pendiente)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.personasLogic.eliminar(id, dto.idUsuarioAuditoria);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.personasLogic.eliminar(id, idUsuarioAuditoria);
   }
 }

@@ -13,13 +13,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import {
   CreateConvenioDto,
   FiltroConveniosDto,
   UpdateConvenioDto,
 } from '../dto/convenios.dto';
 import { ConveniosLogic } from '../logic/convenios.logic';
+import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 
 @ApiTags('Personas - Convenios de crédito')
 @Controller('convenios')
@@ -57,8 +57,11 @@ export class ConveniosController {
   @Post()
   @Permisos(PermisoBanderas.CONVENIOS_CREAR)
   @ApiOperation({ summary: 'Crear convenio de crédito' })
-  crear(@Body() dto: CreateConvenioDto) {
-    return this.conveniosLogic.crear(dto);
+  crear(
+    @Body() dto: CreateConvenioDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.conveniosLogic.crear({ ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id')
@@ -68,16 +71,20 @@ export class ConveniosController {
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateConvenioDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
   ) {
-    return this.conveniosLogic.actualizar(id, dto);
+    return this.conveniosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.CONVENIOS_ACTIVAR)
   @ApiOperation({ summary: 'Reactivar convenio' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  activar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.conveniosLogic.activar(id, dto.idUsuarioAuditoria);
+  activar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.conveniosLogic.activar(id, idUsuarioAuditoria);
   }
 
   @Delete(':id')
@@ -86,7 +93,10 @@ export class ConveniosController {
     summary: 'Dar de baja convenio (baja lógica; falla si tiene clientes asignados)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  eliminar(@Param('id', ParseIntPipe) id: number, @Body() dto: AuditoriaDto) {
-    return this.conveniosLogic.eliminar(id, dto.idUsuarioAuditoria);
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+  ) {
+    return this.conveniosLogic.eliminar(id, idUsuarioAuditoria);
   }
 }
