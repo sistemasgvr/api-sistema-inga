@@ -35,7 +35,14 @@ export class AbrirPedidoDto {
   @Min(1)
   id_sucursal?: number;
   @ApiProperty() @IsInt() @Min(1) id_mozo!: number;
-  @ApiProperty() @IsInt() @Min(1) id_turno!: number;
+  @ApiPropertyOptional({
+    description:
+      'Turno preferido. Si se omite, se usa un turno abierto de la sucursal.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  id_turno?: number;
   @ApiPropertyOptional({ description: 'Cliente (cli_persona) del pedido' })
   @IsOptional()
   @IsInt()

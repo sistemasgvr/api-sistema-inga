@@ -27,7 +27,9 @@ BEGIN
   IF v_persona IS NOT NULL AND NOT EXISTS(SELECT 1 FROM cli_persona WHERE id = v_persona AND estado = 1 AND es_cliente) THEN
     RAISE EXCEPTION 'El cliente no existe, está inactivo o no está marcado como cliente';
   END IF;
-  PERFORM ven_validar_turno_pedido(v_turno, v_sucursal);
+  -- El mozo no abre caja: basta un turno abierto de la sucursal. Si se envía
+  -- id_turno (el cajero con su propio turno) se prefiere ese.
+  v_turno := ven_turno_vigente_pedido(v_sucursal, v_turno, p_usuario);
   v_id := nextval(pg_get_serial_sequence('public.ven_pedido', 'id'));
   INSERT INTO ven_pedido(id,id_sucursal,id_mesa,id_mozo,id_turno,id_persona,tipo_pedido,codigo,num_comensales,observacion,tasa_igv,id_usuario_creacion,id_usuario_modificacion)
   OVERRIDING SYSTEM VALUE VALUES(v_id,v_sucursal,v_mesa,v_mozo,v_turno,v_persona,v_tipo,'PED-' || v_id,
