@@ -23,7 +23,7 @@ describe('Firma QZ', () => {
   ) => JSON.stringify({ call, params, timestamp: Date.now() });
   beforeEach(() => {
     jest.resetAllMocks();
-    db.query.mockResolvedValue({ rowCount: 1 });
+    db.query.mockResolvedValue({ rowCount: 1, rows: [] });
   });
 
   it('firma el hash SHA-256 con RSA-SHA512 como requiere QZ Tray', async () => {

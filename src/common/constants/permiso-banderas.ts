@@ -7,6 +7,9 @@ export const PermisoBanderas = {
   PEDIDOS_EDITAR: 'pedidos.editar',
   PEDIDOS_COMANDAR: 'pedidos.comandar',
   PEDIDOS_ESTADO: 'pedidos.estado',
+  // Cobrar, cobrar a crédito y cerrar el pedido. Va aparte de pedidos.estado
+  // para que el mozo pueda pedir la precuenta sin poder cobrar.
+  PEDIDOS_COBRAR: 'pedidos.cobrar',
   PEDIDOS_ANULAR: 'pedidos.anular',
   AMBIENTES_LISTAR: 'ambientes.listar',
   AMBIENTES_GESTIONAR: 'ambientes.gestionar',
@@ -65,6 +68,14 @@ export const PermisoBanderas = {
   SUCURSALES_EDITAR: 'sucursales.editar',
   SUCURSALES_ELIMINAR: 'sucursales.eliminar',
   SUCURSALES_ACTIVAR: 'sucursales.activar',
+
+  // SUNAT: la pantalla está en desarrollo; el front ya los usa en el menú.
+  SUNAT_LISTAR: 'sunat.listar',
+  SUNAT_VER: 'sunat.ver',
+  SUNAT_CREAR: 'sunat.crear',
+  SUNAT_EDITAR: 'sunat.editar',
+  SUNAT_ELIMINAR: 'sunat.eliminar',
+  SUNAT_ACTIVAR: 'sunat.activar',
 
   PERSONAS_LISTAR: 'personas.listar',
   PERSONAS_VER: 'personas.ver',

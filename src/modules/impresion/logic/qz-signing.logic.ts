@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFile } from 'node:fs/promises';
-import { createHash, createSign } from 'node:crypto';
+import {
+  createHash,
+  createSign,
+  createPrivateKey,
+  X509Certificate,
+} from 'node:crypto';
 import { isIP } from 'node:net';
 import { ImpresionModel } from '../models/impresion.model';
 
@@ -22,12 +27,59 @@ export class QzSigningLogic {
     );
   }
   async certificado() {
+    const guardado = await this.model.configuracionQz();
+    if (guardado) return { certificado: guardado.certificado };
     const path = this.config.get<string>('QZ_CERTIFICATE_PATH');
     if (path) return { certificado: await readFile(path, 'utf8') };
     if (this.unsigned) return { certificado: null };
     throw new ServiceUnavailableException(
       'Configura el certificado y la clave de QZ Tray en el servidor',
     );
+  }
+  async configuracion() {
+    const guardado = await this.model.configuracionQz();
+    if (!guardado)
+      return {
+        configurado: false,
+        origen: this.config.get('QZ_CERTIFICATE_PATH') ? 'archivo' : null,
+      };
+    const cert = new X509Certificate(guardado.certificado);
+    return {
+      configurado: true,
+      origen: 'base',
+      actualizado: guardado.actualizado,
+      sujeto: cert.subject,
+      vence: cert.validTo,
+      huella: cert.fingerprint256,
+    };
+  }
+
+  async guardarConfiguracion(certificado: string, clavePrivada: string) {
+    try {
+      const cert = new X509Certificate(certificado);
+      const key = createPrivateKey(clavePrivada);
+      if (
+        key.asymmetricKeyType !== 'rsa' ||
+        (key.asymmetricKeyDetails?.modulusLength ?? 0) < 2048
+      )
+        throw new Error('La clave debe ser RSA de al menos 2048 bits');
+      if (!cert.checkPrivateKey(key))
+        throw new Error('El certificado no corresponde a la clave privada');
+      if (
+        Date.now() < Date.parse(cert.validFrom) ||
+        Date.now() >= Date.parse(cert.validTo)
+      )
+        throw new Error('El certificado está vencido o todavía no es válido');
+    } catch {
+      throw new BadRequestException(
+        'Carga un certificado vigente y su clave privada RSA correspondiente (PEM sin contraseña, mínimo 2048 bits)',
+      );
+    }
+    await this.model.guardarConfiguracionQz(
+      certificado.trim(),
+      clavePrivada.trim(),
+    );
+    return this.configuracion();
   }
   async firmar(message: string) {
     let value: {
@@ -80,15 +132,21 @@ export class QzSigningLogic {
     }
     if (!(await this.model.impresoraActiva(target.host)))
       throw new BadRequestException('La IP no pertenece a una estación activa');
+    const guardado = await this.model.configuracionQz();
     const path = this.config.get<string>('QZ_PRIVATE_KEY_PATH');
-    if (!path && this.unsigned) return { firma: '' };
-    if (!path)
+    if (!guardado && !path && this.unsigned) return { firma: '' };
+    if (!guardado && !path)
       throw new ServiceUnavailableException(
         'Falta configurar la clave de QZ Tray',
       );
     const signer = createSign('RSA-SHA512');
     // qz-tray firma la representación hexadecimal SHA-256 del mensaje serializado.
     signer.update(createHash('sha256').update(message).digest('hex'));
-    return { firma: signer.sign(await readFile(path, 'utf8'), 'base64') };
+    return {
+      firma: signer.sign(
+        guardado ? guardado.clave_privada : await readFile(path!, 'utf8'),
+        'base64',
+      ),
+    };
   }
 }

@@ -1,9 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { DatabaseService } from '../../../database/database.service';
 
 @Injectable()
 export class ImpresionModel {
   constructor(private readonly db: DatabaseService) {}
+
+  async configuracionQz() {
+    const result = await this.db.query<{
+      certificado: string;
+      clave_privada: string;
+      actualizado: Date;
+    }>(
+      'SELECT certificado, clave_privada, actualizado FROM gen_qz_configuracion WHERE id=1',
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async guardarConfiguracionQz(certificado: string, clave: string) {
+    try {
+      await this.db.query(
+        `INSERT INTO gen_qz_configuracion (id, certificado, clave_privada) VALUES (1,$1,$2)
+       ON CONFLICT (id) DO UPDATE SET certificado=$1, clave_privada=$2, actualizado=now()`,
+        [certificado, clave],
+      );
+    } catch {
+      // No propagar detalles SQL que podrían contener la clave privada.
+      throw new ServiceUnavailableException(
+        'No se pudo guardar la configuración QZ. Verifica la migración y los permisos de la base de datos.',
+      );
+    }
+  }
 
   async tomar(estaciones: number[], propietario: string) {
     // Una sola sentencia y SKIP LOCKED protegen incluso con varios procesos del VPS.

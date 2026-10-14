@@ -38,11 +38,11 @@ export class PedidosController {
   precuenta(@Param('id',ParseIntPipe) id:number,@Body() dto:PrecuentaPedidoDto,@Req() req:AuthRequest) {
     return this.logic.ejecutar('precuenta',id,null,dto,req.user);
   }
-  @Post(':id/cobrar') @Permisos(P.PEDIDOS_ESTADO)
+  @Post(':id/cobrar') @Permisos(P.PEDIDOS_COBRAR)
   cobrar(@Param('id',ParseIntPipe) id:number,@Body() dto:CobrarPedidoDto,@Req() req:AuthRequest) {
     return this.logic.ejecutar('cobrar',id,null,dto,req.user);
   }
-  @Post(':id/credito') @Permisos(P.PEDIDOS_ESTADO)
+  @Post(':id/credito') @Permisos(P.PEDIDOS_COBRAR)
   credito(@Param('id',ParseIntPipe) id:number,@Body() dto:CreditoPedidoDto,@Req() req:AuthRequest) {
     return this.logic.ejecutar('credito',id,null,dto,req.user);
   }

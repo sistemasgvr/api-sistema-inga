@@ -11,6 +11,7 @@ import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { ImpresionLogic } from '../logic/impresion.logic';
 import { QzSigningLogic } from '../logic/qz-signing.logic';
+import { QzConfiguracionDto } from '../dto/qz-configuracion.dto';
 import {
   ConfirmarImpresionDto,
   ResolverImpresionDto,
@@ -24,6 +25,17 @@ export class ImpresionController {
     private readonly service: ImpresionLogic,
     private readonly qz: QzSigningLogic,
   ) {}
+  @Get('qz/configuracion')
+  @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
+  configuracionQz() {
+    return this.qz.configuracion();
+  }
+
+  @Post('qz/configuracion')
+  @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
+  guardarConfiguracionQz(@Body() dto: QzConfiguracionDto) {
+    return this.qz.guardarConfiguracion(dto.certificado, dto.clavePrivada);
+  }
   @Get('qz/certificado')
   certificado() {
     return this.qz.certificado();

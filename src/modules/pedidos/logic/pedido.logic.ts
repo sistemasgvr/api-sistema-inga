@@ -11,6 +11,7 @@ import {
   mapListResult,
   mapSingleResult,
 } from '../../../common/helpers/auth-response.helper';
+import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
 import { FiltroPedidoDto } from '../dto/pedido.dto';
@@ -48,12 +49,17 @@ export class PedidoLogic {
     if (accion === 'abrir')
       payload.tasa_igv = this.config.get<number>('PEDIDOS_TASA_IGV', 18);
     // Cambiar estado no permite saltarse los permisos de las operaciones que producen efectos.
+    // Pasar a 4 cierra el pedido ya pagado, así que es parte del cobro.
     const permiso =
-      accion === 'estado' && payload.estado_pedido === 2
-        ? 'pedidos.comandar'
-        : accion === 'estado' && payload.estado_pedido === 5
-          ? 'pedidos.anular'
-          : null;
+      accion !== 'estado'
+        ? null
+        : payload.estado_pedido === 2
+          ? PermisoBanderas.PEDIDOS_COMANDAR
+          : payload.estado_pedido === 4
+            ? PermisoBanderas.PEDIDOS_COBRAR
+            : payload.estado_pedido === 5
+              ? PermisoBanderas.PEDIDOS_ANULAR
+              : null;
     if (
       permiso &&
       !usuario.es_super_admin &&

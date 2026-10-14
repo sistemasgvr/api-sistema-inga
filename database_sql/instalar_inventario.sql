@@ -44,6 +44,7 @@ BEGIN;
 \ir funciones/inventario/alm_obtener_movimiento.sql
 \ir seeds/permisos/10_pedidos.sql
 \ir seeds/permisos/11_inventario.sql
+\ir seeds/permisos/12_catalogo_y_configuracion.sql
 \ir funciones/general/listas/gen_filtrar_opciones_lista.sql
 \ir funciones/inventario/alm_buscar_stock.sql
 \ir funciones/pedidos/ven_pedido_preparacion.sql

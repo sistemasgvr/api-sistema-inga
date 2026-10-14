@@ -36,8 +36,8 @@ describe('Orquestación de pedidos', () => {
     expect(impresion.notificar).toHaveBeenCalledTimes(1);
   });
 
-  it.each([2, 5])(
-    'impide eludir el permiso de comanda/anulación usando estado %s',
+  it.each([2, 4, 5])(
+    'impide eludir el permiso de comanda/cobro/anulación usando estado %s',
     (estado_pedido) => {
       expect(() =>
         logic.ejecutar('estado', 1, null, { estado_pedido }, user),
