@@ -82,6 +82,8 @@ BEGIN
             pro_costo_unitario_insumo(p.id) AS costo_unitario,
             p.controla_stock,
             CASE WHEN p.controla_stock THEN stock.stock_actual ELSE NULL END AS stock_actual,
+            -- Lo que se puede entregar ya: lo mismo que ven_reservar_item aparta al comandar.
+            CASE WHEN p.controla_stock THEN GREATEST(stock.stock_actual - stock.stock_reservado, 0) ELSE NULL END AS stock_disponible,
             p.disponible_venta,
             p.afecto_igv,
             p.descripcion,
