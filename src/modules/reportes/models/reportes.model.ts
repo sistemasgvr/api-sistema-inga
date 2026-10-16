@@ -111,11 +111,15 @@ const SQL_VENTAS_POR_MEDIO = `
   WHERE g.estado = 1
   GROUP BY g.medio_pago, m.nombre ORDER BY g.medio_pago`;
 
+// Mesas atendidas = pedidos de mesa cobrados (cada apertura de mesa es una
+// atención, aunque se repita la misma mesa en el día).
 const SQL_VENTAS_POR_MOZO = `
   WITH ${VENTAS}
   SELECT v.id_mozo::INT AS id_mozo,
     COALESCE(NULLIF(trim(concat_ws(' ', u.nombres, u.apellidos)), ''), u.username, 'Sin nombre') AS nombre,
-    count(*)::INT AS cantidad, sum(v.monto_total)::FLOAT8 AS total
+    count(*)::INT AS cantidad, sum(v.monto_total)::FLOAT8 AS total,
+    count(*) FILTER (WHERE v.id_mesa IS NOT NULL)::INT AS mesas,
+    COALESCE(sum(v.num_comensales), 0)::INT AS comensales
   FROM ventas v LEFT JOIN auth_usuario_datos u ON u.id = v.id_mozo
   GROUP BY v.id_mozo, u.nombres, u.apellidos, u.username ORDER BY total DESC`;
 
