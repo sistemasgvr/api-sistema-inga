@@ -15,11 +15,11 @@ BEGIN
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   SELECT * INTO v FROM ven_pedido WHERE id=p_id;
   IF v.monto_total<=0 THEN RAISE EXCEPTION 'El pedido no tiene importe por cobrar'; END IF;
-  -- Se exige el turno del cajero; un administrador puede usar el único turno de la sucursal.
+  -- Basta una caja abierta en la sucursal; si quien cobra tiene su propio turno, el pago va a ese.
   SELECT ct.id INTO t FROM caj_turno ct JOIN caj_caja c ON c.id=ct.id_caja
-    WHERE ct.estado=1 AND ct.estado_turno=1 AND c.estado=1 AND c.id_sucursal=v.id_sucursal AND ct.id_cajero=p_usuario
-    ORDER BY ct.id DESC LIMIT 1 FOR SHARE OF ct,c;
-  IF t IS NULL THEN RAISE EXCEPTION 'El usuario debe tener un turno abierto en esta sucursal para cobrar'; END IF;
+    WHERE ct.estado=1 AND ct.estado_turno=1 AND c.estado=1 AND c.id_sucursal=v.id_sucursal
+    ORDER BY (ct.id_cajero=p_usuario) DESC, ct.id DESC LIMIT 1 FOR SHARE OF ct,c;
+  IF t IS NULL THEN RAISE EXCEPTION 'No hay una caja abierta en esta sucursal para cobrar'; END IF;
   IF credito THEN
     IF COALESCE(p_datos->>'documento','') !~ '^[0-9]{8}$' THEN RAISE EXCEPTION 'Ingrese el DNI de ocho dígitos del cliente'; END IF;
     SELECT * INTO persona FROM cli_persona WHERE num_documento=p_datos->>'documento' AND tipo_documento=1 AND estado=1 AND es_cliente FOR UPDATE;

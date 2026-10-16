@@ -8,6 +8,7 @@ BEGIN;
 \ir funciones/caja/turnos/caj_abrir_turno.sql
 \ir funciones/caja/turnos/caj_listar_turnos.sql
 \ir funciones/caja/turnos/caj_obtener_turno.sql
+\ir funciones/caja/turnos/caj_obtener_turno_vigente.sql
 \ir funciones/caja/turnos/caj_resumen_turno.sql
 \ir funciones/cuentas-por-cobrar/cxc_listar_movimientos.sql
 \ir funciones/cuentas-por-cobrar/cxc_obtener_movimiento.sql

@@ -172,6 +172,25 @@ export const PermisoBanderas = {
   INVENTARIO_GESTIONAR: 'inventario.gestionar',
   PRODUCCION_PREPARAR: 'produccion.preparar',
   PEDIDOS_ENTREGAR: 'pedidos.entregar',
+
+  // Ventas (pedidos cobrados). Cambiar el pago y reemitir van aparte porque
+  // pueden tocar cajas ya cerradas.
+  VENTAS_LISTAR: 'ventas.listar',
+  VENTAS_REIMPRIMIR: 'ventas.reimprimir',
+  VENTAS_CAMBIAR_PAGO: 'ventas.cambiar_pago',
+  VENTAS_REEMITIR: 'ventas.reemitir',
+
+  // Dashboard y reportería. Un permiso por reporte porque mezclan datos
+  // sensibles distintos: quien ve la caja no tiene por qué ver la planilla.
+  // `reportes.general` y `dashboard.ver` muestran la rentabilidad completa.
+  DASHBOARD_VER: 'dashboard.ver',
+  REPORTES_VENTAS: 'reportes.ventas',
+  REPORTES_GASTOS: 'reportes.gastos',
+  REPORTES_CAJA: 'reportes.caja',
+  REPORTES_CUENTAS: 'reportes.cuentas',
+  REPORTES_PLANILLA: 'reportes.planilla',
+  REPORTES_INVENTARIO: 'reportes.inventario',
+  REPORTES_GENERAL: 'reportes.general',
 } as const;
 
 export type PermisoBandera =

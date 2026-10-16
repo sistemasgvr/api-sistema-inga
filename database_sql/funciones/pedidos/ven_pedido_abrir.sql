@@ -9,7 +9,7 @@ DECLARE
   v_persona BIGINT := NULLIF(p_datos->>'id_persona', '')::BIGINT;
   v ven_mesa%ROWTYPE; v_salon ven_salon%ROWTYPE;
 BEGIN
-  IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido inválido'; END IF;
+IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido inválido'; END IF;
   IF v_tipo = 1 THEN
     IF v_mesa IS NULL THEN RAISE EXCEPTION 'El pedido en mesa requiere id_mesa'; END IF;
     PERFORM pg_advisory_xact_lock(505, (v_mesa % 2147483647)::INTEGER);

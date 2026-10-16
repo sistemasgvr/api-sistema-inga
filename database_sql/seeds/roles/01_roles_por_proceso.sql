@@ -40,6 +40,7 @@ INSERT INTO tmp_rol_proceso (rol, permiso) VALUES
 ('CAJERO','personas.listar'),('CAJERO','personas.ver'),('CAJERO','personas.crear'),
 ('CAJERO','convenios.listar'),('CAJERO','cxc.consumo'),
 ('CAJERO','estaciones.listar'),
+('CAJERO','ventas.listar'),('CAJERO','ventas.reimprimir'),
 ('CAJERO','gdo.listar'),('CAJERO','gdo.registrar'),
 -- El menú "Gastos" pide gastos.listar en el grupo; sin él, el cajero no ve
 -- "Compras del día". Quitarlo cuando cada opción del menú tenga su permiso.

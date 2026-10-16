@@ -29,7 +29,9 @@ export class TurnosModel {
   }
 
   obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('caj_obtener_turno', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>('caj_obtener_turno', [
+      id,
+    ]);
   }
 
   obtenerAbiertoPorCajero(idCajero: number) {
@@ -39,8 +41,27 @@ export class TurnosModel {
     );
   }
 
+  obtenerVigente(idUsuario: number, idSucursal: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'caj_obtener_turno_vigente',
+      [idUsuario, idSucursal],
+    );
+  }
+
+  /** Usuario con `es_super_admin` y sus roles activos (para autorizar el cierre). */
+  obtenerUsuario(idUsuario: number) {
+    return this.db.callFunctionJson<
+      AuthSingleResult<{
+        es_super_admin?: boolean;
+        roles?: { codigo: string }[];
+      }>
+    >('auth_obtener_usuario', [idUsuario]);
+  }
+
   resumen(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('caj_resumen_turno', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>('caj_resumen_turno', [
+      id,
+    ]);
   }
 
   abrir(

@@ -33,6 +33,8 @@ import { GastosAdministrativosModule } from './modules/gastos-administrativos/ga
 import { CuentasPorCobrarModule } from './modules/cuentas-por-cobrar/cuentas-por-cobrar.module';
 import { CuentasPorPagarModule } from './modules/cuentas-por-pagar/cuentas-por-pagar.module';
 import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.module';
+import { VentasModule } from './modules/ventas/ventas.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 
 @Module({
   imports: [
@@ -80,6 +82,10 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
     PedidosModule,
     InventarioModule,
     TiposProductoModule,
+    // Ventas: pedidos cobrados, reimpresión, cambio de pago y reemisión.
+    VentasModule,
+    // Dashboard gerencial y reportería (solo lectura).
+    ReportesModule,
   ],
   controllers: [],
   providers: [

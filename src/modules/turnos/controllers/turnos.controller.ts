@@ -8,7 +8,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
@@ -45,6 +50,25 @@ export class TurnosController {
   })
   obtenerAbierto(@Param('idCajero', ParseIntPipe) idCajero: number) {
     return this.turnosLogic.obtenerAbiertoPorCajero(idCajero);
+  }
+
+  // También antes de ':id', por la misma razón.
+  // Sin permiso específico (solo sesión): la alerta de caja abierta se muestra a
+  // todos los usuarios y los módulos que pagan o cobran la consultan aunque el
+  // usuario no tenga turnos.ver.
+  @Get('vigente')
+  @ApiOperation({
+    summary:
+      'Caja abierta contra la que se registran cobros, pagos y gastos. Prefiere el turno del usuario; registro = null si no hay ninguna',
+  })
+  obtenerVigente(
+    @UsuarioAuditoria() idUsuario: number,
+    @Query('id_sucursal') idSucursal?: string,
+  ) {
+    return this.turnosLogic.obtenerVigente(
+      idUsuario,
+      idSucursal ? Number(idSucursal) : null,
+    );
   }
 
   @Get(':id')
@@ -88,8 +112,14 @@ export class TurnosController {
   @Permisos(PermisoBanderas.TURNOS_CERRAR)
   @ApiOperation({
     summary: 'Cerrar turno declarando el efectivo contado y guardar la diferencia',
+    description:
+      'Solo el cajero que abrió la caja o un administrador (rol ADMIN o superadministrador) puede cerrarla.',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
+  @ApiForbiddenResponse({
+    type: () => ApiErrorResponseDto,
+    description: 'El usuario no abrió la caja y no es administrador',
+  })
   cerrar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CerrarTurnoDto,
@@ -116,7 +146,10 @@ export class TurnosController {
   @Permisos(PermisoBanderas.TURNOS_ARQUEO)
   @ApiOperation({
     summary: 'Guardar el conteo de billetes y monedas (reemplaza el anterior)',
+    description:
+      'Es parte del cierre: con la caja abierta, solo el cajero que la abrió o un administrador.',
   })
+  @ApiForbiddenResponse({ type: () => ApiErrorResponseDto })
   guardarArqueo(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: GuardarArqueoDto,
