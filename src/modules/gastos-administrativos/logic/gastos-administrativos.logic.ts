@@ -15,10 +15,14 @@ import {
   UpdateGastoDto,
 } from '../dto/gastos-administrativos.dto';
 import { GastosAdministrativosModel } from '../models/gastos-administrativos.model';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
 
 @Injectable()
 export class GastosAdministrativosLogic {
-  constructor(private readonly model: GastosAdministrativosModel) {}
+  constructor(
+    private readonly model: GastosAdministrativosModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   /* ------------------------------ Categorías ------------------------------ */
 
@@ -78,7 +82,16 @@ export class GastosAdministrativosLogic {
 
   async registrarGasto(dto: CreateGastoDto) {
     const result = await this.model.registrarGasto(dto);
-    return mapSingleResult(result, 'No se pudo registrar el gasto');
+    const registro = mapSingleResult(result, 'No se pudo registrar el gasto');
+    this.notificaciones.emitir({
+      canal: 'gastos' as any,
+      titulo: 'Gasto administrativo registrado',
+      mensaje: `Gasto registrado`,
+      severidad: 'info',
+      ruta: '/gastos',
+      idReferencia: (registro as { id?: number })?.id ?? null,
+    })?.catch(() => undefined);
+    return registro;
   }
 
   async actualizarGasto(id: number, dto: UpdateGastoDto) {

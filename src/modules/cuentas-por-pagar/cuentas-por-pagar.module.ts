@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CuentasPorPagarController } from './controllers/cuentas-por-pagar.controller';
 import { CuentasPorPagarLogic } from './logic/cuentas-por-pagar.logic';
 import { CuentasPorPagarModel } from './models/cuentas-por-pagar.model';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
  * Exporto la lógica porque dos módulos la van a necesitar:
@@ -10,6 +11,7 @@ import { CuentasPorPagarModel } from './models/cuentas-por-pagar.model';
  *   M02 Dashboard      → la alerta de "Deudas por pagar" que pidió el cliente
  */
 @Module({
+  imports: [NotificacionesModule],
   controllers: [CuentasPorPagarController],
   providers: [CuentasPorPagarLogic, CuentasPorPagarModel],
   exports: [CuentasPorPagarLogic],

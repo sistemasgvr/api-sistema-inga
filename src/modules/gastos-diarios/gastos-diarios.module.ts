@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { GastosDiariosController } from './controllers/gastos-diarios.controller';
 import { GastosDiariosLogic } from './logic/gastos-diarios.logic';
 import { GastosDiariosModel } from './models/gastos-diarios.model';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
  * Exporto la lógica porque el dashboard (M02) necesita el gasto de insumos del
@@ -14,6 +15,7 @@ import { GastosDiariosModel } from './models/gastos-diarios.model';
  * donde vive la regla de negocio en este proyecto.
  */
 @Module({
+  imports: [NotificacionesModule],
   controllers: [GastosDiariosController],
   providers: [GastosDiariosLogic, GastosDiariosModel],
   exports: [GastosDiariosLogic],

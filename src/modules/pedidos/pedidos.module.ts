@@ -4,9 +4,10 @@ import { PedidosController } from './controllers/pedidos.controller';
 import { PedidoLogic } from './logic/pedido.logic';
 import { PedidoModel } from './models/pedido.model';
 import { ImpresionModule } from '../impresion/impresion.module';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 @Module({
-  imports: [DatabaseModule, ImpresionModule],
+  imports: [DatabaseModule, ImpresionModule, NotificacionesModule],
   controllers: [PedidosController],
   providers: [PedidoLogic, PedidoModel],
 })

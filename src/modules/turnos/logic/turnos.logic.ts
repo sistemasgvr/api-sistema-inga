@@ -17,6 +17,7 @@ import {
   GuardarArqueoDto,
 } from '../dto/turnos.dto';
 import { TurnosModel } from '../models/turnos.model';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
 
 /** Código del rol administrador en auth_rol. */
 export const CODIGO_ROL_ADMIN = 'ADMIN';
@@ -41,7 +42,10 @@ export function mensajeCierreNoAutorizado(nombreCajero?: string | null) {
 
 @Injectable()
 export class TurnosLogic {
-  constructor(private readonly turnosModel: TurnosModel) {}
+  constructor(
+    private readonly turnosModel: TurnosModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   async listar(filtros: FiltroTurnosDto) {
     const result = await this.turnosModel.listar(filtros);
@@ -138,7 +142,16 @@ export class TurnosLogic {
   async cerrar(id: number, dto: CerrarTurnoDto) {
     await this.validarCierre(id, dto.idUsuarioAuditoria);
     const result = await this.turnosModel.cerrar(id, dto);
-    return mapSingleResult(result, `Turno con ID ${id} no encontrado`);
+    const registro = mapSingleResult(result, `Turno con ID ${id} no encontrado`);
+    this.notificaciones.emitir({
+      canal: 'caja' as any,
+      titulo: 'Turno cerrado',
+      mensaje: `Caja cerrada (turno ${id})`,
+      severidad: 'info',
+      ruta: '/caja/turnos',
+      idReferencia: id,
+    })?.catch(() => undefined);
+    return registro;
   }
 
   async registrarMovimiento(idTurno: number, dto: CreateMovimientoDto) {

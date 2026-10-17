@@ -35,6 +35,7 @@ import { CuentasPorPagarModule } from './modules/cuentas-por-pagar/cuentas-por-p
 import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.module';
 import { VentasModule } from './modules/ventas/ventas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -86,6 +87,8 @@ import { ReportesModule } from './modules/reportes/reportes.module';
     VentasModule,
     // Dashboard gerencial y reportería (solo lectura).
     ReportesModule,
+    // Notificaciones en tiempo real.
+    NotificacionesModule,
   ],
   controllers: [],
   providers: [

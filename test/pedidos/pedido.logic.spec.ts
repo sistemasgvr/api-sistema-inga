@@ -9,14 +9,17 @@ import { AuthenticatedUser } from '../../src/common/interfaces/authenticated-use
 import { PedidoLogic } from '../../src/modules/pedidos/logic/pedido.logic';
 import { PedidoModel } from '../../src/modules/pedidos/models/pedido.model';
 import { ImpresionGateway } from '../../src/modules/impresion/gateways/impresion.gateway';
+import { NotificacionesLogic } from '../../src/modules/notificaciones/logic/notificaciones.logic';
 
 describe('Orquestación de pedidos', () => {
   const model = { obtener: jest.fn(), ejecutar: jest.fn() };
   const impresion = { notificar: jest.fn() };
+  const notificaciones = { emitir: jest.fn().mockResolvedValue(undefined) };
   const logic = new PedidoLogic(
     model as unknown as PedidoModel,
     new ConfigService({ PEDIDOS_TASA_IGV: 18 }),
     impresion as unknown as ImpresionGateway,
+    notificaciones as unknown as NotificacionesLogic,
   );
   const user = {
     id: 7,

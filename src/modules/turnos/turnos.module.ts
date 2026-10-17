@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TurnosController } from './controllers/turnos.controller';
 import { TurnosLogic } from './logic/turnos.logic';
 import { TurnosModel } from './models/turnos.model';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
  * Exporto TurnosLogic porque el cobro (M12) lo va a necesitar: antes de
@@ -9,6 +10,7 @@ import { TurnosModel } from './models/turnos.model';
  * abierto y saber contra cuál registrarlo.
  */
 @Module({
+  imports: [NotificacionesModule],
   controllers: [TurnosController],
   providers: [TurnosLogic, TurnosModel],
   exports: [TurnosLogic],

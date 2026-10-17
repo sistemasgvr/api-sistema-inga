@@ -13,10 +13,14 @@ import {
   FiltroSaldosDto,
 } from '../dto/cuentas-por-pagar.dto';
 import { CuentasPorPagarModel } from '../models/cuentas-por-pagar.model';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
 
 @Injectable()
 export class CuentasPorPagarLogic {
-  constructor(private readonly model: CuentasPorPagarModel) {}
+  constructor(
+    private readonly model: CuentasPorPagarModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   async listarSaldos(filtros: FiltroSaldosDto) {
     const result = await this.model.listarSaldos(filtros);
@@ -50,12 +54,30 @@ export class CuentasPorPagarLogic {
 
   async registrarCargo(dto: CreateCargoDto) {
     const result = await this.model.registrarCargo(dto);
-    return mapSingleResult(result, 'No se pudo registrar el cargo');
+    const registro = mapSingleResult(result, 'No se pudo registrar el cargo');
+    this.notificaciones.emitir({
+      canal: 'cuentas-por-pagar' as any,
+      titulo: 'Cargo por pagar registrado',
+      mensaje: `Proveedor ${dto.id_persona ?? ''}`.trim(),
+      severidad: 'info',
+      ruta: '/cuentas-por-pagar',
+      idReferencia: (registro as { id?: number })?.id ?? null,
+    })?.catch(() => undefined);
+    return registro;
   }
 
   async registrarAbono(dto: CreateAbonoDto) {
     const result = await this.model.registrarAbono(dto);
-    return mapSingleResult(result, 'No se pudo registrar el abono');
+    const registro = mapSingleResult(result, 'No se pudo registrar el abono');
+    this.notificaciones.emitir({
+      canal: 'cuentas-por-pagar' as any,
+      titulo: 'Abono a cuenta por pagar',
+      mensaje: `Movimiento registrado`,
+      severidad: 'success',
+      ruta: '/cuentas-por-pagar',
+      idReferencia: (registro as { id?: number })?.id ?? null,
+    })?.catch(() => undefined);
+    return registro;
   }
 
   async registrarAjuste(dto: CreateAjusteDto) {

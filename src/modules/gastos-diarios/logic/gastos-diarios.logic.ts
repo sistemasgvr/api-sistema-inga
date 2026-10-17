@@ -15,10 +15,14 @@ import {
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
 import { GastosDiariosModel } from '../models/gastos-diarios.model';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
 
 @Injectable()
 export class GastosDiariosLogic {
-  constructor(private readonly model: GastosDiariosModel) {}
+  constructor(
+    private readonly model: GastosDiariosModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   /* -------------------------------- Insumos -------------------------------- */
 
@@ -80,7 +84,16 @@ export class GastosDiariosLogic {
 
   async agregarLinea(idGastoDia: number, dto: CreateLineaDto) {
     const result = await this.model.agregarLinea(idGastoDia, dto);
-    return mapSingleResult(result, 'No se pudo agregar la compra');
+    const registro = mapSingleResult(result, 'No se pudo agregar la compra');
+    this.notificaciones.emitir({
+      canal: 'gastos-diarios' as any,
+      titulo: 'Compra registrada',
+      mensaje: `Gasto diario ${idGastoDia}`,
+      severidad: 'info',
+      ruta: '/gastos/diarios',
+      idReferencia: (registro as { id?: number })?.id ?? null,
+    })?.catch(() => undefined);
+    return registro;
   }
 
   async anularLinea(id: number, motivo?: string, idUsuarioAuditoria?: number) {

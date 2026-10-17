@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TurnosModel } from '../../src/modules/turnos/models/turnos.model';
+import { NotificacionesLogic } from '../../src/modules/notificaciones/logic/notificaciones.logic';
 import {
   esAdministrador,
   TurnosLogic,
@@ -16,7 +17,8 @@ describe('Cierre de caja: quién puede cerrarla', () => {
     cerrar: jest.fn(),
     guardarArqueo: jest.fn(),
   };
-  const logic = new TurnosLogic(model as unknown as TurnosModel);
+  const notificaciones = { emitir: jest.fn().mockResolvedValue(undefined) };
+  const logic = new TurnosLogic(model as unknown as TurnosModel, notificaciones as unknown as NotificacionesLogic);
 
   const turnoAbierto = {
     id: 10,
