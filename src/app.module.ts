@@ -36,6 +36,7 @@ import { GastosDiariosModule } from './modules/gastos-diarios/gastos-diarios.mod
 import { VentasModule } from './modules/ventas/ventas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { EmpresaModule } from './modules/empresa/empresa.module';
 
 @Module({
   imports: [
@@ -89,6 +90,8 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
     ReportesModule,
     // Notificaciones en tiempo real.
     NotificacionesModule,
+    // Datos de la empresa para tickets y, más adelante, facturación electrónica.
+    EmpresaModule,
   ],
   controllers: [],
   providers: [

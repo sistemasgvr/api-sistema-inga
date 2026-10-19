@@ -67,7 +67,11 @@ INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VA
 ('sunat.crear',    'Crear configuración SUNAT',      'Permite registrar series y configuración SUNAT', 'SUNAT', 1),
 ('sunat.editar',   'Editar configuración SUNAT',     'Permite modificar series, certificado y credenciales SUNAT', 'SUNAT', 1),
 ('sunat.eliminar', 'Desactivar configuración SUNAT', 'Permite dar de baja una configuración SUNAT', 'SUNAT', 1),
-('sunat.activar',  'Activar configuración SUNAT',    'Permite reactivar una configuración SUNAT', 'SUNAT', 1)
+('sunat.activar',  'Activar configuración SUNAT',    'Permite reactivar una configuración SUNAT', 'SUNAT', 1),
+
+-- MÓDULO: Empresa (datos y logo de los tickets)
+('empresa.ver',    'Ver datos de la empresa',    'Permite consultar RUC, razón social, dirección y logo', 'Empresa', 1),
+('empresa.editar', 'Editar datos de la empresa', 'Permite modificar RUC, razón social, dirección y logo', 'Empresa', 1)
 
 ON CONFLICT (codigo) DO UPDATE
 SET

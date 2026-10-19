@@ -77,6 +77,10 @@ export const PermisoBanderas = {
   SUNAT_ELIMINAR: 'sunat.eliminar',
   SUNAT_ACTIVAR: 'sunat.activar',
 
+  // Datos de la empresa que salen en los tickets (Configuración → Empresa).
+  EMPRESA_VER: 'empresa.ver',
+  EMPRESA_EDITAR: 'empresa.editar',
+
   PERSONAS_LISTAR: 'personas.listar',
   PERSONAS_VER: 'personas.ver',
   PERSONAS_CREAR: 'personas.crear',

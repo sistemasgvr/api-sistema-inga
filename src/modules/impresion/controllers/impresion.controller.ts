@@ -11,6 +11,7 @@ import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { ImpresionLogic } from '../logic/impresion.logic';
 import { QzSigningLogic } from '../logic/qz-signing.logic';
+import { EmpresaLogic } from '../../empresa/logic/empresa.logic';
 import { QzConfiguracionDto } from '../dto/qz-configuracion.dto';
 import {
   ConfirmarImpresionDto,
@@ -24,7 +25,13 @@ export class ImpresionController {
   constructor(
     private readonly service: ImpresionLogic,
     private readonly qz: QzSigningLogic,
+    private readonly empresa: EmpresaLogic,
   ) {}
+  // Encabezado de los tickets (logo, RUC, razón social y dirección).
+  @Get('empresa')
+  datosEmpresa() {
+    return this.empresa.datosTicket();
+  }
   @Get('qz/configuracion')
   @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
   configuracionQz() {

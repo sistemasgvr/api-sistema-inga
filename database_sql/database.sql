@@ -199,6 +199,8 @@ CREATE TABLE IF NOT EXISTS gen_empresa (
     id_distrito             BIGINT,
     telefono                VARCHAR(20),
     email                   VARCHAR(100),
+    logo_url                TEXT,
+    logo_ticket             TEXT,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
