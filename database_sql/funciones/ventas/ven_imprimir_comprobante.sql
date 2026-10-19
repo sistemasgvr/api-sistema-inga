@@ -17,6 +17,18 @@ BEGIN
     RAISE EXCEPTION 'Configure la estación principal de caja y cobros en Estaciones';
   END IF;
 
+  -- Un doble clic en «Imprimir» no debe duplicar el mismo ticket en la cola.
+  IF EXISTS (
+    SELECT 1 FROM ven_impresion_trabajo t
+    JOIN ven_comanda c ON c.id = t.id_comanda
+    WHERE c.id_pedido = pedido.id
+      AND t.estado IN ('pendiente', 'procesando')
+      AND t.contenido->>'tipo' = 'COMPROBANTE'
+      AND t.contenido->'comprobante'->>'numero' = cp.serie || '-' || cp.correlativo
+  ) THEN
+    RETURN ven_obtener_venta(pedido.id);
+  END IF;
+
   SELECT COALESCE(max(c.numero), 0) + 1 INTO numero FROM ven_comanda c WHERE c.id_pedido = pedido.id;
   INSERT INTO ven_comanda(id_pedido, id_estacion, numero, id_usuario_creacion, id_usuario_modificacion)
     VALUES(pedido.id, estacion.id, numero, p_usuario, p_usuario) RETURNING id INTO comanda;

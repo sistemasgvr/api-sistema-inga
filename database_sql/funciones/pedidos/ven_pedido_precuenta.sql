@@ -6,6 +6,12 @@ BEGIN
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite precuenta'; END IF;
   SELECT * INTO estacion FROM gen_estacion WHERE es_caja_principal AND id_sucursal=v.id_sucursal AND estado=1;
   IF NOT FOUND OR NULLIF(btrim(estacion.impresora_ip),'') IS NULL THEN RAISE EXCEPTION 'Configure la estación principal de caja y cobros en Estaciones'; END IF;
+  -- Evita que un doble clic en «Precuenta» encole el mismo ticket dos veces.
+  IF EXISTS (SELECT 1 FROM ven_impresion_trabajo t JOIN ven_comanda c ON c.id=t.id_comanda
+             WHERE c.id_pedido=p_id AND t.estado IN ('pendiente','procesando')
+               AND t.contenido->>'tipo'='PRECUENTA') THEN
+    RETURN ven_obtener_pedido(p_id);
+  END IF;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   SELECT * INTO v FROM ven_pedido WHERE id=p_id;
   IF v.monto_total<=0 THEN RAISE EXCEPTION 'El pedido no tiene consumos'; END IF;
