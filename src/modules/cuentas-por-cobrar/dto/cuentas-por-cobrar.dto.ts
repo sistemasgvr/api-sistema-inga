@@ -41,7 +41,8 @@ export class FiltroSaldosCxcDto extends FiltroPaginacionDto {
   solo_con_deuda?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Filtra por empresa del consorcio. El corte se factura por empresa.',
+    description:
+      'Filtra por empresa del consorcio. El corte se factura por empresa.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -62,7 +63,10 @@ export class FiltroMovimientosCxcDto extends FiltroPaginacionDto {
   @IsInt()
   id_convenio?: number;
 
-  @ApiPropertyOptional({ enum: [1, 2, 3], description: '1 consumo, 2 abono, 3 ajuste' })
+  @ApiPropertyOptional({
+    enum: [1, 2, 3],
+    description: '1 consumo, 2 abono, 3 ajuste',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -83,7 +87,10 @@ export class FiltroMovimientosCxcDto extends FiltroPaginacionDto {
   @Max(12)
   mes?: number;
 
-  @ApiPropertyOptional({ enum: [1, 2], description: '1 = días 1-15, 2 = días 16-fin' })
+  @ApiPropertyOptional({
+    enum: [1, 2],
+    description: '1 = días 1-15, 2 = días 16-fin',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -92,7 +99,8 @@ export class FiltroMovimientosCxcDto extends FiltroPaginacionDto {
 
   @ApiPropertyOptional({
     default: false,
-    description: 'Los anulados ensucian la vista diaria, pero hacen falta para auditar.',
+    description:
+      'Los anulados ensucian la vista diaria, pero hacen falta para auditar.',
   })
   @IsOptional()
   @Type(() => Boolean)
@@ -130,7 +138,9 @@ export class CreateConsumoDto extends AuditoriaDto {
   @IsInt()
   id_pedido?: number;
 
-  @ApiPropertyOptional({ description: 'Pago del pedido con medio_pago = crédito.' })
+  @ApiPropertyOptional({
+    description: 'Pago del pedido con medio_pago = crédito.',
+  })
   @IsOptional()
   @IsInt()
   id_pago?: number;
@@ -162,16 +172,21 @@ export class CreateAbonoCxcDto extends AuditoriaDto {
    * entra al cajón y suma al efectivo esperado del turno; Yape y transferencia
    * se muestran en el resumen del turno pero no tocan el cajón.
    */
-  @ApiProperty({ enum: [1, 2, 3], description: '1 efectivo, 2 yape, 3 tarjeta/transferencia' })
+  @ApiProperty({
+    enum: [1, 2, 3],
+    description: '1 efectivo, 2 yape, 3 tarjeta/transferencia',
+  })
   @Type(() => Number)
   @IsInt()
   @IsIn([1, 2, 3], {
-    message: 'Seleccione el medio de pago: efectivo, Yape o tarjeta/transferencia',
+    message:
+      'Seleccione el medio de pago: efectivo, Yape o tarjeta/transferencia',
   })
   medio_pago!: number;
 
   @ApiPropertyOptional({
-    description: 'Turno de caja donde entra el abono. Obligatorio cuando medio_pago = 1 (efectivo).',
+    description:
+      'Turno de caja donde entra el abono. Obligatorio cuando medio_pago = 1 (efectivo).',
   })
   @IsOptional()
   @Type(() => Number)
@@ -225,7 +240,8 @@ export class CreateAjusteCxcDto extends AuditoriaDto {
   @ApiProperty({
     example: 'Se cargó dos veces el almuerzo del 12/09',
     maxLength: 255,
-    description: 'Obligatorio: sin él, nadie sabe después por qué cambió el saldo.',
+    description:
+      'Obligatorio: sin él, nadie sabe después por qué cambió el saldo.',
   })
   @IsString()
   @IsNotEmpty()
@@ -250,7 +266,9 @@ export class AnularMovimientoCxcDto extends AuditoriaDto {
 }
 
 export class FiltroEstadoCuentaDto {
-  @ApiPropertyOptional({ description: 'Sin período, trae el historial completo' })
+  @ApiPropertyOptional({
+    description: 'Sin período, trae el historial completo',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -280,4 +298,26 @@ export class FiltroReporteCxcDto extends FiltroEstadoCuentaDto {
   @Type(() => Number)
   @IsInt()
   id_convenio?: number;
+}
+
+/**
+ * Estado de cuenta detallado (para imprimir o exportar): por rango de fechas
+ * del movimiento en Lima. Sin fechas, trae todo el historial.
+ */
+export class FiltroEstadoCuentaDetalleDto {
+  @ApiPropertyOptional({
+    example: '2026-10-01',
+    description: 'Desde (día de Lima)',
+  })
+  @IsOptional()
+  @IsDateString()
+  fecha_desde?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-10-15',
+    description: 'Hasta (día de Lima)',
+  })
+  @IsOptional()
+  @IsDateString()
+  fecha_hasta?: string;
 }

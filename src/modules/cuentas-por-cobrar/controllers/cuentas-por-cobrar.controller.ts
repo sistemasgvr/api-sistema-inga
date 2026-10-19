@@ -17,6 +17,7 @@ import {
   CreateAbonoCxcDto,
   CreateAjusteCxcDto,
   CreateConsumoDto,
+  FiltroEstadoCuentaDetalleDto,
   FiltroEstadoCuentaDto,
   FiltroMovimientosCxcDto,
   FiltroReporteCxcDto,
@@ -33,7 +34,8 @@ export class CuentasPorCobrarController {
   @Get('saldos')
   @Permisos(PermisoBanderas.CXC_LISTAR)
   @ApiOperation({
-    summary: 'Saldo de cada cliente del consorcio, ordenado de mayor a menor deuda',
+    summary:
+      'Saldo de cada cliente del consorcio, ordenado de mayor a menor deuda',
   })
   listarSaldos(@Query() filtros: FiltroSaldosCxcDto) {
     return this.logic.listarSaldos(filtros);
@@ -65,6 +67,21 @@ export class CuentasPorCobrarController {
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   obtenerMovimiento(@Param('id', ParseIntPipe) id: number) {
     return this.logic.obtenerMovimiento(id);
+  }
+
+  @Get('clientes/:idPersona/detalle')
+  @Permisos(PermisoBanderas.CXC_LISTAR)
+  @ApiOperation({
+    summary:
+      'Estado de cuenta detallado para imprimir o exportar: saldo anterior, totales del ' +
+      'rango, saldo al cierre y cada movimiento con su pedido y los platos consumidos.',
+  })
+  @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
+  obtenerEstadoCuentaDetalle(
+    @Param('idPersona', ParseIntPipe) idPersona: number,
+    @Query() filtros: FiltroEstadoCuentaDetalleDto,
+  ) {
+    return this.logic.obtenerEstadoCuentaDetalle(idPersona, filtros);
   }
 
   @Get('clientes/:idPersona')

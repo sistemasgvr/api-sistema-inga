@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   mapListResult,
   mapSingleResult,
@@ -7,6 +11,7 @@ import {
   CreateAbonoCxcDto,
   CreateAjusteCxcDto,
   CreateConsumoDto,
+  FiltroEstadoCuentaDetalleDto,
   FiltroEstadoCuentaDto,
   FiltroMovimientosCxcDto,
   FiltroReporteCxcDto,
@@ -37,6 +42,43 @@ export class CuentasPorCobrarLogic {
     return mapSingleResult(result, `Movimiento con ID ${id} no encontrado`);
   }
 
+  /**
+   * Estado de cuenta para imprimir: saldo anterior, totales del rango, saldo al
+   * cierre y cada movimiento con el pedido que lo originó y sus platos.
+   */
+  async obtenerEstadoCuentaDetalle(
+    idPersona: number,
+    filtros: FiltroEstadoCuentaDetalleDto,
+  ) {
+    const desde = filtros.fecha_desde?.slice(0, 10) ?? null;
+    const hasta = filtros.fecha_hasta?.slice(0, 10) ?? null;
+    if (desde && hasta && desde > hasta) {
+      throw new BadRequestException(
+        'La fecha inicial no puede ser posterior a la final',
+      );
+    }
+    const resumen = await this.model.resumenEstadoCuentaDetalle(
+      idPersona,
+      desde,
+      hasta,
+    );
+    if (!resumen) {
+      throw new NotFoundException(
+        `El cliente con ID ${idPersona} no existe o no está marcado como cliente`,
+      );
+    }
+    const movimientos = await this.model.movimientosEstadoCuentaDetalle(
+      idPersona,
+      desde,
+      hasta,
+    );
+    return {
+      periodo: { fecha_desde: desde, fecha_hasta: hasta },
+      ...resumen,
+      movimientos,
+    };
+  }
+
   async obtenerEstadoCuenta(idPersona: number, filtros: FiltroEstadoCuentaDto) {
     const result = await this.model.obtenerEstadoCuenta(idPersona, filtros);
     return mapSingleResult(
@@ -58,32 +100,37 @@ export class CuentasPorCobrarLogic {
     const result = await this.model.registrarConsumo(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el consumo');
 
-    this.notificaciones.emitir({
-      canal: 'cuentas-por-cobrar' as any,
-      titulo: 'Consumo por cobrar registrado',
-      mensaje: `Cliente ${dto.id_persona ?? ''}`.trim(),
-      severidad: 'info',
-      ruta: '/cuentas-por-cobrar',
-      idReferencia: (registro as { id?: number })?.id ?? null,
-    })?.catch(() => undefined);
+    this.notificaciones
+      .emitir({
+        canal: 'cuentas-por-cobrar' as any,
+        titulo: 'Consumo por cobrar registrado',
+        mensaje: `Cliente ${dto.id_persona ?? ''}`.trim(),
+        severidad: 'info',
+        ruta: '/cuentas-por-cobrar',
+        idReferencia: (registro as { id?: number })?.id ?? null,
+      })
+      ?.catch(() => undefined);
 
     return {
       ...(registro as Record<string, unknown>),
-      supera_limite: (result as { supera_limite?: boolean }).supera_limite ?? false,
+      supera_limite:
+        (result as { supera_limite?: boolean }).supera_limite ?? false,
     };
   }
 
   async registrarAbono(dto: CreateAbonoCxcDto) {
     const result = await this.model.registrarAbono(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el abono');
-    this.notificaciones.emitir({
-      canal: 'cuentas-por-cobrar' as any,
-      titulo: 'Abono a cuenta por cobrar',
-      mensaje: 'Movimiento registrado',
-      severidad: 'success',
-      ruta: '/cuentas-por-cobrar',
-      idReferencia: (registro as { id?: number })?.id ?? null,
-    })?.catch(() => undefined);
+    this.notificaciones
+      .emitir({
+        canal: 'cuentas-por-cobrar' as any,
+        titulo: 'Abono a cuenta por cobrar',
+        mensaje: 'Movimiento registrado',
+        severidad: 'success',
+        ruta: '/cuentas-por-cobrar',
+        idReferencia: (registro as { id?: number })?.id ?? null,
+      })
+      ?.catch(() => undefined);
     return registro;
   }
 
@@ -97,8 +144,16 @@ export class CuentasPorCobrarLogic {
    * devuelve el movimiento ya anulado, no una bandera `eliminado`. Así el front
    * puede refrescar la fila con el dato real en vez de recargar la lista.
    */
-  async anularMovimiento(id: number, motivo?: string, idUsuarioAuditoria?: number) {
-    const result = await this.model.anularMovimiento(id, motivo, idUsuarioAuditoria);
+  async anularMovimiento(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+  ) {
+    const result = await this.model.anularMovimiento(
+      id,
+      motivo,
+      idUsuarioAuditoria,
+    );
     return mapSingleResult(result, `Movimiento con ID ${id} no encontrado`);
   }
 
