@@ -10,6 +10,7 @@ import { SupabaseStorageService } from '../../../integrations/supabase-storage/s
 import { EmpresaLogic } from '../../empresa/logic/empresa.logic';
 import {
   formatearComanda,
+  type AnchoPapel,
   type ComandaImpresion,
 } from '../helpers/ticket-formato';
 import { ticketPdf, type ImagenTicket } from '../helpers/ticket-pdf';
@@ -94,7 +95,7 @@ export class TicketPdfLogic {
   }
 
   private async archivado(
-    { contenido, ruta_pdf }: TicketArchivable,
+    { contenido, ruta_pdf, ancho_papel }: TicketArchivable,
     guardar: (ruta: string) => Promise<boolean>,
   ): Promise<PdfTicket> {
     const nombre = this.nombre(contenido);
@@ -108,7 +109,11 @@ export class TicketPdfLogic {
         );
       }
     }
-    const pdf = await this.generar(contenido, nombre);
+    const pdf = await this.generar(
+      contenido,
+      nombre,
+      ancho_papel === 58 ? 58 : 80,
+    );
     if (!ruta_pdf && this.storage.isConfigured()) {
       try {
         const carpeta =
@@ -141,12 +146,17 @@ export class TicketPdfLogic {
     return `${tipo}-${referencia}-${contenido.id}`.replace(/[^\w-]+/g, '_');
   }
 
-  private async generar(contenido: ComandaImpresion, nombre: string) {
+  private async generar(
+    contenido: ComandaImpresion,
+    nombre: string,
+    papel: AnchoPapel,
+  ) {
     const empresa = await this.empresa.datosTicket();
     return ticketPdf(
-      formatearComanda(contenido, empresa),
+      formatearComanda(contenido, empresa, papel),
       empresa.logo ? await this.logo(empresa.logo) : null,
       nombre,
+      papel,
     );
   }
 

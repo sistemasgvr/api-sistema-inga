@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
+  IsIn,
   IsIP,
   IsNotEmpty,
   IsOptional,
@@ -77,6 +78,15 @@ export class CreateEstacionDto extends AuditoriaDto {
   @IsOptional()
   @IsBoolean()
   usa_kds?: boolean;
+
+  @ApiPropertyOptional({
+    enum: [58, 80],
+    default: 80,
+    description: 'Ancho del rollo de la impresora (mm)',
+  })
+  @IsOptional()
+  @IsIn([58, 80], { message: 'El ancho de papel debe ser 58 u 80 mm' })
+  ancho_papel?: number;
 }
 
 export class UpdateEstacionDto extends AuditoriaDto {
@@ -122,4 +132,13 @@ export class UpdateEstacionDto extends AuditoriaDto {
   @IsOptional()
   @IsBoolean()
   usa_kds?: boolean;
+
+  @ApiPropertyOptional({
+    enum: [58, 80],
+    default: 80,
+    description: 'Ancho del rollo de la impresora (mm)',
+  })
+  @IsOptional()
+  @IsIn([58, 80], { message: 'El ancho de papel debe ser 58 u 80 mm' })
+  ancho_papel?: number;
 }

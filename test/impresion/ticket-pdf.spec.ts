@@ -40,10 +40,19 @@ const comprobante: ComandaImpresion = {
 const texto = (pdf: Buffer) => pdf.toString('latin1');
 
 describe('PDF de tickets', () => {
-  it('genera un PDF de 58 mm con xref exacto y paréntesis escapados', () => {
+  it('el PDF de 58 mm usa 32 columnas, igual que el papel', () => {
+    const s = texto(
+      ticketPdf(formatearComanda(comprobante, null, 58), null, 'T', 58),
+    );
+    expect(s).toMatch(/\/MediaBox \[0 0 164\.41 [\d.]+\]/);
+    expect(s).toContain(`(${'-'.repeat(32)}) Tj`);
+  });
+
+  it('genera un PDF de 80 mm (48 columnas) con xref exacto y paréntesis escapados', () => {
     const s = texto(ticketPdf(formatearComanda(comprobante, null)));
     expect(s.startsWith('%PDF-1.4')).toBe(true);
-    expect(s).toMatch(/\/MediaBox \[0 0 164\.41 [\d.]+\]/);
+    expect(s).toMatch(/\/MediaBox \[0 0 226\.77 [\d.]+\]/);
+    expect(s).toContain(`(${'-'.repeat(48)}) Tj`);
     expect(s).toContain(String.raw`(Cliente: Juan \(cliente\)) Tj`);
     const xref = Number(/startxref\n(\d+)/.exec(s)![1]);
     expect(s.slice(xref).startsWith('xref')).toBe(true);

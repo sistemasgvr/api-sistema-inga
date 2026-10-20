@@ -14,7 +14,12 @@ import { EstacionesModel } from '../models/estaciones.model';
 @Injectable()
 export class EstacionesLogic {
   constructor(private readonly estacionesModel: EstacionesModel) {}
-  async principal(id:number) { return mapSingleResult(await this.estacionesModel.principal(id),'Estación no encontrada'); }
+  async principal(id: number) {
+    return mapSingleResult(
+      await this.estacionesModel.principal(id),
+      'Estación no encontrada',
+    );
+  }
 
   async listar(filtros: FiltroEstacionesDto) {
     const result = await this.estacionesModel.listar(filtros);
@@ -37,7 +42,8 @@ export class EstacionesLogic {
       dto.usa_kds ?? false,
       dto.idUsuarioAuditoria,
     );
-    return mapSingleResult(result, 'No se pudo crear la estación');
+    const estacion = mapSingleResult(result, 'No se pudo crear la estación');
+    return this.conAnchoPapel(estacion, dto.ancho_papel);
   }
 
   async actualizar(id: number, dto: UpdateEstacionDto) {
@@ -52,19 +58,37 @@ export class EstacionesLogic {
       dto.usa_kds ?? null,
       dto.idUsuarioAuditoria,
     );
-    return mapSingleResult(result, `Estación con ID ${id} no encontrada`);
+    const estacion = mapSingleResult(
+      result,
+      `Estación con ID ${id} no encontrada`,
+    );
+    return this.conAnchoPapel(estacion, dto.ancho_papel);
+  }
+
+  /** Guarda el ancho de papel (si vino) y devuelve la estación actualizada. */
+  private async conAnchoPapel<T>(estacion: T, anchoPapel?: number) {
+    const id = (estacion as { id?: number } | null)?.id;
+    if (!anchoPapel || !id) return estacion;
+    await this.estacionesModel.guardarAnchoPapel(id, anchoPapel);
+    return this.obtenerPorId(id);
   }
 
   async eliminar(id: number, idUsuarioAuditoria?: number) {
     const result = await this.estacionesModel.eliminar(id, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Estación con ID ${id} no encontrada o ya inactiva`);
+    return mapDeleteResult(
+      result,
+      `Estación con ID ${id} no encontrada o ya inactiva`,
+    );
   }
 
   async activar(id: number, idUsuarioAuditoria?: number) {
     const result = await this.estacionesModel.activar(id, idUsuarioAuditoria);
-    
+
     if (!result || (result as any).activado === false) {
-      return { message: "La estación ya se encontraba activa o fue actualizada", data: { id } };
+      return {
+        message: 'La estación ya se encontraba activa o fue actualizada',
+        data: { id },
+      };
     }
 
     return result;

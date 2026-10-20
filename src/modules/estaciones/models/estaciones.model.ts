@@ -6,12 +6,20 @@ import {
   AuthActivateResult,
 } from '../../../common/interfaces/auth-db.interface';
 import { DatabaseService } from '../../../database/database.service';
-import { EstacionEstadoFiltro, FiltroEstacionesDto } from '../dto/estaciones.dto';
+import {
+  EstacionEstadoFiltro,
+  FiltroEstacionesDto,
+} from '../dto/estaciones.dto';
 
 @Injectable()
 export class EstacionesModel {
   constructor(private readonly db: DatabaseService) {}
-  principal(id:number) { return this.db.callFunctionJson<AuthSingleResult>('gen_marcar_caja_principal',[id]); }
+  principal(id: number) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gen_marcar_caja_principal',
+      [id],
+    );
+  }
 
   private resolveEstadoFiltro(estado?: EstacionEstadoFiltro): number | null {
     if (estado === 'inactivos') return 0;
@@ -30,7 +38,9 @@ export class EstacionesModel {
   }
 
   obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_estacion', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_estacion', [
+      id,
+    ]);
   }
 
   crear(
@@ -66,17 +76,28 @@ export class EstacionesModel {
     usaKds: boolean | null,
     idUsuarioAuditoria?: number,
   ) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_actualizar_estacion', [
-      id,
-      idSucursal,
-      codigo,
-      nombre,
-      tipoEstacion,
-      impresoraNombre,
-      impresoraIp,
-      usaKds,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gen_actualizar_estacion',
+      [
+        id,
+        idSucursal,
+        codigo,
+        nombre,
+        tipoEstacion,
+        impresoraNombre,
+        impresoraIp,
+        usaKds,
+        idUsuarioAuditoria ?? null,
+      ],
+    );
+  }
+
+  // Columna aparte de gen_crear/actualizar_estacion para no cambiar su firma.
+  async guardarAnchoPapel(id: number, anchoPapel: number) {
+    await this.db.query(
+      'UPDATE gen_estacion SET ancho_papel=$2 WHERE id=$1::bigint',
+      [id, anchoPapel],
+    );
   }
 
   eliminar(id: number, idUsuarioAuditoria?: number) {
@@ -87,9 +108,9 @@ export class EstacionesModel {
   }
 
   activar(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('gen_activar_estacion', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'gen_activar_estacion',
+      [id, idUsuarioAuditoria ?? null],
+    );
   }
 }

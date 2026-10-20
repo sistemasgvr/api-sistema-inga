@@ -1,3 +1,5 @@
+import { COLUMNAS, type AnchoPapel } from './ticket-formato';
+
 /** Logo ya convertido a JPEG (sharp); el PDF lo incrusta tal cual (DCTDecode). */
 export type ImagenTicket = { jpeg: Uint8Array; ancho: number; alto: number };
 
@@ -5,13 +7,16 @@ type Tramo = { texto: string; negrita: boolean; ancho: number; alto: number };
 type Linea = { tramos: Tramo[]; alineacion: number };
 
 const MM = 72 / 25.4;
-/** Mismo papel de 58 mm y 32 columnas que la ticketera (ver ticket-formato.ts). */
-const PAPEL = 58 * MM;
 const MARGEN = 3 * MM;
-const COLUMNAS = 32;
-// Courier mide 0,6 em por carácter: así entran exactamente 32 columnas.
-const FUENTE = (PAPEL - 2 * MARGEN) / (COLUMNAS * 0.6);
-const INTERLINEA = FUENTE * 1.25;
+
+/** Mismo rollo y columnas que la ticketera (ver COLUMNAS en ticket-formato.ts). */
+function medidas(papel: AnchoPapel) {
+  const ancho = papel * MM;
+  // Courier mide 0,6 em por carácter: así entran exactamente las columnas del rollo.
+  const fuente =
+    (ancho - 2 * MARGEN) / ((COLUMNAS[papel] ?? COLUMNAS[80]) * 0.6);
+  return { ancho, fuente, interlinea: fuente * 1.25 };
+}
 /** El logo está en puntos de impresora térmica (203 ppp). */
 const PUNTO = 72 / 203;
 
@@ -36,6 +41,8 @@ export function lineasEscPos(data: string): Linea[] {
       } else if (data[i + 1] === 'a') {
         estado.alineacion = n % 48;
         i += 2;
+      } else if (data[i + 1] === 'd') {
+        i += 2; // Avance de papel al final (tira sin corte): no se dibuja.
       } else if (data[i + 1] === 'E') {
         estado.negrita = (n & 1) === 1;
         i += 2;
@@ -87,7 +94,13 @@ export function ticketPdf(
   data: string,
   logo?: ImagenTicket | null,
   titulo = 'Ticket',
+  papel: AnchoPapel = 80,
 ): Buffer {
+  const {
+    ancho: PAPEL,
+    fuente: FUENTE,
+    interlinea: INTERLINEA,
+  } = medidas(papel);
   const lineas = lineasEscPos(data);
   const altoLinea = (linea: Linea) =>
     INTERLINEA * Math.max(1, ...linea.tramos.map((t) => t.alto));

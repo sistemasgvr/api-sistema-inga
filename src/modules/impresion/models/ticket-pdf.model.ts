@@ -5,6 +5,8 @@ import type { ComandaImpresion } from '../helpers/ticket-formato';
 export interface TicketArchivable {
   contenido: ComandaImpresion;
   ruta_pdf: string | null;
+  /** Rollo de la impresora de la estación (mm); el PDF usa el mismo ancho. */
+  ancho_papel: number;
 }
 
 /** Rutas en Storage de los PDF archivados de tickets y comprobantes. */
@@ -14,8 +16,9 @@ export class TicketPdfModel {
 
   async trabajo(idComanda: number) {
     const result = await this.db.query<TicketArchivable>(
-      `SELECT contenido, ruta_pdf FROM ven_impresion_trabajo
-       WHERE id_comanda=$1::bigint`,
+      `SELECT t.contenido, t.ruta_pdf, e.ancho_papel
+       FROM ven_impresion_trabajo t JOIN gen_estacion e ON e.id=t.id_estacion
+       WHERE t.id_comanda=$1::bigint`,
       [idComanda],
     );
     return result.rows[0] ?? null;
@@ -23,8 +26,13 @@ export class TicketPdfModel {
 
   async comprobante(idComprobante: number) {
     const result = await this.db.query<TicketArchivable>(
-      `SELECT ven_ticket_comprobante(id) AS contenido, ruta_pdf
-       FROM ven_comprobante WHERE id=$1::bigint`,
+      // El comprobante sale por la caja principal de su sucursal: se usa su ancho de papel.
+      `SELECT ven_ticket_comprobante(c.id) AS contenido, c.ruta_pdf,
+         COALESCE((SELECT e.ancho_papel FROM gen_estacion e
+           JOIN ven_pedido p ON p.id_sucursal=e.id_sucursal
+           WHERE p.id=c.id_pedido AND e.es_caja_principal AND e.estado=1
+           LIMIT 1), 80) AS ancho_papel
+       FROM ven_comprobante c WHERE c.id=$1::bigint`,
       [idComprobante],
     );
     return result.rows[0] ?? null;

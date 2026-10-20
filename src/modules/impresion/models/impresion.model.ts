@@ -36,6 +36,7 @@ export class ImpresionModel {
     const result = await this.db.query<{
       id: string;
       id_estacion: number;
+      ancho_papel: number;
       host: string;
       contenido: Record<string, unknown>;
     }>(
@@ -54,7 +55,7 @@ export class ImpresionModel {
           intentos=intentos+1, error=NULL, actualizado=now()
         FROM siguiente s WHERE t.id_comanda=s.id_comanda RETURNING t.*
       ) SELECT t.id_comanda::text AS id, t.id_estacion::int AS id_estacion,
-          t.contenido, e.impresora_ip AS host
+          t.contenido, e.impresora_ip AS host, e.ancho_papel
         FROM tomado t JOIN gen_estacion e ON e.id=t.id_estacion`,
       [estaciones, propietario],
     );
