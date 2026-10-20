@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsIP,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
 
@@ -40,7 +49,10 @@ export class CreateEstacionDto extends AuditoriaDto {
   @MaxLength(100)
   nombre!: string;
 
-  @ApiProperty({ description: 'Tipo de estación (según catálogo ESTACION_TIPO)', example: 1 })
+  @ApiProperty({
+    description: 'Tipo de estación (según catálogo ESTACION_TIPO)',
+    example: 1,
+  })
   @IsInt()
   @IsNotEmpty()
   tipo_estacion!: number;
@@ -55,6 +67,10 @@ export class CreateEstacionDto extends AuditoriaDto {
   @IsOptional()
   @IsString()
   @MaxLength(45)
+  @ValidateIf(
+    (_object, value) => typeof value === 'string' && value.trim() !== '',
+  )
+  @IsIP('4', { message: 'La IP de la impresora no es válida' })
   impresora_ip?: string;
 
   @ApiPropertyOptional({ default: false })
@@ -96,6 +112,10 @@ export class UpdateEstacionDto extends AuditoriaDto {
   @IsOptional()
   @IsString()
   @MaxLength(45)
+  @ValidateIf(
+    (_object, value) => typeof value === 'string' && value.trim() !== '',
+  )
+  @IsIP('4', { message: 'La IP de la impresora no es válida' })
   impresora_ip?: string;
 
   @ApiPropertyOptional()

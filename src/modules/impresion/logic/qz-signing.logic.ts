@@ -113,6 +113,7 @@ export class QzSigningLogic {
       throw new BadRequestException('Operación QZ no permitida');
     if (value.call === 'print') {
       // Impide firmar lecturas de archivos/URLs u otros tipos de operación QZ.
+      // Se admite texto RAW y el logo del ticket como imagen base64 embebida.
       const data = params.data;
       if (
         !Array.isArray(data) ||
@@ -120,11 +121,12 @@ export class QzSigningLogic {
         data.some((item: unknown) => {
           if (!item || typeof item !== 'object') return true;
           const row = item as Record<string, unknown>;
+          if (row.type !== 'raw' || typeof row.data !== 'string') return true;
+          if (row.format === 'command') return row.flavor !== 'plain';
           return (
-            row.type !== 'raw' ||
-            row.format !== 'command' ||
-            row.flavor !== 'plain' ||
-            typeof row.data !== 'string'
+            row.format !== 'image' ||
+            row.flavor !== 'base64' ||
+            !/^[A-Za-z0-9+/]+={0,2}$/.test(row.data)
           );
         })
       )

@@ -40,14 +40,35 @@
 - Confirmar QZ significa **enviado**, no confirmación física del papel. `fecha_impresion`
   conserva ese significado de envío aceptado. Falta de papel/atascos dependen del hardware.
 - Los ACK se guardan localmente y se reintentan sin imprimir otra vez si falla Internet.
-- Ante un fallo de QZ se pausa el receptor y el trabajo pasa a **revision**. Revisar **Ver cola**,
-  elegir **Reintentar envío** o **Ya salió en papel**, y pulsar **Reanudar**.
+- Ante un fallo de QZ se pausa **sólo la estación afectada**; las demás estaciones marcadas en esta PC
+  siguen imprimiendo. El trabajo pasa a **revision**: revisar **Ver cola**, elegir **Reintentar envío**
+  o **Ya salió en papel**, y pulsar **Reanudar**.
+- Si el servidor rechaza la firma (IP no registrada, estación inactiva, clave QZ) nada llega a la
+  impresora: el trabajo vuelve a **pendiente** y basta corregir la causa y pulsar **Reanudar**.
+  El aviso muestra el motivo devuelto por el servidor.
+- La firma admite texto RAW y el logo del ticket como imagen base64 embebida; nunca archivos ni URLs.
 - Si se cierra el navegador después de reclamar un trabajo, queda **procesando**. Después
   de dos minutos puede resolverse manualmente. Comprobar físicamente la impresora y detener
   cualquier receptor anterior antes de reintentar: la impresión RAW no ofrece exactamente
   una vez frente a una caída entre el envío físico y la confirmación.
 - Las comandas anuladas o de pedidos anulados no se entregan como pendientes. Un trabajo
   ya enviado al equipo no se puede retirar. Esta integración no imprime avisos de anulación.
+
+## PDF de tickets y comprobantes (Storage)
+
+El backend genera el PDF con forma de ticket (58 mm, mismo formato que el papel), lo guarda
+en Supabase Storage (`tickets/comprobantes|precuentas|comandas/…_<uuid>.pdf`) y registra la ruta
+en `ven_comprobante.ruta_pdf` o `ven_impresion_trabajo.ruta_pdf`. Las siguientes consultas leen
+el archivo de Storage; no dependen del front ni de que cambien después el logo o la empresa.
+
+- `GET /ventas/comprobantes/:idComprobante/pdf` (`ventas.listar`): boleta, factura o nota de venta.
+- `GET /ventas/comandas/:idComanda/pdf` (`ventas.listar`) y `GET /impresion/:id/pdf`: comanda,
+  precuenta o ticket de comprobante de la cola.
+
+Responden `application/pdf` con JWT (`Authorization: Bearer …`). Al cobrar o reemitir, el
+comprobante se archiva en segundo plano; al cambiar un medio de pago se descarta y se vuelve a
+generar. Si Storage falla, el PDF se entrega igual y se archiva en la siguiente consulta.
+Instalar con `database_sql/migraciones/20261020_tickets_pdf.sql` (incluida en `instalar_impresion.sql`).
 
 ## Compatibilidad
 

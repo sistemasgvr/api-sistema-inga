@@ -35,6 +35,7 @@ export class ImpresionModel {
     // Una sola sentencia y SKIP LOCKED protegen incluso con varios procesos del VPS.
     const result = await this.db.query<{
       id: string;
+      id_estacion: number;
       host: string;
       contenido: Record<string, unknown>;
     }>(
@@ -52,7 +53,8 @@ export class ImpresionModel {
         UPDATE ven_impresion_trabajo t SET estado='procesando', propietario=$2::uuid,
           intentos=intentos+1, error=NULL, actualizado=now()
         FROM siguiente s WHERE t.id_comanda=s.id_comanda RETURNING t.*
-      ) SELECT t.id_comanda::text AS id, t.contenido, e.impresora_ip AS host
+      ) SELECT t.id_comanda::text AS id, t.id_estacion::int AS id_estacion,
+          t.contenido, e.impresora_ip AS host
         FROM tomado t JOIN gen_estacion e ON e.id=t.id_estacion`,
       [estaciones, propietario],
     );
@@ -64,7 +66,15 @@ export class ImpresionModel {
     propietario: string,
     enviado: boolean,
     error?: string,
+    reintentable = false,
   ) {
+    // «reintentable»: el ticket no llegó a la impresora (p. ej. falló la firma QZ);
+    // vuelve a la cola sin revisión manual porque no hay riesgo de duplicarlo.
+    const estado = enviado
+      ? 'enviado'
+      : reintentable
+        ? 'pendiente'
+        : 'revision';
     const result = await this.db.query<{ id: string }>(
       `
       WITH actualizado AS (
@@ -73,12 +83,7 @@ export class ImpresionModel {
           AND (estado='procesando' OR estado=$3) RETURNING id_comanda
       ) UPDATE ven_comanda SET fecha_impresion=CASE WHEN $3='enviado' THEN now() ELSE fecha_impresion END
         WHERE id IN (SELECT id_comanda FROM actualizado) RETURNING id`,
-      [
-        id,
-        propietario,
-        enviado ? 'enviado' : 'revision',
-        error?.slice(0, 500) ?? null,
-      ],
+      [id, propietario, estado, error?.slice(0, 500) ?? null],
     );
     return Boolean(result.rowCount);
   }

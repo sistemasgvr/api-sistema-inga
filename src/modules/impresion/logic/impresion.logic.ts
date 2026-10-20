@@ -22,8 +22,17 @@ export class ImpresionLogic {
     propietario: string,
     enviado: boolean,
     error?: string,
+    reintentable?: boolean,
   ) {
-    if (!(await this.model.confirmar(id, propietario, enviado, error))) {
+    if (
+      !(await this.model.confirmar(
+        id,
+        propietario,
+        enviado,
+        error,
+        reintentable,
+      ))
+    ) {
       throw new ConflictException('El trabajo ya no pertenece a este receptor');
     }
     return { confirmado: true };

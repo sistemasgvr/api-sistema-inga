@@ -18,6 +18,7 @@ import { FiltroPedidoDto } from '../dto/pedido.dto';
 import { AccionPedido, PedidoModel } from '../models/pedido.model';
 import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
 
 // SQLSTATE de ven_reservar_insumos_pedido: faltan insumos o productos para comandar.
 const STOCK_INSUFICIENTE = 'IN001';
@@ -30,6 +31,7 @@ export class PedidoLogic {
     private readonly config: ConfigService,
     private readonly impresion: ImpresionGateway,
     private readonly notificaciones: NotificacionesLogic,
+    private readonly tickets: TicketPdfLogic,
   ) {}
 
   async listar(filtros: FiltroPedidoDto) {
@@ -84,7 +86,8 @@ export class PedidoLogic {
         throw error;
       }
     }).then((result) => {
-      const pedidoId = (id ?? (result as { id?: number } | null)?.id) as number | null;
+      const pedidoId = (id ?? (result as { id?: number } | null)?.id) as
+        number | null;
       if (
         accion === 'comandar' ||
         accion === 'precuenta' ||
@@ -92,26 +95,38 @@ export class PedidoLogic {
       ) {
         this.impresion.notificar();
         if (pedidoId) {
-          this.notificaciones.emitir({
-            canal: 'pedidos',
-            titulo: accion === 'comandar' ? 'Pedido comandado' : 'Pedido actualizado',
-            mensaje: `Pedido #${pedidoId}`,
-            severidad: 'info',
-            ruta: `/pedidos/${pedidoId}`,
-            idReferencia: pedidoId,
-          })?.catch(() => undefined);
+          this.notificaciones
+            .emitir({
+              canal: 'pedidos',
+              titulo:
+                accion === 'comandar'
+                  ? 'Pedido comandado'
+                  : 'Pedido actualizado',
+              mensaje: `Pedido #${pedidoId}`,
+              severidad: 'info',
+              ruta: `/pedidos/${pedidoId}`,
+              idReferencia: pedidoId,
+            })
+            ?.catch(() => undefined);
         }
       }
-      if (accion === 'cobrar' || (accion === 'estado' && payload.estado_pedido === 4)) {
+      if (
+        accion === 'cobrar' ||
+        (accion === 'estado' && payload.estado_pedido === 4)
+      ) {
+        // El comprobante emitido se archiva en PDF (Storage) sin demorar la respuesta del cobro.
+        if (pedidoId) this.tickets.archivarComprobantes(pedidoId);
         if (pedidoId) {
-          this.notificaciones.emitir({
-            canal: 'ventas' as any,
-            titulo: 'Pedido cobrado',
-            mensaje: `Pedido #${pedidoId} cobrado`,
-            severidad: 'success',
-            ruta: `/pedidos/${pedidoId}`,
-            idReferencia: pedidoId,
-          })?.catch(() => undefined);
+          this.notificaciones
+            .emitir({
+              canal: 'ventas' as any,
+              titulo: 'Pedido cobrado',
+              mensaje: `Pedido #${pedidoId} cobrado`,
+              severidad: 'success',
+              ruta: `/pedidos/${pedidoId}`,
+              idReferencia: pedidoId,
+            })
+            ?.catch(() => undefined);
         }
       }
       return result;
@@ -130,14 +145,16 @@ export class PedidoLogic {
         db.detail ?? '[]',
         usuario,
       );
-      this.notificaciones.emitir({
-        canal: 'inventario' as any,
-        titulo: 'Stock insuficiente',
-        mensaje: db.message ?? 'Stock insuficiente para comandar',
-        severidad: 'warning',
-        ruta: `/pedidos/${pedido}`,
-        idReferencia: pedido,
-      })?.catch(() => undefined);
+      this.notificaciones
+        .emitir({
+          canal: 'inventario' as any,
+          titulo: 'Stock insuficiente',
+          mensaje: db.message ?? 'Stock insuficiente para comandar',
+          severidad: 'warning',
+          ruta: `/pedidos/${pedido}`,
+          idReferencia: pedido,
+        })
+        ?.catch(() => undefined);
     } catch (error: unknown) {
       // No ocultar el rechazo de la comanda si el aviso no pudo guardarse.
       this.logger.error(

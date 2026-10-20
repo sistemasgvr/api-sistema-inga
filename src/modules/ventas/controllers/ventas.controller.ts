@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
@@ -17,6 +17,7 @@ import {
   FiltroVentasDto,
   ReemitirComprobanteDto,
 } from '../dto/ventas.dto';
+import { archivoPdf } from '../../impresion/logic/ticket-pdf.logic';
 import { VentasLogic } from '../logic/ventas.logic';
 
 @ApiTags('Ventas')
@@ -69,6 +70,30 @@ export class VentasController {
     @UsuarioAuditoria() usuario: number,
   ) {
     return this.logic.reemitirComprobante(id, dto, usuario);
+  }
+
+  @Get('comandas/:idComanda/pdf')
+  @Permisos(PermisoBanderas.VENTAS_LISTAR)
+  @ApiProduces('application/pdf')
+  @ApiOperation({
+    summary:
+      'PDF con forma de ticket de una comanda, precuenta o comprobante impreso. Se archiva en Storage la primera vez',
+  })
+  async comandaPdf(@Param('idComanda', ParseIntPipe) idComanda: number) {
+    return archivoPdf(await this.logic.comandaPdf(idComanda));
+  }
+
+  @Get('comprobantes/:idComprobante/pdf')
+  @Permisos(PermisoBanderas.VENTAS_LISTAR)
+  @ApiProduces('application/pdf')
+  @ApiOperation({
+    summary:
+      'PDF con forma de ticket del comprobante (boleta, factura o nota de venta), leído desde Storage; se genera y archiva si aún no existe',
+  })
+  async comprobantePdf(
+    @Param('idComprobante', ParseIntPipe) idComprobante: number,
+  ) {
+    return archivoPdf(await this.logic.comprobantePdf(idComprobante));
   }
 
   @Post('comandas/:idComanda/reimprimir')

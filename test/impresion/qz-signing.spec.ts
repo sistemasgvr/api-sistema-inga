@@ -70,6 +70,37 @@ describe('Firma QZ', () => {
       ),
     ).rejects.toThrow('Sólo se permite');
   });
+  it('firma tickets con el logo de la empresa (imagen base64 embebida)', async () => {
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    jest
+      .mocked(readFile)
+      .mockResolvedValue(privateKey.export({ format: 'pem', type: 'pkcs8' }));
+    const { firma } = await service.firmar(
+      mensaje('print', {
+        printer: { host: '192.168.1.101', port: 9100 },
+        data: [
+          { type: 'raw', format: 'command', flavor: 'plain', data: '\x1b@' },
+          { type: 'raw', format: 'image', flavor: 'base64', data: 'iVBORw0KGgo=' },
+          { type: 'raw', format: 'command', flavor: 'plain', data: 'Pollo' },
+        ],
+      }),
+    );
+    expect(firma).toBeTruthy();
+  });
+  it.each([
+    { type: 'raw', format: 'image', flavor: 'file', data: 'C:/secreto.png' },
+    { type: 'raw', format: 'image', flavor: 'base64', data: 'https://x/y.png' },
+    { type: 'pixel', format: 'image', flavor: 'base64', data: 'iVBORw0KGgo=' },
+  ])('rechaza imágenes que no sean base64 embebido: %o', async (item) => {
+    await expect(
+      service.firmar(
+        mensaje('print', {
+          printer: { host: '192.168.1.101', port: 9100 },
+          data: [item],
+        }),
+      ),
+    ).rejects.toThrow('Sólo se permite');
+  });
   it('no permite desactivar firmas en producción', async () => {
     const production = new QzSigningLogic(
       new ConfigService({ NODE_ENV: 'production', QZ_ALLOW_UNSIGNED: 'true' }),

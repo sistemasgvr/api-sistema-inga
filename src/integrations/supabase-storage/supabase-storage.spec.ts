@@ -28,7 +28,9 @@ describe('SupabaseStorageService: rutas y borrado', () => {
     });
 
     it('devuelve null si la URL no es de Supabase Storage', () => {
-      expect(svc.extractPathFromPublicUrl('https://ejemplo.com/a.webp')).toBeNull();
+      expect(
+        svc.extractPathFromPublicUrl('https://ejemplo.com/a.webp'),
+      ).toBeNull();
       expect(svc.extractPathFromPublicUrl('')).toBeNull();
       expect(svc.extractPathFromPublicUrl('   ')).toBeNull();
     });

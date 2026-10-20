@@ -6,6 +6,7 @@ import {
 import { VentasLogic } from '../../src/modules/ventas/logic/ventas.logic';
 import { VentasModel } from '../../src/modules/ventas/models/ventas.model';
 import { ImpresionGateway } from '../../src/modules/impresion/gateways/impresion.gateway';
+import { TicketPdfLogic } from '../../src/modules/impresion/logic/ticket-pdf.logic';
 
 describe('Ventas', () => {
   const model = {
@@ -15,9 +16,14 @@ describe('Ventas', () => {
     cambiarMedioPago: jest.fn(),
   };
   const impresion = { notificar: jest.fn() };
+  const tickets = {
+    regenerarComprobantes: jest.fn(),
+    archivarComprobantes: jest.fn(),
+  };
   const logic = new VentasLogic(
     model as unknown as VentasModel,
     impresion as unknown as ImpresionGateway,
+    tickets as unknown as TicketPdfLogic,
   );
   beforeEach(() => jest.resetAllMocks());
 
@@ -30,7 +36,10 @@ describe('Ventas', () => {
       model[metodo].mockResolvedValue({ registro: { id: 1 } });
       await ejecutar();
       expect(impresion.notificar).toHaveBeenCalledTimes(1);
-      model[metodo].mockRejectedValue({ code: 'P0001', message: 'Sin estación' });
+      model[metodo].mockRejectedValue({
+        code: 'P0001',
+        message: 'Sin estación',
+      });
       await expect(ejecutar()).rejects.toBeInstanceOf(BadRequestException);
       expect(impresion.notificar).toHaveBeenCalledTimes(1);
     },
@@ -47,7 +56,10 @@ describe('Ventas', () => {
     ['P0002', NotFoundException],
     ['40P01', ConflictException],
   ])('traduce %s a una respuesta HTTP adecuada', async (code, exception) => {
-    model.obtener.mockRejectedValue({ code, message: 'Validación de la venta' });
+    model.obtener.mockRejectedValue({
+      code,
+      message: 'Validación de la venta',
+    });
     await expect(logic.obtener(1)).rejects.toBeInstanceOf(exception);
   });
 

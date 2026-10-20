@@ -92,6 +92,23 @@ export class SupabaseStorageService {
     };
   }
 
+  /** Descarga un objeto del bucket con la clave de servicio (no depende de que sea público). */
+  async download(path: string): Promise<Buffer> {
+    const client = this.requireClient();
+    const cleanPath = path.replace(/^\/+/, '');
+    const { data, error } = await client.storage
+      .from(this.bucket)
+      .download(cleanPath);
+
+    if (error || !data) {
+      throw new BadRequestException(
+        `Error al descargar archivo de Supabase: ${error?.message ?? 'sin contenido'}`,
+      );
+    }
+
+    return Buffer.from(await data.arrayBuffer());
+  }
+
   getPublicUrl(path: string): string {
     const client = this.requireClient();
     const cleanPath = path.replace(/^\/+/, '');

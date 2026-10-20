@@ -11,6 +11,7 @@ import {
 } from '../../../common/helpers/auth-response.helper';
 import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
 import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
+import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
 import { FiltroVentasDto, ReemitirComprobanteDto } from '../dto/ventas.dto';
 import { VentasModel } from '../models/ventas.model';
 
@@ -19,6 +20,7 @@ export class VentasLogic {
   constructor(
     private readonly model: VentasModel,
     private readonly impresion: ImpresionGateway,
+    private readonly tickets: TicketPdfLogic,
   ) {}
 
   async listar(filtros: FiltroVentasDto) {
@@ -29,20 +31,40 @@ export class VentasLogic {
     return this.resolver(() => this.model.obtener(id));
   }
 
-  cambiarMedioPago(idPago: number, medio: number, usuario: number) {
-    return this.resolver(() =>
+  async cambiarMedioPago(idPago: number, medio: number, usuario: number) {
+    const venta = await this.resolver(() =>
       this.model.cambiarMedioPago(idPago, medio, usuario),
     );
+    // El comprobante archivado muestra los medios de pago: se vuelve a generar.
+    const idPedido = (venta as { id?: number } | null)?.id;
+    if (idPedido) {
+      try {
+        await this.tickets.regenerarComprobantes(idPedido);
+      } catch {
+        // El cambio de pago ya se guardó; el PDF se regenera en la próxima consulta.
+      }
+    }
+    return venta;
   }
 
-  reemitirComprobante(
+  async reemitirComprobante(
     idPedido: number,
     dto: ReemitirComprobanteDto,
     usuario: number,
   ) {
-    return this.resolver(() =>
+    const venta = await this.resolver(() =>
       this.model.reemitirComprobante(idPedido, dto, usuario),
     );
+    this.tickets.archivarComprobantes(idPedido);
+    return venta;
+  }
+
+  comandaPdf(idComanda: number) {
+    return this.tickets.trabajo(idComanda);
+  }
+
+  comprobantePdf(idComprobante: number) {
+    return this.tickets.comprobante(idComprobante);
   }
 
   async reimprimirComanda(idComanda: number, usuario: number) {
