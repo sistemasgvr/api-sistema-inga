@@ -70,9 +70,9 @@ const NORMAL_PESO = '\x1bE\x00';
 const tamano = (ancho: number, alto: number) =>
   `\x1d!${String.fromCharCode(((ancho - 1) << 4) | (alto - 1))}`;
 const NORMAL = tamano(1, 1);
-// Sin corte automático: el papel sale como tira y se corta a mano. Se avanza lo
-// suficiente para que la última línea pase la barra de corte sin partir el texto.
-const FINAL = '\x1bd\x06';
+// 4 renglones en blanco y corte parcial GS V 66 (la impresora avanza hasta la
+// cuchilla antes de cortar). En el PDF el avance y el corte no se dibujan.
+const FINAL = '\x1bd\x04\x1dVB\x00';
 
 const fecha = (valor: string) =>
   new Date(valor)

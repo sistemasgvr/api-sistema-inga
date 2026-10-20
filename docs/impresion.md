@@ -73,8 +73,9 @@ Instalar con `database_sql/migraciones/20261020_tickets_pdf.sql` (incluida en `i
 ## Compatibilidad
 
 Se implementa ticket ESC/POS por TCP 9100, con texto ASCII (acentos transliterados),
-inicialización y avance final de 6 líneas **sin corte automático** (el ticket sale como tira y
-se corta a mano, para que el cortador no parta el último renglón). Cada estación define su
+inicialización, 2 renglones en blanco antes del logo y, al final, 4 renglones en blanco con
+**corte parcial** `GS V 66` (la impresora lleva el papel hasta la cuchilla antes de cortar, así no
+parte el texto; el ticket queda colgando como tira). Cada estación define su
 **ancho de papel** (`gen_estacion.ancho_papel`: 80 mm → 48 columnas, 58 mm → 32); el PDF usa el
 mismo ancho. Migración: `migraciones/20261020_ancho_papel.sql`. No se implementan etiquetas ZPL/TSPL ni selección automática de lenguaje.
 **Probar conexión** abre y cierra TCP desde QZ en la PC; no imprime ni comprueba papel.
