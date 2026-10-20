@@ -11,7 +11,6 @@ BEGIN
     FROM (
         SELECT
             c.id,
-            c.codigo,
             c.nombre,
             c.descripcion,
             c.es_carta,

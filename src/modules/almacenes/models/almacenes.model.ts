@@ -34,7 +34,6 @@ export class AlmacenesModel {
 
   crear(
     idSucursal: number,
-    codigo: string,
     nombre: string,
     descripcion: string | null,
     tipoAlmacen: number,
@@ -43,7 +42,6 @@ export class AlmacenesModel {
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('gen_crear_almacen', [
       idSucursal,
-      codigo,
       nombre,
       descripcion,
       tipoAlmacen,
@@ -55,7 +53,6 @@ export class AlmacenesModel {
   actualizar(
     id: number,
     idSucursal: number | null,
-    codigo: string | null,
     nombre: string | null,
     descripcion: string | null,
     tipoAlmacen: number | null,
@@ -65,7 +62,6 @@ export class AlmacenesModel {
     return this.db.callFunctionJson<AuthSingleResult>('gen_actualizar_almacen', [
       id,
       idSucursal,
-      codigo,
       nombre,
       descripcion,
       tipoAlmacen,

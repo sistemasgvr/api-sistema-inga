@@ -28,7 +28,6 @@ export class CategoriasProductoLogic {
 
   async crear(dto: CreateCategoriaProductoDto) {
     const result = await this.categoriasProductoModel.crear(
-      dto.codigo,
       dto.nombre,
       dto.descripcion ?? null,
       dto.es_carta ?? false,
@@ -41,7 +40,6 @@ export class CategoriasProductoLogic {
   async actualizar(id: number, dto: UpdateCategoriaProductoDto) {
     const result = await this.categoriasProductoModel.actualizar(
       id,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.descripcion ?? null,
       dto.es_carta ?? null,

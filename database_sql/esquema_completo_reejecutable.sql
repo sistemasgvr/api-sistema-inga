@@ -311,7 +311,6 @@ CREATE TABLE IF NOT EXISTS auth_sesion (
 CREATE TABLE IF NOT EXISTS gen_almacen (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_sucursal             BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     descripcion             VARCHAR(255),
     tipo_almacen            SMALLINT     NOT NULL,
@@ -321,7 +320,6 @@ CREATE TABLE IF NOT EXISTS gen_almacen (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_gen_almacen_codigo UNIQUE (id_sucursal, codigo),
     CONSTRAINT fk_almacen_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_gen_almacen_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_gen_almacen_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -332,7 +330,6 @@ CREATE TABLE IF NOT EXISTS gen_almacen (
 CREATE TABLE IF NOT EXISTS gen_estacion (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_sucursal             BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     tipo_estacion           SMALLINT     NOT NULL,
     impresora_nombre        VARCHAR(100),
@@ -343,7 +340,6 @@ CREATE TABLE IF NOT EXISTS gen_estacion (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_gen_estacion UNIQUE (id_sucursal, codigo),
     CONSTRAINT fk_estacion_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_gen_estacion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_gen_estacion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -526,7 +522,6 @@ CREATE TABLE IF NOT EXISTS pro_unidad_conversion (
 -- Utilidad: agrupación de carta (entradas, fondos, tragos, etc.).
 CREATE TABLE IF NOT EXISTS pro_categoria (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     descripcion             VARCHAR(255),
     es_carta                BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -536,7 +531,6 @@ CREATE TABLE IF NOT EXISTS pro_categoria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pro_categoria_codigo UNIQUE (codigo),
     CONSTRAINT fk_pro_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_pro_categoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
@@ -545,7 +539,6 @@ CREATE TABLE IF NOT EXISTS pro_categoria (
 CREATE TABLE IF NOT EXISTS pro_subcategoria (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_categoria            BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     orden                   INTEGER      NOT NULL DEFAULT 0,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
@@ -553,7 +546,6 @@ CREATE TABLE IF NOT EXISTS pro_subcategoria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_pro_subcategoria UNIQUE (id_categoria, codigo),
     CONSTRAINT fk_subcategoria_categoria FOREIGN KEY (id_categoria) REFERENCES pro_categoria (id),
     CONSTRAINT fk_pro_subcategoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_pro_subcategoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -955,14 +947,12 @@ COMMENT ON COLUMN com_compra_detalle.cantidad_base IS
 CREATE TABLE IF NOT EXISTS caj_caja (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_sucursal             BIGINT       NOT NULL,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_caj_caja UNIQUE (id_sucursal, codigo),
     CONSTRAINT fk_caja_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_caj_caja_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_caj_caja_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -1463,7 +1453,6 @@ COMMENT ON COLUMN pla_pago.id_turno IS
 CREATE TABLE IF NOT EXISTS gad_categoria (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_categoria_padre      BIGINT,
-    codigo                  VARCHAR(50)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     tipo_gasto              SMALLINT     NOT NULL DEFAULT 1,
     orden                   INTEGER      NOT NULL DEFAULT 0,
@@ -1472,7 +1461,6 @@ CREATE TABLE IF NOT EXISTS gad_categoria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_gad_categoria_codigo UNIQUE (codigo),
     CONSTRAINT ck_gad_categoria_tipo CHECK (tipo_gasto IN (1, 2)),
     CONSTRAINT fk_gad_categoria_padre FOREIGN KEY (id_categoria_padre) REFERENCES gad_categoria (id),
     CONSTRAINT fk_gad_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
@@ -2085,26 +2073,37 @@ ON CONFLICT (codigo_iso) DO NOTHING;
 
 -- Categorias base de gastos administrativos (M16).
 -- Son las que el cliente nombro en la reunion. Puede crear mas desde el sistema.
-INSERT INTO gad_categoria (codigo, nombre, tipo_gasto, orden) VALUES
-    ('ALQUILER',      'Alquiler del local',   1, 1),
-    ('SERVICIOS',     'Servicios basicos',    1, 2),
-    ('SUSCRIPCIONES', 'Sistemas y software',  1, 3),
-    ('MANTENIMIENTO', 'Mantenimiento',        2, 4),
-    ('OFICINA',       'Utiles de oficina',    2, 5),
-    ('OTROS_ADM',     'Otros gastos',         2, 6)
-ON CONFLICT (codigo) DO NOTHING;
+-- Sin código: se identifican por nombre, así que el NOT EXISTS reemplaza al
+-- ON CONFLICT para que el script siga siendo re-ejecutable.
+INSERT INTO gad_categoria (nombre, tipo_gasto, orden)
+SELECT v.nombre, v.tipo_gasto, v.orden
+FROM (VALUES
+    ('Alquiler del local',   1, 1),
+    ('Servicios basicos',    1, 2),
+    ('Sistemas y software',  1, 3),
+    ('Mantenimiento',        2, 4),
+    ('Utiles de oficina',    2, 5),
+    ('Otros gastos',         2, 6)
+) AS v(nombre, tipo_gasto, orden)
+WHERE NOT EXISTS (
+    SELECT 1 FROM gad_categoria c
+    WHERE c.id_categoria_padre IS NULL AND c.nombre = v.nombre
+);
 
 -- Subcategorias de servicios basicos: el cliente los nombra por separado
 -- (luz, agua, internet) y quiere verlos desglosados en el reporte mensual.
-INSERT INTO gad_categoria (id_categoria_padre, codigo, nombre, tipo_gasto, orden)
-SELECT p.id, v.codigo, v.nombre, 1, v.orden
+INSERT INTO gad_categoria (id_categoria_padre, nombre, tipo_gasto, orden)
+SELECT p.id, v.nombre, 1, v.orden
 FROM (VALUES
-    ('LUZ',      'Luz',      1),
-    ('AGUA',     'Agua',     2),
-    ('INTERNET', 'Internet', 3)
-) AS v(codigo, nombre, orden)
-JOIN gad_categoria p ON p.codigo = 'SERVICIOS'
-ON CONFLICT (codigo) DO NOTHING;
+    ('Luz',      1),
+    ('Agua',     2),
+    ('Internet', 3)
+) AS v(nombre, orden)
+JOIN gad_categoria p ON p.id_categoria_padre IS NULL AND p.nombre = 'Servicios basicos'
+WHERE NOT EXISTS (
+    SELECT 1 FROM gad_categoria c
+    WHERE c.id_categoria_padre = p.id AND c.nombre = v.nombre
+);
 
 -- Categorias de gasto diario (M14).
 -- Son exactamente las de la hoja fisica de "Requerimiento Diario" que el

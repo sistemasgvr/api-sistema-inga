@@ -13,7 +13,6 @@ BEGIN
             sc.id,
             sc.id_categoria,
             c.nombre AS nombre_categoria,
-            sc.codigo,
             sc.nombre,
             sc.orden,
             sc.estado,

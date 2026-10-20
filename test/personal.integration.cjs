@@ -81,7 +81,7 @@ function expand(file) {
   await c.query("INSERT INTO pla_trabajador(nombres,apellidos) VALUES('Anterior','Prueba')");
   await c.query("INSERT INTO gen_empresa(ruc,razon_social) VALUES('20000000001','Pruebas')");
   await c.query("INSERT INTO gen_sucursal(id_empresa,codigo,nombre) VALUES(1,'TEST','Pruebas')");
-  await c.query("INSERT INTO caj_caja(id_sucursal,codigo,nombre) VALUES(1,'TEST','Pruebas')");
+  await c.query("INSERT INTO caj_caja(id_sucursal,nombre) VALUES(1,'Pruebas')");
   await c.query('INSERT INTO caj_turno(id_caja,id_cajero) VALUES(1,1)');
   const {apply}=require('../database_sql/utilidades/aplicar_personal.cjs');
   const simulation=await apply(c,{reset:true,dryRun:true});

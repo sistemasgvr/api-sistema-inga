@@ -33,7 +33,6 @@ export class CategoriasProductoModel {
   }
 
   crear(
-    codigo: string,
     nombre: string,
     descripcion: string | null,
     es_carta: boolean,
@@ -41,7 +40,6 @@ export class CategoriasProductoModel {
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('pro_crear_categoria', [
-      codigo,
       nombre,
       descripcion,
       es_carta,
@@ -52,7 +50,6 @@ export class CategoriasProductoModel {
 
   actualizar(
     id: number,
-    codigo: string | null,
     nombre: string | null,
     descripcion: string | null,
     es_carta: boolean | null,
@@ -61,7 +58,6 @@ export class CategoriasProductoModel {
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('pro_actualizar_categoria', [
       id,
-      codigo,
       nombre,
       descripcion,
       es_carta,

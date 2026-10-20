@@ -86,15 +86,15 @@ async function main() {
   await rejects(() => autorizar(mozo), /pedidos.anular/);
   await q('UPDATE auth_usuario SET estado=1,es_super_admin=false WHERE id=$1', [mozo]);
   await rejects(() => autorizar(mozo), /pedidos.anular/);
-  const caja = await insert('caj_caja', { id_sucursal: sucursal, codigo: 'CAJA', nombre: 'Caja' });
+  const caja = await insert('caj_caja', { id_sucursal: sucursal, nombre: 'Caja' });
   const turno = await insert('caj_turno', { id_caja: caja, id_cajero: usuario });
   const salon = await insert('ven_salon', { id_sucursal: sucursal, codigo: 'SALON', nombre: 'Salón' });
   const mesa = await insert('ven_mesa', { id_salon: salon, codigo: 'M1' });
-  const almacen = await insert('gen_almacen', { id_sucursal: sucursal, codigo: 'COC', nombre: 'Cocina', tipo_almacen: 2 });
-  const cocina = await insert('gen_estacion', { id_sucursal: sucursal, codigo: 'COC', nombre: 'Cocina', tipo_estacion: 1 });
-  const barra = await insert('gen_estacion', { id_sucursal: sucursal, codigo: 'BAR', nombre: 'Barra', tipo_estacion: 2 });
-  const categoria = await insert('pro_categoria', { codigo: 'TEST', nombre: 'Pruebas' });
-  const subcategoria = await insert('pro_subcategoria', { id_categoria: categoria, codigo: 'TEST', nombre: 'Pruebas' });
+  const almacen = await insert('gen_almacen', { id_sucursal: sucursal, nombre: 'Cocina', tipo_almacen: 2 });
+  const cocina = await insert('gen_estacion', { id_sucursal: sucursal, nombre: 'Cocina', tipo_estacion: 1 });
+  const barra = await insert('gen_estacion', { id_sucursal: sucursal, nombre: 'Barra', tipo_estacion: 2 });
+  const categoria = await insert('pro_categoria', { nombre: 'Pruebas' });
+  const subcategoria = await insert('pro_subcategoria', { id_categoria: categoria, nombre: 'Pruebas' });
   const kg = (await q("SELECT id FROM pro_unidad_medida WHERE codigo = 'KG'"))[0].id;
   const gramos = (await q("SELECT id FROM pro_unidad_medida WHERE codigo = 'G'"))[0].id;
   const tipoNuevo = (await q("SELECT pro_crear_tipo_producto('Tipo nuevo',true,true,true,false,$1) AS r", [usuario]))[0].r.registro;
@@ -238,7 +238,7 @@ async function main() {
   await q('SELECT alm_confirmar($1,$2)',[borrador.id,usuario]);
   check(await stock(bebida),11);
   await rejects(()=>registrar({codigo:'TIPO-INVALIDO',id_tipo_movimiento:salidaTipo,id_motivo_movimiento:compra,detalles:[{...linea,signo:-1}],confirmar:true}),/incompatibles/);
-  const destino=await insert('gen_almacen',{id_sucursal:sucursal,codigo:'DEST',nombre:'Destino',tipo_almacen:2});
+  const destino=await insert('gen_almacen',{id_sucursal:sucursal,nombre:'Destino',tipo_almacen:2});
   await registrar({codigo:'TRASLADO-TEST',id_tipo_movimiento:await opcion('ALM_TIPO_MOVIMIENTO','TRASLADO'),
     id_motivo_movimiento:await opcion('ALM_MOTIVO_MOVIMIENTO','ABASTECIMIENTO_INTERNO'),confirmar:true,
     detalles:[{...linea,signo:-1},{...linea,id_almacen:Number(destino)}]});

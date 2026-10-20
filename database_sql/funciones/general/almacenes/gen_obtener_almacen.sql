@@ -13,7 +13,6 @@ BEGIN
             a.id,
             a.id_sucursal,
             s.nombre AS nombre_sucursal,
-            a.codigo,
             a.nombre,
             a.descripcion,
             a.tipo_almacen,

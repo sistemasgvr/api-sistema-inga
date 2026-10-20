@@ -25,7 +25,6 @@ export class CajasLogic {
   async crear(dto: CreateCajaDto) {
     const result = await this.cajasModel.crear(
       dto.id_sucursal,
-      dto.codigo,
       dto.nombre,
       dto.idUsuarioAuditoria,
     );
@@ -36,7 +35,6 @@ export class CajasLogic {
     const result = await this.cajasModel.actualizar(
       id,
       dto.id_sucursal ?? null,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.idUsuarioAuditoria,
     );

@@ -10,7 +10,6 @@
 --    variable si cuelga de "Servicios básicos", que es fijo: el reporte suma
 --    por tipo y quedaría contradictorio.
 CREATE OR REPLACE FUNCTION gad_crear_categoria(
-    p_codigo VARCHAR,
     p_nombre VARCHAR,
     p_tipo_gasto SMALLINT DEFAULT 1,
     p_id_categoria_padre BIGINT DEFAULT NULL,
@@ -22,20 +21,14 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
-    v_codigo VARCHAR;
     v_nombre VARCHAR;
     v_padre RECORD;
     v_tipo SMALLINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    v_codigo := UPPER(NULLIF(TRIM(p_codigo), ''));
     v_nombre := NULLIF(TRIM(p_nombre), '');
     v_tipo := COALESCE(p_tipo_gasto, 1);
-
-    IF v_codigo IS NULL THEN
-        RETURN json_build_object('error', 'El código de la categoría es obligatorio', 'registro', NULL);
-    END IF;
 
     IF v_nombre IS NULL THEN
         RETURN json_build_object('error', 'El nombre de la categoría es obligatorio', 'registro', NULL);
@@ -45,12 +38,16 @@ BEGIN
         RETURN json_build_object('error', 'El tipo de gasto debe ser fijo o variable', 'registro', NULL);
     END IF;
 
-    -- Comparo contra todas, activas e inactivas, porque el UNIQUE tampoco
-    -- distingue estado. Si mirara solo las activas, el INSERT reventaría con
-    -- un error crudo de Postgres en vez de este mensaje.
-    IF EXISTS (SELECT 1 FROM gad_categoria WHERE codigo = v_codigo) THEN
+    -- El nombre no se repite entre hermanas activas: dos "Luz" bajo el mismo
+    -- padre partirían el reporte mensual en dos filas iguales.
+    IF EXISTS (
+        SELECT 1 FROM gad_categoria
+        WHERE estado = 1
+          AND id_categoria_padre IS NOT DISTINCT FROM p_id_categoria_padre
+          AND LOWER(nombre) = LOWER(v_nombre)
+    ) THEN
         RETURN json_build_object(
-            'error', 'Ya existe una categoría con el código ' || v_codigo,
+            'error', 'Ya existe una categoría con el nombre ' || v_nombre,
             'registro', NULL
         );
     END IF;
@@ -81,11 +78,11 @@ BEGIN
     END IF;
 
     INSERT INTO gad_categoria (
-        id_categoria_padre, codigo, nombre, tipo_gasto, orden,
+        id_categoria_padre, nombre, tipo_gasto, orden,
         id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-        p_id_categoria_padre, v_codigo, v_nombre, v_tipo, COALESCE(p_orden, 0),
+        p_id_categoria_padre, v_nombre, v_tipo, COALESCE(p_orden, 0),
         p_id_usuario_auditoria, p_id_usuario_auditoria
     )
     RETURNING id INTO v_id;

@@ -25,7 +25,6 @@ export class RolesLogic {
 
   async crear(dto: CreateRolDto) {
     const result = await this.rolesModel.crear(
-      dto.codigo,
       dto.nombre,
       dto.descripcion,
       dto.idUsuarioAuditoria,
@@ -36,7 +35,6 @@ export class RolesLogic {
   async actualizar(id: number, dto: UpdateRolDto) {
     const result = await this.rolesModel.actualizar(
       id,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.descripcion ?? null,
       dto.idUsuarioAuditoria,

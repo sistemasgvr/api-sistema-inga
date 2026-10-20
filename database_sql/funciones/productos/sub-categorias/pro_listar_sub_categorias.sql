@@ -29,7 +29,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(sc.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(sc.codigo) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
       );
 
@@ -42,7 +41,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(sc.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(sc.codigo) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
       );
 
@@ -52,7 +50,6 @@ BEGIN
             sc.id,
             sc.id_categoria,
             c.nombre AS nombre_categoria,
-            sc.codigo,
             sc.nombre,
             sc.orden,
             sc.estado,
@@ -77,7 +74,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(sc.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(sc.codigo) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY c.nombre ASC, sc.orden ASC, sc.nombre ASC

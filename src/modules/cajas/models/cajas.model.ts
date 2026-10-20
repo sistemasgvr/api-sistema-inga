@@ -34,13 +34,11 @@ export class CajasModel {
 
   crear(
     idSucursal: number,
-    codigo: string,
     nombre: string,
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_crear_caja', [
       idSucursal,
-      codigo,
       nombre,
       idUsuarioAuditoria ?? null,
     ]);
@@ -49,14 +47,12 @@ export class CajasModel {
   actualizar(
     id: number,
     idSucursal: number | null,
-    codigo: string | null,
     nombre: string | null,
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_actualizar_caja', [
       id,
       idSucursal,
-      codigo,
       nombre,
       idUsuarioAuditoria ?? null,
     ]);

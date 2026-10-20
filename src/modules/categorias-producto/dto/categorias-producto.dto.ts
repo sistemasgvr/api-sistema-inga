@@ -20,12 +20,6 @@ export class FiltroCategoriasProductoDto extends FiltroPaginacionDto {
 }
 
 export class CreateCategoriaProductoDto extends AuditoriaDto {
-  @ApiProperty({ example: 'CAT-01', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Platos Principales', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -50,12 +44,6 @@ export class CreateCategoriaProductoDto extends AuditoriaDto {
 }
 
 export class UpdateCategoriaProductoDto extends AuditoriaDto {
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
-
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()

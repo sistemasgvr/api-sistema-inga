@@ -1,5 +1,4 @@
 CREATE OR REPLACE FUNCTION pro_crear_categoria(
-    p_codigo VARCHAR,
     p_nombre VARCHAR,
     p_descripcion VARCHAR DEFAULT NULL,
     p_es_carta BOOLEAN DEFAULT FALSE,
@@ -14,23 +13,19 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    IF p_codigo IS NULL OR TRIM(p_codigo) = '' THEN
-        RETURN json_build_object('error', 'El código de la categoría es obligatorio', 'registro', NULL);
-    END IF;
-
     IF p_nombre IS NULL OR TRIM(p_nombre) = '' THEN
         RETURN json_build_object('error', 'El nombre de la categoría es obligatorio', 'registro', NULL);
     END IF;
 
     IF EXISTS (
         SELECT 1 FROM pro_categoria
-        WHERE LOWER(TRIM(codigo)) = LOWER(TRIM(p_codigo))
+        WHERE estado = 1
+          AND LOWER(TRIM(nombre)) = LOWER(TRIM(p_nombre))
     ) THEN
-        RETURN json_build_object('error', 'Ya existe una categoría con el código ' || TRIM(p_codigo), 'registro', NULL);
+        RETURN json_build_object('error', 'Ya existe una categoría con el nombre ' || TRIM(p_nombre), 'registro', NULL);
     END IF;
 
     INSERT INTO pro_categoria (
-        codigo,
         nombre,
         descripcion,
         es_carta,
@@ -39,7 +34,6 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
-        UPPER(TRIM(p_codigo)),
         TRIM(p_nombre),
         NULLIF(TRIM(p_descripcion), ''),
         COALESCE(p_es_carta, FALSE),

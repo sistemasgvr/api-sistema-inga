@@ -1,6 +1,5 @@
 CREATE OR REPLACE FUNCTION gen_crear_estacion(
     p_id_sucursal BIGINT,
-    p_codigo VARCHAR,
     p_nombre VARCHAR,
     p_tipo_estacion INTEGER DEFAULT 1,
     p_impresora_nombre VARCHAR DEFAULT NULL,
@@ -13,18 +12,11 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
-    v_codigo VARCHAR;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    v_codigo := UPPER(TRIM(p_codigo));
-
     IF p_nombre IS NULL OR TRIM(p_nombre) = '' THEN
         RETURN json_build_object('error', 'El nombre de la estación es obligatorio', 'registro', NULL);
-    END IF;
-
-    IF v_codigo IS NULL OR v_codigo = '' THEN
-        RETURN json_build_object('error', 'El código de la estación es obligatorio', 'registro', NULL);
     END IF;
 
     IF NOT EXISTS (
@@ -37,14 +29,13 @@ BEGIN
         SELECT 1 FROM gen_estacion
         WHERE estado = 1
           AND id_sucursal = p_id_sucursal
-          AND codigo = v_codigo
+          AND LOWER(TRIM(nombre)) = LOWER(TRIM(p_nombre))
     ) THEN
-        RETURN json_build_object('error', 'Ya existe una estación activa con el código ' || v_codigo || ' en esta sucursal', 'registro', NULL);
+        RETURN json_build_object('error', 'Ya existe una estación activa con el nombre ' || TRIM(p_nombre) || ' en esta sucursal', 'registro', NULL);
     END IF;
 
     INSERT INTO gen_estacion (
         id_sucursal,
-        codigo,
         nombre,
         tipo_estacion,
         impresora_nombre,
@@ -55,7 +46,6 @@ BEGIN
     )
     VALUES (
         p_id_sucursal,
-        v_codigo,
         TRIM(p_nombre),
         p_tipo_estacion,
         NULLIF(TRIM(p_impresora_nombre), ''),

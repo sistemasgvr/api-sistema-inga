@@ -15,7 +15,6 @@ BEGIN
             g.id,
             g.id_categoria,
             c.nombre AS nombre_categoria,
-            c.codigo AS codigo_categoria,
             -- Si es subcategoría, mando también el nombre de la rama para
             -- poder mostrar "Servicios · Luz" sin otra consulta.
             c.id_categoria_padre,

@@ -46,12 +46,6 @@ export class FiltroCategoriasGastoDto {
 }
 
 export class CreateCategoriaGastoDto extends AuditoriaDto {
-  @ApiProperty({ example: 'ALQUILER', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Alquiler del local', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -84,12 +78,6 @@ export class CreateCategoriaGastoDto extends AuditoriaDto {
 }
 
 export class UpdateCategoriaGastoDto extends AuditoriaDto {
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
-
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()

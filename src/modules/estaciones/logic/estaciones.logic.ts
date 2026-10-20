@@ -34,7 +34,6 @@ export class EstacionesLogic {
   async crear(dto: CreateEstacionDto) {
     const result = await this.estacionesModel.crear(
       dto.id_sucursal,
-      dto.codigo,
       dto.nombre,
       dto.tipo_estacion,
       dto.impresora_nombre ?? null,
@@ -50,7 +49,6 @@ export class EstacionesLogic {
     const result = await this.estacionesModel.actualizar(
       id,
       dto.id_sucursal ?? null,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.tipo_estacion ?? null,
       dto.impresora_nombre ?? null,

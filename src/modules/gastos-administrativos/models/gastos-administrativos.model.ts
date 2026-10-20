@@ -47,7 +47,6 @@ export class GastosAdministrativosModel {
 
   crearCategoria(dto: CreateCategoriaGastoDto) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_crear_categoria', [
-      dto.codigo,
       dto.nombre,
       dto.tipo_gasto ?? 1,
       dto.id_categoria_padre ?? null,
@@ -59,7 +58,6 @@ export class GastosAdministrativosModel {
   actualizarCategoria(id: number, dto: UpdateCategoriaGastoDto) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_actualizar_categoria', [
       id,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.tipo_gasto ?? null,
       // `?? null` y no `|| null`: un orden de 0 es válido y con `||` se

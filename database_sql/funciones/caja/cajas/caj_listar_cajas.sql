@@ -52,7 +52,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
       );
 
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::JSON) INTO v_registros
@@ -61,7 +60,6 @@ BEGIN
             c.id,
             c.id_sucursal,
             s.nombre AS nombre_sucursal,
-            c.codigo,
             c.nombre,
             c.estado,
             ta.id AS id_turno_abierto,
@@ -89,7 +87,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY c.nombre ASC
         LIMIT p_limite

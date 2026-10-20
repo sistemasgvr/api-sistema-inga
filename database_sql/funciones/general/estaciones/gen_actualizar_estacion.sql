@@ -1,7 +1,6 @@
 CREATE OR REPLACE FUNCTION gen_actualizar_estacion(
     p_id BIGINT,
     p_id_sucursal BIGINT DEFAULT NULL,
-    p_codigo VARCHAR DEFAULT NULL,
     p_nombre VARCHAR DEFAULT NULL,
     p_tipo_estacion INTEGER DEFAULT NULL,
     p_impresora_nombre VARCHAR DEFAULT NULL,
@@ -14,13 +13,11 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_nombre VARCHAR;
-    v_codigo VARCHAR;
     v_id_sucursal BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
     v_nombre := NULLIF(TRIM(p_nombre), '');
-    v_codigo := UPPER(NULLIF(TRIM(p_codigo), ''));
 
     SELECT COALESCE(p_id_sucursal, id_sucursal) INTO v_id_sucursal
     FROM gen_estacion
@@ -36,20 +33,19 @@ BEGIN
         RETURN json_build_object('error', 'La sucursal indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    IF v_codigo IS NOT NULL AND EXISTS (
+    IF v_nombre IS NOT NULL AND EXISTS (
         SELECT 1 FROM gen_estacion
         WHERE estado = 1
           AND id_sucursal = v_id_sucursal
-          AND codigo = v_codigo
+          AND LOWER(TRIM(nombre)) = LOWER(v_nombre)
           AND id <> p_id
     ) THEN
-        RETURN json_build_object('error', 'Ya existe otra estación activa con el código ' || v_codigo || ' en esta sucursal', 'registro', NULL);
+        RETURN json_build_object('error', 'Ya existe otra estación activa con el nombre ' || v_nombre || ' en esta sucursal', 'registro', NULL);
     END IF;
 
     UPDATE gen_estacion
     SET
         id_sucursal = COALESCE(p_id_sucursal, id_sucursal),
-        codigo = COALESCE(v_codigo, codigo),
         nombre = COALESCE(v_nombre, nombre),
         tipo_estacion = COALESCE(p_tipo_estacion, tipo_estacion),
         impresora_nombre = COALESCE(p_impresora_nombre, impresora_nombre),

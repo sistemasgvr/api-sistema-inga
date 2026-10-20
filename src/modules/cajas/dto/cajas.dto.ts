@@ -33,12 +33,6 @@ export class CreateCajaDto extends AuditoriaDto {
   @IsNotEmpty()
   id_sucursal!: number;
 
-  @ApiProperty({ example: 'CAJA-01', maxLength: 50, description: 'Único por sucursal' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Caja principal', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -51,12 +45,6 @@ export class UpdateCajaDto extends AuditoriaDto {
   @IsOptional()
   @IsInt()
   id_sucursal?: number;
-
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
 
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()

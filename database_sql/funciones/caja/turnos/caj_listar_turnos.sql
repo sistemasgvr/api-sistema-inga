@@ -52,7 +52,6 @@ BEGIN
         SELECT
             tu.id,
             tu.id_caja,
-            c.codigo AS codigo_caja,
             c.nombre AS nombre_caja,
             tu.id_cajero,
             TRIM(COALESCE(u.nombres, '') || ' ' || COALESCE(u.apellidos, '')) AS nombre_cajero,

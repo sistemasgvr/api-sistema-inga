@@ -38,12 +38,6 @@ export class CreateEstacionDto extends AuditoriaDto {
   @IsNotEmpty()
   id_sucursal!: number;
 
-  @ApiProperty({ example: 'EST-COC', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Cocina Principal', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -94,12 +88,6 @@ export class UpdateEstacionDto extends AuditoriaDto {
   @IsOptional()
   @IsInt()
   id_sucursal?: number;
-
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
 
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()

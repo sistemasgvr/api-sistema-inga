@@ -1,5 +1,7 @@
+-- El código del rol ya no se pide en el formulario: se deriva del nombre
+-- ("Jefe de Barra" → JEFE_DE_BARRA). Se conserva en la tabla porque el sistema
+-- reconoce al administrador por su código 'ADMIN'.
 CREATE OR REPLACE FUNCTION auth_crear_rol(
-    p_codigo VARCHAR,
     p_nombre VARCHAR,
     p_descripcion VARCHAR DEFAULT NULL,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
@@ -9,12 +11,37 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
+    v_nombre VARCHAR;
+    v_base VARCHAR;
+    v_codigo VARCHAR;
+    v_sufijo INTEGER := 1;
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF EXISTS (SELECT 1 FROM auth_rol WHERE LOWER(codigo) = LOWER(p_codigo) AND estado = 1) THEN
-        RETURN json_build_object('error', 'El código de rol ya existe', 'registro', NULL);
+    v_nombre := NULLIF(TRIM(p_nombre), '');
+
+    IF v_nombre IS NULL THEN
+        RETURN json_build_object('error', 'El nombre del rol es obligatorio', 'registro', NULL);
     END IF;
+
+    IF EXISTS (SELECT 1 FROM auth_rol WHERE LOWER(nombre) = LOWER(v_nombre) AND estado = 1) THEN
+        RETURN json_build_object('error', 'Ya existe un rol con el nombre ' || v_nombre, 'registro', NULL);
+    END IF;
+
+    v_base := LEFT(TRIM(BOTH '_' FROM regexp_replace(
+        UPPER(translate(v_nombre, 'áéíóúàèìòùäëïöüñÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÑ', 'aeiouaeiouaeiounAEIOUAEIOUAEIOUN')),
+        '[^A-Z0-9]+', '_', 'g'
+    )), 44);
+    IF v_base = '' THEN
+        v_base := 'ROL';
+    END IF;
+
+    -- El UNIQUE de codigo no mira el estado: un rol dado de baja también lo ocupa.
+    v_codigo := v_base;
+    WHILE EXISTS (SELECT 1 FROM auth_rol WHERE codigo = v_codigo) LOOP
+        v_sufijo := v_sufijo + 1;
+        v_codigo := v_base || '_' || v_sufijo;
+    END LOOP;
 
     INSERT INTO auth_rol (
         codigo,
@@ -24,8 +51,8 @@ BEGIN
         id_usuario_creacion
     )
     VALUES (
-        UPPER(p_codigo),
-        p_nombre,
+        v_codigo,
+        v_nombre,
         p_descripcion,
         1,
         p_id_usuario_auditoria

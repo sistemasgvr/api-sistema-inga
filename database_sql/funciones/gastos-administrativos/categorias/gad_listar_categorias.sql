@@ -39,7 +39,6 @@ BEGIN
     FROM (
         SELECT
             c.id,
-            c.codigo,
             c.nombre,
             c.tipo_gasto,
             CASE c.tipo_gasto WHEN 1 THEN 'Fijo' ELSE 'Variable' END AS tipo_gasto_nombre,
@@ -57,7 +56,6 @@ BEGIN
                 FROM (
                     SELECT
                         h.id,
-                        h.codigo,
                         h.nombre,
                         h.tipo_gasto,
                         CASE h.tipo_gasto WHEN 1 THEN 'Fijo' ELSE 'Variable' END AS tipo_gasto_nombre,

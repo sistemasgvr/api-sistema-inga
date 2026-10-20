@@ -266,7 +266,6 @@ Table gen_sucursal {
 Table gen_almacen {
   id bigint [pk, increment]
   id_sucursal bigint [not null]
-  codigo varchar(50) [not null]
   nombre varchar(100) [not null]
   descripcion varchar(255)
   tipo_almacen smallint [not null, note: '1 crudo, 2 prod. cocina, 3 prod. barra']
@@ -277,9 +276,6 @@ Table gen_almacen {
   fecha_creacion timestamptz [not null, default: `now()`]
   fecha_modificacion timestamptz [not null, default: `now()`]
 
-  indexes {
-    (id_sucursal, codigo) [unique]
-  }
 
   Note: 'Almacenes crudos (2 físicos) y de producción (cocina / barra).'
 }
@@ -287,7 +283,6 @@ Table gen_almacen {
 Table gen_estacion {
   id bigint [pk, increment]
   id_sucursal bigint [not null]
-  codigo varchar(50) [not null]
   nombre varchar(100) [not null]
   tipo_estacion smallint [not null, note: '1 cocina, 2 barra, 3 caja']
   impresora_nombre varchar(100)
@@ -299,9 +294,6 @@ Table gen_estacion {
   fecha_creacion timestamptz [not null, default: `now()`]
   fecha_modificacion timestamptz [not null, default: `now()`]
 
-  indexes {
-    (id_sucursal, codigo) [unique]
-  }
 
   Note: 'Impresoras/KDS: cocina (platos), caja (bebidas + boletas), barra (tragos).'
 }
@@ -507,7 +499,6 @@ Table pro_unidad_conversion {
 
 Table pro_categoria {
   id bigint [pk, increment]
-  codigo varchar(50) [not null, unique]
   nombre varchar(100) [not null]
   descripcion varchar(255)
   es_carta boolean [not null, default: false]
@@ -524,7 +515,6 @@ Table pro_categoria {
 Table pro_subcategoria {
   id bigint [pk, increment]
   id_categoria bigint [not null]
-  codigo varchar(50) [not null]
   nombre varchar(100) [not null]
   orden integer [not null, default: 0]
   estado smallint [not null, default: 1]
@@ -533,9 +523,6 @@ Table pro_subcategoria {
   fecha_creacion timestamptz [not null, default: `now()`]
   fecha_modificacion timestamptz [not null, default: `now()`]
 
-  indexes {
-    (id_categoria, codigo) [unique]
-  }
 
   Note: 'Subgrupo dentro de la categoría.'
 }
@@ -956,7 +943,6 @@ TableGroup ventas {
 Table caj_caja {
   id bigint [pk, increment]
   id_sucursal bigint [not null]
-  codigo varchar(50) [not null]
   nombre varchar(100) [not null]
   estado smallint [not null, default: 1]
   id_usuario_creacion bigint
@@ -964,9 +950,6 @@ Table caj_caja {
   fecha_creacion timestamptz [not null, default: `now()`]
   fecha_modificacion timestamptz [not null, default: `now()`]
 
-  indexes {
-    (id_sucursal, codigo) [unique]
-  }
 
   Note: 'Caja física del local.'
 }

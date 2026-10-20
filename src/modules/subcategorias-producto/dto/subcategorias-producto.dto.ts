@@ -28,12 +28,6 @@ export class CreateSubCategoriaProductoDto extends AuditoriaDto {
   @IsNotEmpty()
   id_categoria!: number;
 
-  @ApiProperty({ description: 'Código único de la subcategoría', example: 'ENT-CRI', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Entradas Criollas', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -51,12 +45,6 @@ export class UpdateSubCategoriaProductoDto extends AuditoriaDto {
   @IsOptional()
   @IsInt()
   id_categoria?: number;
-
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
 
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()

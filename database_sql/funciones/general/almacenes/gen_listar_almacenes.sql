@@ -29,7 +29,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(a.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(a.codigo) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(s.nombre) LIKE LOWER('%' || p_busqueda || '%')
       );
 
@@ -42,7 +41,6 @@ BEGIN
       AND (
           p_busqueda = ''
           OR LOWER(a.nombre) LIKE LOWER('%' || p_busqueda || '%')
-          OR LOWER(a.codigo) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(s.nombre) LIKE LOWER('%' || p_busqueda || '%')
       );
 
@@ -52,7 +50,6 @@ BEGIN
             a.id,
             a.id_sucursal,
             s.nombre AS nombre_sucursal,
-            a.codigo,
             a.nombre,
             a.descripcion,
             a.tipo_almacen,
@@ -77,7 +74,6 @@ BEGIN
           AND (
               p_busqueda = ''
               OR LOWER(a.nombre) LIKE LOWER('%' || p_busqueda || '%')
-              OR LOWER(a.codigo) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(s.nombre) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY a.es_principal DESC, a.nombre ASC

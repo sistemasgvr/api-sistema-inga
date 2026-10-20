@@ -45,7 +45,6 @@ export class EstacionesModel {
 
   crear(
     idSucursal: number,
-    codigo: string,
     nombre: string,
     tipoEstacion: number,
     impresoraNombre: string | null,
@@ -55,7 +54,6 @@ export class EstacionesModel {
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('gen_crear_estacion', [
       idSucursal,
-      codigo,
       nombre,
       tipoEstacion,
       impresoraNombre,
@@ -68,7 +66,6 @@ export class EstacionesModel {
   actualizar(
     id: number,
     idSucursal: number | null,
-    codigo: string | null,
     nombre: string | null,
     tipoEstacion: number | null,
     impresoraNombre: string | null,
@@ -81,7 +78,6 @@ export class EstacionesModel {
       [
         id,
         idSucursal,
-        codigo,
         nombre,
         tipoEstacion,
         impresoraNombre,

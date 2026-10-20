@@ -26,12 +26,6 @@ export class CreateAlmacenDto extends AuditoriaDto {
   @IsNotEmpty()
   id_sucursal!: number;
 
-  @ApiProperty({ example: 'ALM-01', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Almacén Principal', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -60,12 +54,6 @@ export class UpdateAlmacenDto extends AuditoriaDto {
   @IsOptional()
   @IsInt()
   id_sucursal?: number;
-
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
 
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()

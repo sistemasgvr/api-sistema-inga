@@ -11,12 +11,6 @@ import {
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 
 export class CreateRolDto extends AuditoriaDto {
-  @ApiProperty({ example: 'CAJERO', maxLength: 50 })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  codigo!: string;
-
   @ApiProperty({ example: 'Cajero Principal', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
@@ -31,12 +25,6 @@ export class CreateRolDto extends AuditoriaDto {
 }
 
 export class UpdateRolDto extends AuditoriaDto {
-  @ApiPropertyOptional({ maxLength: 50 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  codigo?: string;
-
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()

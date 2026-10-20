@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
@@ -159,6 +160,7 @@ export class CreatePersonaDto extends AuditoriaDto {
   @ApiPropertyOptional({ example: '987654321', maxLength: 20 })
   @IsOptional()
   @IsString()
+  @Matches(/^\d*$/, { message: 'El teléfono solo debe contener números' })
   @MaxLength(20)
   telefono?: string;
 
@@ -249,6 +251,7 @@ export class UpdatePersonaDto extends AuditoriaDto {
   @ApiPropertyOptional({ maxLength: 20 })
   @IsOptional()
   @IsString()
+  @Matches(/^\d*$/, { message: 'El teléfono solo debe contener números' })
   @MaxLength(20)
   telefono?: string;
 

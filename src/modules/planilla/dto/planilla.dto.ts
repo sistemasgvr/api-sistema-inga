@@ -10,6 +10,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -79,6 +80,7 @@ export class CreateTrabajadorDto extends AuditoriaDto {
   @ApiPropertyOptional({ maxLength: 20 })
   @IsOptional()
   @IsString()
+  @Matches(/^\d*$/, { message: 'El teléfono solo debe contener números' })
   @MaxLength(20)
   telefono?: string;
 
@@ -138,6 +140,7 @@ export class UpdateTrabajadorDto extends AuditoriaDto {
   @ApiPropertyOptional({ maxLength: 20 })
   @IsOptional()
   @IsString()
+  @Matches(/^\d*$/, { message: 'El teléfono solo debe contener números' })
   @MaxLength(20)
   telefono?: string;
 

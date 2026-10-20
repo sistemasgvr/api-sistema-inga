@@ -13,7 +13,6 @@ BEGIN
             e.id,
             e.id_sucursal,
             s.nombre AS nombre_sucursal,
-            e.codigo,
             e.nombre,
             e.tipo_estacion,
             lo.nombre AS tipo_estacion_nombre,

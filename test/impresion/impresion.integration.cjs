@@ -35,10 +35,10 @@ async function main() {
   const sucursal = await insert('gen_sucursal', { id_empresa: empresa, codigo: 'TEST', nombre: 'Test' });
   const trabajador = await insert('pla_trabajador', { nombres: 'Mozo', apellidos: 'Test', email: 'print@test.local' });
   const usuario = await insert('auth_usuario', { username: 'print_test', password_hash: 'test', id_trabajador: trabajador });
-  const estacion = await insert('gen_estacion', { id_sucursal: sucursal, codigo: 'COC', nombre: 'Cocina', tipo_estacion: 1, impresora_ip: '192.168.1.101' });
-  const otra = await insert('gen_estacion', { id_sucursal: sucursal, codigo: 'BAR', nombre: 'Barra', tipo_estacion: 2, impresora_ip: '192.168.1.102' });
-  const categoria = await insert('pro_categoria', { codigo: 'TEST', nombre: 'Test' });
-  const sub = await insert('pro_subcategoria', { id_categoria: categoria, codigo: 'TEST', nombre: 'Test' });
+  const estacion = await insert('gen_estacion', { id_sucursal: sucursal, nombre: 'Cocina', tipo_estacion: 1, impresora_ip: '192.168.1.101' });
+  const otra = await insert('gen_estacion', { id_sucursal: sucursal, nombre: 'Barra', tipo_estacion: 2, impresora_ip: '192.168.1.102' });
+  const categoria = await insert('pro_categoria', { nombre: 'Test' });
+  const sub = await insert('pro_subcategoria', { id_categoria: categoria, nombre: 'Test' });
   const unidad = (await q('SELECT id FROM pro_unidad_medida LIMIT 1'))[0].id;
   const producto = await insert('pro_producto', { id_subcategoria: sub, id_unidad_medida: unidad, id_estacion: estacion, nombre: 'Pollo', tipo_producto: 3, controla_stock: false, precio_venta: 10 });
   const pedido = await insert('ven_pedido', { id_sucursal: sucursal, id_mozo: usuario, tipo_pedido: 2, codigo: 'PRINT-1' });

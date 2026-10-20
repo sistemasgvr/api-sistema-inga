@@ -34,14 +34,12 @@ export class SubCategoriasProductoModel {
 
   crear(
     id_categoria: number,
-    codigo: string,
     nombre: string,
     orden: number,
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('pro_crear_sub_categoria', [
       id_categoria,
-      codigo,
       nombre,
       orden,
       idUsuarioAuditoria ?? null,
@@ -51,7 +49,6 @@ export class SubCategoriasProductoModel {
   actualizar(
     id: number,
     id_categoria: number | null,
-    codigo: string | null,
     nombre: string | null,
     orden: number | null,
     idUsuarioAuditoria?: number,
@@ -59,7 +56,6 @@ export class SubCategoriasProductoModel {
     return this.db.callFunctionJson<AuthSingleResult>('pro_actualizar_sub_categoria', [
       id,
       id_categoria,
-      codigo,
       nombre,
       orden,
       idUsuarioAuditoria ?? null,

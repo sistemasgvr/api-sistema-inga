@@ -1,6 +1,7 @@
+-- El código no se edita: es el identificador interno del rol (p. ej. 'ADMIN')
+-- y cambiarlo rompería los permisos que dependen de él.
 CREATE OR REPLACE FUNCTION auth_actualizar_rol(
     p_id BIGINT,
-    p_codigo VARCHAR DEFAULT NULL,
     p_nombre VARCHAR DEFAULT NULL,
     p_descripcion VARCHAR DEFAULT NULL,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
@@ -8,20 +9,23 @@ CREATE OR REPLACE FUNCTION auth_actualizar_rol(
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
+DECLARE
+    v_nombre VARCHAR;
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF p_codigo IS NOT NULL AND EXISTS (
+    v_nombre := NULLIF(TRIM(p_nombre), '');
+
+    IF v_nombre IS NOT NULL AND EXISTS (
         SELECT 1 FROM auth_rol
-        WHERE LOWER(codigo) = LOWER(p_codigo) AND id <> p_id AND estado = 1
+        WHERE LOWER(nombre) = LOWER(v_nombre) AND id <> p_id AND estado = 1
     ) THEN
-        RETURN json_build_object('error', 'El código de rol ya está en uso', 'registro', NULL);
+        RETURN json_build_object('error', 'Ya existe otro rol con el nombre ' || v_nombre, 'registro', NULL);
     END IF;
 
     UPDATE auth_rol
     SET
-        codigo = COALESCE(UPPER(p_codigo), codigo),
-        nombre = COALESCE(p_nombre, nombre),
+        nombre = COALESCE(v_nombre, nombre),
         descripcion = COALESCE(p_descripcion, descripcion),
         id_usuario_modificacion = p_id_usuario_auditoria
     WHERE id = p_id AND estado = 1;

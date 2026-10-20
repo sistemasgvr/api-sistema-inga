@@ -38,13 +38,11 @@ export class RolesModel {
   }
 
   crear(
-    codigo: string,
     nombre: string,
     descripcion?: string,
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_crear_rol', [
-      codigo,
       nombre,
       descripcion ?? null,
       idUsuarioAuditoria ?? null,
@@ -53,14 +51,12 @@ export class RolesModel {
 
   actualizar(
     id: number,
-    codigo: string | null,
     nombre: string | null,
     descripcion: string | null,
     idUsuarioAuditoria?: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_actualizar_rol', [
       id,
-      codigo,
       nombre,
       descripcion,
       idUsuarioAuditoria ?? null,

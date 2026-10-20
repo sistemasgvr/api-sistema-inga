@@ -15,7 +15,6 @@ BEGIN
             c.id,
             c.id_categoria_padre,
             p.nombre AS nombre_categoria_padre,
-            c.codigo,
             c.nombre,
             c.tipo_gasto,
             CASE c.tipo_gasto WHEN 1 THEN 'Fijo' ELSE 'Variable' END AS tipo_gasto_nombre,

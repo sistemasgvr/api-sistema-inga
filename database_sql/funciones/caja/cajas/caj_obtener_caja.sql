@@ -15,7 +15,6 @@ BEGIN
             c.id,
             c.id_sucursal,
             s.nombre AS nombre_sucursal,
-            c.codigo,
             c.nombre,
             c.estado,
             ta.id AS id_turno_abierto,

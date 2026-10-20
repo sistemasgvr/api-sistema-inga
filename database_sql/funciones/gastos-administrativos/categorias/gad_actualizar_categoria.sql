@@ -9,7 +9,6 @@
 -- gastos: pasaría lo mismo con los totales por tipo de los meses cerrados.
 CREATE OR REPLACE FUNCTION gad_actualizar_categoria(
     p_id BIGINT,
-    p_codigo VARCHAR DEFAULT NULL,
     p_nombre VARCHAR DEFAULT NULL,
     p_tipo_gasto SMALLINT DEFAULT NULL,
     p_orden INTEGER DEFAULT NULL,
@@ -19,14 +18,12 @@ RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
 DECLARE
-    v_codigo VARCHAR;
     v_nombre VARCHAR;
     v_actual RECORD;
     v_gastos INTEGER;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    v_codigo := UPPER(NULLIF(TRIM(p_codigo), ''));
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
     SELECT id, id_categoria_padre, tipo_gasto
@@ -37,11 +34,15 @@ BEGIN
         RETURN json_build_object('error', 'La categoría no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    IF v_codigo IS NOT NULL AND EXISTS (
-        SELECT 1 FROM gad_categoria WHERE codigo = v_codigo AND id <> p_id
+    IF v_nombre IS NOT NULL AND EXISTS (
+        SELECT 1 FROM gad_categoria
+        WHERE estado = 1
+          AND id_categoria_padre IS NOT DISTINCT FROM v_actual.id_categoria_padre
+          AND LOWER(nombre) = LOWER(v_nombre)
+          AND id <> p_id
     ) THEN
         RETURN json_build_object(
-            'error', 'Ya existe otra categoría con el código ' || v_codigo,
+            'error', 'Ya existe otra categoría con el nombre ' || v_nombre,
             'registro', NULL
         );
     END IF;
@@ -73,7 +74,6 @@ BEGIN
 
     UPDATE gad_categoria
     SET
-        codigo = COALESCE(v_codigo, codigo),
         nombre = COALESCE(v_nombre, nombre),
         tipo_gasto = COALESCE(p_tipo_gasto, tipo_gasto),
         orden = COALESCE(p_orden, orden),

@@ -29,7 +29,6 @@ export class SubCategoriasProductoLogic {
   async crear(dto: CreateSubCategoriaProductoDto) {
     const result = await this.subCategoriasModel.crear(
       dto.id_categoria,
-      dto.codigo,
       dto.nombre,
       dto.orden ?? 0,
       dto.idUsuarioAuditoria,
@@ -41,7 +40,6 @@ export class SubCategoriasProductoLogic {
     const result = await this.subCategoriasModel.actualizar(
       id,
       dto.id_categoria ?? null,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.orden ?? null,
       dto.idUsuarioAuditoria,

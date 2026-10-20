@@ -28,7 +28,6 @@ export class AlmacenesLogic {
   async crear(dto: CreateAlmacenDto) {
     const result = await this.almacenModel.crear(
       dto.id_sucursal,
-      dto.codigo,
       dto.nombre,
       dto.descripcion ?? null,
       dto.tipo_almacen,
@@ -42,7 +41,6 @@ export class AlmacenesLogic {
     const result = await this.almacenModel.actualizar(
       id,
       dto.id_sucursal ?? null,
-      dto.codigo ?? null,
       dto.nombre ?? null,
       dto.descripcion ?? null,
       dto.tipo_almacen ?? null,

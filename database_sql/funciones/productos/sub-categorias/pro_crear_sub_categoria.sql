@@ -1,6 +1,5 @@
 CREATE OR REPLACE FUNCTION pro_crear_sub_categoria(
     p_id_categoria BIGINT,
-    p_codigo VARCHAR,
     p_nombre VARCHAR,
     p_orden INTEGER DEFAULT 0,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
@@ -10,18 +9,11 @@ LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
-    v_codigo VARCHAR;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    v_codigo := UPPER(TRIM(p_codigo));
-
     IF p_nombre IS NULL OR TRIM(p_nombre) = '' THEN
         RETURN json_build_object('error', 'El nombre de la subcategoría es obligatorio', 'registro', NULL);
-    END IF;
-
-    IF v_codigo IS NULL OR v_codigo = '' THEN
-        RETURN json_build_object('error', 'El código de la subcategoría es obligatorio', 'registro', NULL);
     END IF;
 
     IF NOT EXISTS (
@@ -34,14 +26,13 @@ BEGIN
         SELECT 1 FROM pro_subcategoria
         WHERE estado = 1
           AND id_categoria = p_id_categoria
-          AND codigo = v_codigo
+          AND LOWER(TRIM(nombre)) = LOWER(TRIM(p_nombre))
     ) THEN
-        RETURN json_build_object('error', 'Ya existe una subcategoría activa con el código ' || v_codigo || ' en esta categoría', 'registro', NULL);
+        RETURN json_build_object('error', 'Ya existe una subcategoría activa con el nombre ' || TRIM(p_nombre) || ' en esta categoría', 'registro', NULL);
     END IF;
 
     INSERT INTO pro_subcategoria (
         id_categoria,
-        codigo,
         nombre,
         orden,
         id_usuario_creacion,
@@ -49,7 +40,6 @@ BEGIN
     )
     VALUES (
         p_id_categoria,
-        v_codigo,
         TRIM(p_nombre),
         p_orden,
         p_id_usuario_auditoria,

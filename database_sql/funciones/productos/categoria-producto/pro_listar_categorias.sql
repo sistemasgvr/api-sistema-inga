@@ -31,7 +31,6 @@ BEGIN
       AND (p_es_carta IS NULL OR c.es_carta = p_es_carta)
       AND (
           p_busqueda = ''
-          OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
           OR LOWER(COALESCE(c.descripcion, '')) LIKE LOWER('%' || p_busqueda || '%')
       );
@@ -40,7 +39,6 @@ BEGIN
     FROM (
         SELECT
             c.id,
-            c.codigo,
             c.nombre,
             c.descripcion,
             c.es_carta,
@@ -64,7 +62,6 @@ BEGIN
           AND (p_es_carta IS NULL OR c.es_carta = p_es_carta)
           AND (
               p_busqueda = ''
-              OR LOWER(c.codigo) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
               OR LOWER(COALESCE(c.descripcion, '')) LIKE LOWER('%' || p_busqueda || '%')
           )

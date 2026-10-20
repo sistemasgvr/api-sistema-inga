@@ -18,7 +18,6 @@ BEGIN
         SELECT
             tu.id,
             tu.id_caja,
-            c.codigo AS codigo_caja,
             c.nombre AS nombre_caja,
             c.id_sucursal,
             s.nombre AS nombre_sucursal,
