@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +17,7 @@ import { ImpresionModel } from '../models/impresion.model';
 
 @Injectable()
 export class QzSigningLogic {
+  private readonly logger = new Logger(QzSigningLogic.name);
   constructor(
     private readonly config: ConfigService,
     private readonly model: ImpresionModel,
@@ -81,7 +83,19 @@ export class QzSigningLogic {
     );
     return this.configuracion();
   }
+  // QZ en el navegador sólo muestra «Failed to sign request»: el motivo real queda en el log.
   async firmar(message: string) {
+    try {
+      return await this.validarYFirmar(message);
+    } catch (error) {
+      this.logger.warn(
+        `Firma QZ rechazada: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async validarYFirmar(message: string) {
     let value: {
       call?: string;
       timestamp?: number;
