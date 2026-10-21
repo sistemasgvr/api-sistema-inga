@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_listar_avisos_cocina(p_sucursal BIGINT, p_estacion BIGINT);
 CREATE OR REPLACE FUNCTION ven_listar_avisos_cocina(p_sucursal BIGINT,p_estacion BIGINT) RETURNS JSON LANGUAGE sql AS $$
   SELECT COALESCE(json_agg(x ORDER BY x.fecha_modificacion DESC),'[]'::JSON) FROM (
     SELECT a.id,a.id_pedido,p.codigo AS codigo_pedido,me.codigo AS codigo_mesa,a.mensaje,a.faltantes,a.estaciones,

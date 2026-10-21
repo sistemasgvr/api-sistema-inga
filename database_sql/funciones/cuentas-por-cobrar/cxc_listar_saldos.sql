@@ -1,20 +1,11 @@
--- Listo el saldo deudor de cada cliente del consorcio, usando
--- vw_cxc_saldo_persona.
---
--- Es la pantalla principal del módulo: "quién nos debe y cuánto".
---
--- Ordeno por saldo descendente porque al administrador le importa primero quién
--- le debe más, no el orden alfabético.
---
--- Dos filtros que vienen de dos usos distintos:
---   p_solo_con_deuda → el dashboard quiere solo a quienes deben.
---   p_id_convenio    → la pantalla de una empresa quiere solo a su gente,
---                      porque el corte quincenal se envía por empresa.
---
--- El resumen incluye `clientes_sobre_limite`: cuántos pasaron el tope de crédito
--- de su convenio. Como decidí advertir en vez de bloquear (ver
--- cxc_registrar_consumo), este contador es el que hace que la advertencia no se
--- pierda.
+-- Listo el saldo deudor de cada cliente del consorcio, usando vw_cxc_saldo_persona.
+DROP FUNCTION IF EXISTS cxc_listar_saldos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_solo_con_deuda BOOLEAN,
+    p_id_convenio BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_listar_saldos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

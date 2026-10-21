@@ -1,5 +1,4 @@
--- Se elimina la firma anterior (solo p_busqueda): con otra firma, CREATE OR
--- REPLACE crea una sobrecarga en vez de reemplazar y la vieja queda viva.
+-- Se elimina también la firma anterior (solo p_busqueda) para no dejar una sobrecarga viva.
 DROP FUNCTION IF EXISTS pro_listar_insumos_procesados(VARCHAR);
 DROP FUNCTION IF EXISTS pro_listar_insumos_procesados(
     VARCHAR, BIGINT, BIGINT, BIGINT
@@ -32,15 +31,11 @@ BEGIN
             tp.nombre AS nombre_tipo_producto,
             sc.id_categoria,
             p.id_subcategoria,
-            -- Distingue un sub-plato de un insumo crudo en la UI: el sub-plato
-            -- tiene su propio desglose y su propio costo ya calculado.
             EXISTS (
                 SELECT 1 FROM pro_receta r
                 WHERE r.id_producto = p.id AND r.estado = 1 AND r.vigente
             ) AS tiene_receta,
-            -- Un sub-plato con grupos de sustitución no puede anticiparse:
-            -- prod_preparar lo rechaza y obliga a prepararlo por pedido.
-            -- La UI avisa antes de agregarlo.
+            -- Un sub-plato con grupos de sustitución no puede anticiparse (prod_preparar lo rechaza).
             EXISTS (
                 SELECT 1 FROM pro_receta r
                 JOIN pro_receta_insumo ri ON ri.id_receta = r.id AND ri.estado = 1

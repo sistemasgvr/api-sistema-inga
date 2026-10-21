@@ -1,12 +1,12 @@
 -- Registro un ingreso o egreso de caja que no es una venta.
---
--- Casos típicos: pagar un delivery de gas, comprar hielo, un retiro parcial
--- para el banco, o poner sencillo en el cajón.
---
--- El signo NO va en el monto: la tabla tiene un CHECK (ck_caj_mov_monto) que
--- exige monto > 0 siempre. Lo que distingue sumar de restar es
--- tipo_movimiento: 1 = ingreso, 2 = egreso. Así nadie puede meter un egreso
--- negativo y hacer que la caja cuadre por accidente.
+DROP FUNCTION IF EXISTS caj_registrar_movimiento(
+    p_id_turno BIGINT,
+    p_tipo_movimiento SMALLINT,
+    p_monto NUMERIC,
+    p_motivo VARCHAR,
+    p_id_usuario_autoriza BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_registrar_movimiento(
     p_id_turno BIGINT,
     p_tipo_movimiento SMALLINT,

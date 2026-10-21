@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS pro_eliminar_receta(
+    p_id_receta BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_eliminar_receta(
     p_id_receta BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

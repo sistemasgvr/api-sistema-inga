@@ -1,11 +1,8 @@
--- Doy de baja lógica una persona (estado = 0).
---
--- No borro la fila: com_compra y cxc_movimiento apuntan a ella y perdería el
--- historial de compras y de consumos a crédito.
---
--- Bloqueo la baja si la persona tiene deuda pendiente. Si la dejara pasar,
--- desaparecería de los listados con plata por cobrar de por medio, que es
--- justo lo que el reporte de quincena (M14) tiene que mostrar.
+-- Doy de baja lógica una persona (estado = 0). Se bloquea si tiene deuda pendiente.
+DROP FUNCTION IF EXISTS cli_eliminar_persona(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_eliminar_persona(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

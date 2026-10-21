@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_autorizar_anulacion(p_usuario BIGINT, p_autoriza BIGINT, p_motivo TEXT);
 CREATE OR REPLACE FUNCTION public.ven_autorizar_anulacion(p_usuario BIGINT, p_autoriza BIGINT, p_motivo TEXT)
 RETURNS VOID LANGUAGE plpgsql AS $$
 BEGIN

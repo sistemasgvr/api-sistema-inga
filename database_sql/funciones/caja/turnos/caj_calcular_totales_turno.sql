@@ -1,10 +1,5 @@
 -- Calcula cuánto dinero debería haber en el cajón de un turno.
---
--- La saqué a una función propia porque tres sitios necesitan exactamente el
--- mismo cálculo: el panel del turno activo, el resumen de cierre y la función
--- que cierra el turno y guarda la diferencia. Si lo dejara copiado, alcanzaría
--- con que alguien corrija uno para que el arqueo empiece a mentir.
---
+
 -- LO IMPORTANTE: al cajón solo entra EFECTIVO.
 --
 --   esperado = monto_apertura
@@ -14,17 +9,8 @@
 --            - egresos de caja   (tipo_movimiento = 2)
 --            - pagos en efectivo de otros módulos (proveedores, gastos
 --              administrativos, planilla, compras del día)
---
--- Cobranzas y pagos de otros módulos salen de caj_movimientos_externos, la
--- misma fuente que usa la lista de movimientos del resumen.
---
--- Yape, tarjeta y crédito (medios 2, 3 y 4) se cobran igual y se muestran en el
--- resumen, pero NO suman al efectivo esperado: ese dinero nunca pasó por el
--- cajón. Sumarlos sería el error clásico que hace que todo cierre con faltante.
---
--- Las cobranzas de CxC van aparte de las ventas: no son venta del día (la venta
--- ya se contó cuando se fió), son la deuda que se está pagando. Sumarlas a
--- total_ventas duplicaría lo vendido.
+
+DROP FUNCTION IF EXISTS caj_calcular_totales_turno(p_id_turno BIGINT);
 CREATE OR REPLACE FUNCTION caj_calcular_totales_turno(p_id_turno BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

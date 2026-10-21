@@ -1,10 +1,8 @@
--- Estado de cuenta de un proveedor: su saldo, sus totales y sus últimos movimientos.
---
--- Lo devuelvo todo junto porque la pantalla de detalle los muestra en la misma
--- vista y no tiene sentido hacer tres viajes.
---
--- También sirve como el documento que se le enseña al proveedor cuando hay
--- discrepancia sobre cuánto se le debe.
+-- Estado de cuenta de un proveedor: saldo, totales y últimos movimientos en una sola llamada.
+DROP FUNCTION IF EXISTS cxp_obtener_estado_cuenta(
+    p_id_persona BIGINT,
+    p_limite_movimientos INTEGER
+);
 CREATE OR REPLACE FUNCTION cxp_obtener_estado_cuenta(
     p_id_persona BIGINT,
     p_limite_movimientos INTEGER DEFAULT 20

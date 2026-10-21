@@ -1,15 +1,9 @@
--- Productos del inventario que se pueden comprar desde las compras del día.
---
--- Son los que controlan stock y se reponen comprándolos (insumos crudos,
--- bebidas en lata). Quedan fuera los que se preparan con receta: su stock
--- entra por producción, no por compra (misma regla que alm_confirmar).
---
--- Incluyo los que tienen stock en cero y los que nunca tuvieron fila en
--- alm_producto_stock: un producto agotado es justo el que más hay que comprar.
---
--- Devuelvo también los almacenes activos, porque cada compra entra a uno, y
--- el stock de cada producto por almacén para mostrarlo al elegir.
--- Sin paginar: son pocos y el formulario los necesita todos a mano.
+-- Productos de inventario que se reponen comprándolos (sin receta), incluidos los de stock cero,
+-- con los almacenes activos y su stock por almacén. Sin paginar.
+DROP FUNCTION IF EXISTS gdo_listar_productos_inventario(
+    p_buscar VARCHAR,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_listar_productos_inventario(
     p_buscar VARCHAR DEFAULT '',
     p_id_sucursal BIGINT DEFAULT NULL
@@ -31,7 +25,6 @@ AS $function$
                     pr.id_almacen_stock,
                     COALESCE(st.stock_total, 0) AS stock_total,
                     COALESCE(st.stocks, '[]'::JSON) AS stocks,
-                    -- Sugiere el precio: el costo promedio con que se viene comprando.
                     COALESCE(st.costo_promedio, 0) AS costo_referencial
                 FROM pro_producto pr
                 INNER JOIN pro_unidad_medida um ON um.id = pr.id_unidad_medida

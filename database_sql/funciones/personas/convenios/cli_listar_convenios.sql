@@ -1,8 +1,10 @@
--- Listo los convenios de crédito del consorcio (GVR, 4G, ApuSalud, Jurisconta).
---
--- Devuelvo también "personas_asignadas" porque en la pantalla necesito avisar
--- cuántos clientes dependen de cada convenio antes de que alguien lo dé de baja.
--- Si no lo mando desde acá, el front tendría que hacer una consulta por fila.
+-- Listo los convenios de crédito con la cantidad de personas asignadas a cada uno.
+DROP FUNCTION IF EXISTS cli_listar_convenios(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION cli_listar_convenios(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -21,9 +23,7 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- Cuento el universo completo ignorando el filtro de estado.
-    -- Estos números alimentan las tarjetas de resumen de la pantalla,
-    -- que deben mostrar el total real aunque el usuario esté filtrando.
+    -- El resumen cuenta el universo completo, ignorando el filtro de estado.
     SELECT
         COUNT(*),
         COUNT(*) FILTER (WHERE c.estado = 1),
@@ -35,7 +35,7 @@ BEGIN
         OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
     );
 
-    -- Este total sí respeta el filtro de estado: es el que usa la paginación.
+    -- Este total sí respeta el filtro de estado: es el de la paginación.
     SELECT COUNT(*) INTO v_total
     FROM cli_convenio c
     WHERE (p_estado IS NULL OR c.estado = p_estado)

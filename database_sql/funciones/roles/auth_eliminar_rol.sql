@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS auth_eliminar_rol(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_eliminar_rol(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

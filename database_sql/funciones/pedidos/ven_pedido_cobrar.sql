@@ -1,4 +1,5 @@
 -- Cobro completo: no deja pagos, comprobantes ni créditos parciales si falla.
+DROP FUNCTION IF EXISTS ven_pedido_cobrar(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_pedido_cobrar(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; t BIGINT; persona cli_persona%ROWTYPE; convenio cli_convenio%ROWTYPE;
@@ -31,16 +32,9 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'El DNI no corresponde a un cliente registrado'; END IF;
     SELECT * INTO convenio FROM cli_convenio WHERE id=persona.id_convenio AND estado=1 FOR SHARE;
     IF NOT FOUND THEN RAISE EXCEPTION 'El cliente necesita un convenio activo'; END IF;
-    -- limite_credito es el techo de la DEUDA, no del cobro: a crédito entra solo lo que
-    -- le falta al cliente para llegar al tope y el resto se cobra en efectivo. El saldo
-    -- se lee con la fila de la persona ya bloqueada arriba (FOR UPDATE), así dos cajeros
-    -- que cobran al mismo cliente se serializan y el segundo ve la deuda del primero.
-    -- Un límite de 0 (o NULL) NO es "crédito cero": es SIN TOPE, la cuenta de consorcio
-    -- que se liquida a fin de período. Ahí entra el pedido completo a crédito y no hay
-    -- efectivo que confirmar. Mismo criterio que nivelCredito() en el front y que
-    -- cxc_listar_saldos.
-    -- OJO: cxc_registrar_consumo, llamada desde la pantalla de CxC para un cargo manual,
-    -- NO bloquea la persona; por esa vía la garantía de concurrencia no aplica.
+    -- limite_credito es el techo de la DEUDA: a crédito entra solo lo que falta para el tope y el resto
+    -- se cobra en efectivo. Un límite 0/NULL es SIN TOPE (cuenta de consorcio). La persona ya está
+    -- bloqueada (FOR UPDATE), así dos cobros al mismo cliente se serializan.
     IF COALESCE(convenio.limite_credito,0)<=0 THEN
       monto_credito:=v.monto_total;
       excedente:=0;
@@ -108,6 +102,7 @@ BEGIN
   RETURN ven_obtener_pedido(p_id);
 END $$;
 
+DROP FUNCTION IF EXISTS ven_pedido_credito(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_pedido_credito(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 BEGIN RETURN ven_pedido_cobrar(p_id,p_item,p_datos||'{"credito":true}'::JSONB,p_usuario); END $$;

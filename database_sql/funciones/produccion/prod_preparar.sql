@@ -1,5 +1,6 @@
 -- Registra una preparación terminada: consumo y producción son atómicos.
 -- codigo es único; un reintento idéntico devuelve la orden ya registrada.
+DROP FUNCTION IF EXISTS prod_preparar(p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION prod_preparar(p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE pr pro_producto%ROWTYPE; rec pro_receta%ROWTYPE; pd ven_pedido_detalle%ROWTYPE;
   orden prod_orden%ROWTYPE; pedido ven_pedido%ROWTYPE; ins RECORD; partes JSONB:='[]'; libre JSONB:='{}'; salida BIGINT;

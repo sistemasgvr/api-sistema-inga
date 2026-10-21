@@ -1,13 +1,9 @@
 -- Devuelve el turno de caja contra el que se registran cobros, pagos y gastos,
 -- o NULL si no hay ninguna caja abierta.
---
--- La regla es que haya una caja abierta, no que el usuario autenticado tenga
--- su propio turno: el administrador o el contador registran pagos sobre la
--- caja que abrió el cajero. Si el usuario sí tiene un turno abierto, se
--- prefiere el suyo; si no, el más reciente. p_id_sucursal limita la búsqueda
--- a las cajas de esa sucursal cuando se conoce.
---
--- Misma forma de respuesta que caj_obtener_turno_abierto.
+DROP FUNCTION IF EXISTS caj_obtener_turno_vigente(
+    p_id_usuario BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_obtener_turno_vigente(
     p_id_usuario BIGINT,
     p_id_sucursal BIGINT DEFAULT NULL

@@ -1,13 +1,8 @@
--- Reporte de CxP por período: qué se compró a crédito, qué se abonó y a quién.
---
--- Es el ítem "reporte exportable de CxP por proveedor y período" del alcance.
--- El front lo usa tal cual para armar el Excel o el PDF.
---
--- Agrupo también por SEMANA porque es el ritmo real del negocio: a los cuatro
--- proveedores se les abona semanalmente. Ver el mes en bloque no dice si esta
--- semana ya se pagó o no.
---
--- Si no se indica período, uso el mes actual.
+-- Reporte de CxP por período (por defecto el mes actual), agrupado por proveedor y semana.
+DROP FUNCTION IF EXISTS cxp_reporte_periodo(
+    p_anio INTEGER,
+    p_mes INTEGER
+);
 CREATE OR REPLACE FUNCTION cxp_reporte_periodo(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL
@@ -36,9 +31,7 @@ BEGIN
     FROM cxp_movimiento m
     WHERE m.estado = 1 AND m.anio = v_anio AND m.mes = v_mes;
 
-    -- La deuda actual NO se filtra por período: es el saldo vivo de hoy,
-    -- acumulado desde siempre. Mezclarla con los totales del mes sería el
-    -- error que haría creer que la deuda se reinicia cada mes.
+    -- La deuda actual NO se filtra por período: es el saldo vivo acumulado.
     SELECT COALESCE(SUM(v.saldo) FILTER (WHERE v.saldo > 0), 0)
     INTO v_deuda_actual
     FROM vw_cxp_saldo_proveedor v;
@@ -54,7 +47,6 @@ BEGIN
             ) AS nombre_proveedor,
             COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 1), 0) AS cargos_periodo,
             COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 2), 0) AS abonos_periodo,
-            -- El saldo vivo del proveedor, no el del período.
             cxp_calcular_saldo_proveedor(p.id) AS saldo_actual
         FROM cli_persona p
         INNER JOIN cxp_movimiento m

@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS pro_crear_sub_categoria(
+    p_id_categoria BIGINT,
+    p_nombre VARCHAR,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_crear_sub_categoria(
     p_id_categoria BIGINT,
     p_nombre VARCHAR,

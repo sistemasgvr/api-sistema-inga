@@ -1,9 +1,8 @@
--- Doy de baja o reactivo un insumo de la lista maestra.
---
--- Uno solo para las dos acciones porque el insumo no tiene reglas de negocio
--- asociadas a su estado: solo aparece o no en el buscador del registro rápido.
--- No bloqueo la baja aunque tenga compras: el histórico se conserva y que un
--- insumo deje de comprarse es lo normal.
+-- Doy de baja o reactivo un insumo de la lista maestra. La baja no se bloquea aunque tenga compras.
+DROP FUNCTION IF EXISTS gdo_toggle_insumo(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_toggle_insumo(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

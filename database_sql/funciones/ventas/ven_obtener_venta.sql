@@ -1,6 +1,7 @@
 -- Detalle de una venta: el pedido (ven_obtener_pedido) más sus pagos con la
 -- caja y el turno donde entraron, el historial de comprobantes (incluidos los
 -- anulados al reemitir) y las comandas con el estado de su impresión.
+DROP FUNCTION IF EXISTS ven_obtener_venta(p_id BIGINT);
 CREATE OR REPLACE FUNCTION ven_obtener_venta(p_id BIGINT)
 RETURNS JSON LANGUAGE plpgsql STABLE AS $$
 DECLARE pedido JSONB;

@@ -1,9 +1,15 @@
--- Creo un trabajador.
---
--- El documento es opcional (el cliente pidió el registro mínimo), pero si se
--- informa tiene que ser único: la restricción uq_pla_trabajador_doc lo impone.
--- Valido el duplicado acá para dar un mensaje claro en vez de dejar que
--- reviente el UNIQUE con un error crudo de Postgres.
+-- Creo un trabajador. El documento es opcional, pero si se informa debe ser único.
+DROP FUNCTION IF EXISTS pla_crear_trabajador(
+    p_nombres VARCHAR,
+    p_apellidos VARCHAR,
+    p_num_documento VARCHAR,
+    p_puesto VARCHAR,
+    p_sueldo_referencial NUMERIC,
+    p_id_sucursal BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_email VARCHAR,
+    p_telefono VARCHAR
+);
 CREATE OR REPLACE FUNCTION pla_crear_trabajador(
     p_nombres VARCHAR,
     p_apellidos VARCHAR,
@@ -39,9 +45,7 @@ BEGIN
         RETURN json_build_object('error', 'Los apellidos del trabajador son obligatorios', 'registro', NULL);
     END IF;
 
-    -- Si informan documento, valido que sea DNI o carné: 8 a 12 alfanuméricos.
-    -- No exijo 8 dígitos exactos como en cli_persona porque acá puede haber
-    -- personal extranjero con carné, y el cliente pidió no complicar el alta.
+    -- Documento: DNI o carné, 8 a 12 alfanuméricos (puede haber personal extranjero).
     IF v_doc IS NOT NULL AND v_doc !~ '^[A-Za-z0-9]{8,12}$' THEN
         RETURN json_build_object(
             'error', 'El documento debe tener entre 8 y 12 caracteres alfanuméricos',
@@ -64,9 +68,6 @@ BEGIN
         FROM pla_trabajador WHERE num_documento = v_doc;
 
         IF FOUND THEN
-            -- Si existe pero está de baja, lo digo explícitamente: el usuario no
-            -- lo ve en la lista y sin este aviso quedaría peleando con un error
-            -- de "documento repetido" sobre alguien invisible.
             IF v_existente.estado = 0 THEN
                 RETURN json_build_object(
                     'error', 'Ya existe un trabajador dado de baja con el documento ' || v_doc ||

@@ -1,25 +1,22 @@
--- Registro un consumo a crédito: aumenta lo que una persona nos debe.
---
--- Esta es la función que **M12 va a llamar automáticamente** cuando un pedido
--- se cobre con medio_pago = 4 (crédito). Los parámetros p_id_pedido y p_id_pago
--- quedan listos para ese enlace; hoy llegan NULL porque M12 todavía no existe y
--- los consumos se cargan a mano.
---
--- La quincena la DEDUZCO de la fecha, no la pido: días 1-15 = quincena 1,
--- 16 en adelante = quincena 2. Es la regla que el esquema ya documenta en el
--- COMMENT de la columna, y el corte se comparte con cada empresa a inicios del
--- mes siguiente.
---
--- Dos validaciones que vienen del alcance:
---   1. La persona debe tener es_cliente = TRUE.
---   2. Debe tener un convenio ACTIVO. El crédito del consorcio es contra la
---      empresa, no contra la persona suelta.
---
--- Sobre el límite de crédito: advierto pero NO bloqueo. El alcance dice
--- "el sistema debe advertir o bloquear" y dejó la decisión abierta (§7). Elijo
--- advertir porque bloquear en caja, con el cliente esperando, es el peor lugar
--- para descubrir un tope. Devuelvo la bandera `supera_limite` para que la
--- pantalla lo muestre; si después deciden bloquear, es cambiar este IF.
+-- Registro un consumo a crédito: aumenta lo que una persona nos debe. Se llama desde el módulo de ventas cuando se cierra un pedido a crédito.
+drop ADD FUNCTION IF EXISTS cxc_registrar_consumo(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE DEFAULT NULL,
+    p_id_pedido BIGINT DEFAULT NULL,
+    p_id_pago BIGINT DEFAULT NULL,
+    p_observacion VARCHAR DEFAULT NULL,
+    p_id_usuario_auditoria BIGINT DEFAULT NULL
+);
+DROP FUNCTION IF EXISTS cxc_registrar_consumo(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE,
+    p_id_pedido BIGINT,
+    p_id_pago BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_registrar_consumo(
     p_id_persona BIGINT,
     p_monto NUMERIC,

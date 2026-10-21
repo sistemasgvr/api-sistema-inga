@@ -1,9 +1,7 @@
--- Aparta los ingredientes de las unidades comandadas que no se cubrieron con platos ya preparados.
--- Un sub-plato (Ceviche dentro de un Barco) se toma primero de los platos preparados LIBRES y lo que
--- falte se reemplaza por sus ingredientes (prod_cubrir_subplato). Lo tomado se lleva en memoria para
--- que dos líneas de la misma comanda no tomen el mismo plato.
--- Todo o nada: si falta cualquier insumo (o un producto directo sin existencias) la comanda se rechaza
--- con SQLSTATE IN001; DETAIL lleva los faltantes en JSON (con la ruta del sub-plato) para el aviso a cocina.
+-- Aparta los ingredientes de las unidades comandadas no cubiertas con platos preparados. Un sub-plato
+-- se toma primero de los preparados libres y lo que falte se cubre con sus ingredientes.
+-- Todo o nada: si falta algo se rechaza con SQLSTATE IN001 y los faltantes en DETAIL (JSON).
+DROP FUNCTION IF EXISTS ven_reservar_insumos_pedido(p_items BIGINT[], p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_reservar_insumos_pedido(p_items BIGINT[],p_usuario BIGINT) RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE d RECORD; c RECORD; necesidades JSONB:='[]'; libre JSONB:='{}'; extra JSONB; faltantes JSONB; mensaje TEXT;
 BEGIN

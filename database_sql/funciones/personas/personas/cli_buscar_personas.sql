@@ -1,3 +1,8 @@
+DROP FUNCTION IF EXISTS cli_buscar_personas(
+    p_busqueda VARCHAR,
+    p_rol VARCHAR,
+    p_limite INTEGER
+);
 CREATE OR REPLACE FUNCTION cli_buscar_personas(
     p_busqueda VARCHAR DEFAULT '',
     p_rol VARCHAR DEFAULT NULL,
@@ -32,8 +37,7 @@ BEGIN
             p.id_convenio,
             c.nombre AS nombre_convenio,
             c.limite_credito,
-            -- Mando el saldo para que la pantalla de cobro pueda avisar al
-            -- cajero si el cliente ya se pasó de su límite de crédito.
+            -- Saldo para avisar en el cobro si el cliente ya pasó su límite de crédito.
             COALESCE((
                 SELECT SUM(
                     CASE
@@ -66,8 +70,7 @@ BEGIN
               ) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY
-            -- Primero lo que empieza igual a lo tecleado: si escribo "456",
-            -- el documento 45612345 sale antes que el 12345645.
+            -- Primero lo que empieza igual a lo tecleado.
             CASE WHEN COALESCE(p.num_documento, '') LIKE p_busqueda || '%' THEN 0 ELSE 1 END,
             COALESCE(
                 NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),

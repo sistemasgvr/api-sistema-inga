@@ -1,13 +1,6 @@
--- Traigo una persona por ID.
---
--- Devuelvo también "saldo_credito": lo que esta persona debe hoy, sumando sus
--- movimientos de cuenta corriente (cargo suma, abono resta). Lo calculo acá
--- porque la pantalla de personas necesita mostrarlo y, sobre todo, porque la
--- baja lógica (cli_eliminar_persona) lo usa para no dejar ir a un deudor.
---
--- Ojo: a diferencia de cli_obtener_convenio, acá NO filtro por estado = 1.
--- Necesito poder leer una persona inactiva para mostrarla en el detalle y para
--- que el botón de reactivar tenga algo que mostrar.
+-- Traigo una persona por ID con su saldo_credito actual. No filtra por estado:
+-- la ficha y la reactivación necesitan leer personas inactivas.
+DROP FUNCTION IF EXISTS cli_obtener_persona(p_id BIGINT);
 CREATE OR REPLACE FUNCTION cli_obtener_persona(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -46,8 +39,7 @@ BEGIN
             p.id_convenio,
             c.nombre AS nombre_convenio,
             c.limite_credito,
-            -- tipo_movimiento: 1 = cargo (consumo), 2 = abono (pago).
-            -- El "ELSE m.monto" cubre el tipo 3 (ajuste), que ya viene con signo.
+            -- Tipo 1 cargo suma, 2 abono resta; el ELSE cubre el ajuste (3), que ya trae su signo.
             COALESCE((
                 SELECT SUM(
                     CASE

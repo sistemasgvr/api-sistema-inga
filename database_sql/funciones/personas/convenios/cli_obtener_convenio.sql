@@ -1,8 +1,6 @@
 -- Traigo un convenio por ID con los mismos campos que el listado.
---
--- Las funciones de crear y actualizar terminan llamando a esta, así el front
--- recibe siempre el registro completo y con el mismo formato, sin importar
--- por cuál de las tres operaciones haya pasado.
+-- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
+DROP FUNCTION IF EXISTS cli_obtener_convenio(p_id BIGINT);
 CREATE OR REPLACE FUNCTION cli_obtener_convenio(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

@@ -1,11 +1,5 @@
 -- Resumen completo de un turno: totales, movimientos y arqueo en una sola llamada.
---
--- Es lo que pide el requerimiento de M11: "total por medio de pago, movimientos
--- y diferencia de arqueo". Lo devuelvo todo junto porque la pantalla de cierre
--- los muestra en la misma vista y no tiene sentido hacer tres viajes.
---
--- También sirve como comprobante del turno: es la información que el
--- administrador revisa cuando un cierre no cuadra.
+DROP FUNCTION IF EXISTS caj_resumen_turno(p_id BIGINT);
 CREATE OR REPLACE FUNCTION caj_resumen_turno(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

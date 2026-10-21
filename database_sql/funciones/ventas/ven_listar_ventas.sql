@@ -1,12 +1,6 @@
--- Ventas = pedidos cobrados (estado_pedido 4), uno por fila.
---
--- Se lista por pedido y no por comprobante porque las ventas a crédito del
--- consorcio no tienen comprobante, y un pedido puede tener varios comprobantes
--- si se reemitió. El comprobante vigente va como columna y el buscador también
--- encuentra la venta por su número (B001-00000002).
---
--- Filtros (p_f): buscar, fecha_desde, fecha_hasta (fecha de cobro en Lima),
--- tipo_comprobante (0 = sin comprobante), medio_pago, id_caja, limite, offset.
+-- Ventas = pedidos cobrados (estado_pedido 4), uno por fila: las de crédito no tienen comprobante
+-- y un pedido puede tener varios si se reemitió.
+DROP FUNCTION IF EXISTS ven_listar_ventas(p_f JSONB);
 CREATE OR REPLACE FUNCTION ven_listar_ventas(p_f JSONB)
 RETURNS JSON LANGUAGE sql STABLE AS $$
   WITH medios AS (

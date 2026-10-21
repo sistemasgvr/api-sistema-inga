@@ -1,14 +1,10 @@
--- Listo el saldo deudor de cada proveedor, usando la vista vw_cxp_saldo_proveedor.
---
--- Es la pantalla principal del módulo y la fuente de la alerta "Deudas por
--- pagar" del dashboard.
---
--- Ordeno por saldo descendente a propósito: al administrador le interesa ver
--- primero a quién le debe más, no la lista alfabética.
---
--- El filtro p_solo_con_deuda permite las dos vistas que hacen falta: el
--- dashboard quiere solo a quienes se les debe, y la pantalla de proveedores
--- quiere a todos, incluidos los que están en cero.
+-- Listo el saldo deudor de cada proveedor, usando vw_cxp_saldo_proveedor (mayor deuda primero).
+DROP FUNCTION IF EXISTS cxp_listar_saldos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_solo_con_deuda BOOLEAN
+);
 CREATE OR REPLACE FUNCTION cxp_listar_saldos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -27,8 +23,7 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- El resumen mira SIEMPRE el universo completo, sin el filtro de búsqueda:
-    -- la deuda total del negocio no debe cambiar porque alguien esté buscando.
+    -- El resumen ignora la búsqueda: la deuda total no cambia porque alguien esté buscando.
     SELECT
         COALESCE(SUM(v.saldo) FILTER (WHERE v.saldo > 0), 0),
         COUNT(*) FILTER (WHERE v.saldo > 0),
@@ -55,8 +50,7 @@ BEGIN
             v.total_cargos,
             v.total_abonos,
             v.ultimo_abono,
-            -- Días desde el último abono. Sirve para notar que a un proveedor
-            -- no se le paga hace tres semanas cuando el corte es semanal.
+            -- Días desde el último abono, para notar atrasos en el corte semanal.
             CASE
                 WHEN v.ultimo_abono IS NULL THEN NULL
                 ELSE (CURRENT_DATE - v.ultimo_abono)

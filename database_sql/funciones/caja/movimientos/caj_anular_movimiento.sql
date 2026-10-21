@@ -1,12 +1,8 @@
 -- Anulo un movimiento de caja (baja lógica, estado = 0).
---
--- Hace falta porque el cajero se equivoca: escribe 500 en vez de 50 y necesita
--- corregirlo. No lo borro de verdad ni dejo editarlo, para que quede el rastro
--- de que existió y quién lo anuló.
---
--- Solo se puede anular con el turno todavía abierto. Una vez cerrado, los
--- números ya se compararon contra el conteo físico y tocarlos rompería el
--- arqueo que quedó guardado.
+DROP FUNCTION IF EXISTS caj_anular_movimiento(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_anular_movimiento(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

@@ -1,8 +1,12 @@
--- Actualizo un convenio.
---
--- Trabajo con COALESCE en todos los campos: lo que llega en NULL se queda como
--- está. Así el front puede mandar solo lo que el usuario cambió y no necesito
--- una función distinta por cada campo editable.
+-- Actualizo un convenio. Lo que llega en NULL se queda como está.
+DROP FUNCTION IF EXISTS cli_actualizar_convenio(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_id_condicion_pago BIGINT,
+    p_limite_credito NUMERIC,
+    p_corte_quincenal BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_actualizar_convenio(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,

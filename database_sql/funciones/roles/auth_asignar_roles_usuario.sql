@@ -1,3 +1,8 @@
+DROP FUNCTION IF EXISTS auth_asignar_roles_usuario(
+    p_id_usuario BIGINT,
+    p_ids_roles BIGINT[],
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_asignar_roles_usuario(
     p_id_usuario BIGINT,
     p_ids_roles BIGINT[],

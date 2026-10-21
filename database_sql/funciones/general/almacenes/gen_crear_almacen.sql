@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS gen_crear_almacen(
+    p_id_sucursal BIGINT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_tipo_almacen INTEGER,
+    p_es_principal BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gen_crear_almacen(
     p_id_sucursal BIGINT,
     p_nombre VARCHAR,

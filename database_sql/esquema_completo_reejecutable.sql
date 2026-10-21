@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS gen_sucursal (
 -- Utilidad: usuarios que entran al sistema (login, PIN de mozo).
 CREATE TABLE IF NOT EXISTS auth_usuario (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_trabajador           BIGINT NOT NULL UNIQUE,
+    id_trabajador           BIGINT NOT NULL,
     username                VARCHAR(80)  NOT NULL,
     password_hash           VARCHAR(255) NOT NULL,
     pin_hash                VARCHAR(255),
@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS auth_usuario_rol (
 CREATE TABLE IF NOT EXISTS auth_sesion (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_usuario              BIGINT       NOT NULL,
-    refresh_token_hash      VARCHAR(255) NOT NULL,
+    refresh_token_hash      VARCHAR(512) NOT NULL,
     ip                      VARCHAR(45),
     user_agent              VARCHAR(255),
     fecha_inicio            TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -329,7 +329,7 @@ CREATE TABLE IF NOT EXISTS gen_almacen (
 -- Utilidad: impresoras/KDS: cocina (platos), caja (bebidas + boletas), barra (tragos).
 CREATE TABLE IF NOT EXISTS gen_estacion (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_sucursal             BIGINT       NOT NULL,
+    id_sucursal             BIGINT,
     nombre                  VARCHAR(100) NOT NULL,
     tipo_estacion           SMALLINT     NOT NULL,
     impresora_nombre        VARCHAR(100),
@@ -340,6 +340,10 @@ CREATE TABLE IF NOT EXISTS gen_estacion (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    es_caja_principal       BOOLEAN      NOT NULL DEFAULT FALSE,
+    -- Ancho del rollo en mm: define las columnas del ticket (58 → 32, 80 → 48).
+    ancho_papel             SMALLINT     NOT NULL DEFAULT 80,
+    CONSTRAINT ck_estacion_ancho_papel CHECK (ancho_papel IN (58, 80)),
     CONSTRAINT fk_estacion_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_gen_estacion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_gen_estacion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -406,6 +410,17 @@ CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
     CONSTRAINT fk_gen_configuracion_sunat_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
+-- Utilidad: certificado y clave de firma QZ Tray (una sola fila).
+CREATE TABLE IF NOT EXISTS gen_qz_configuracion (
+    id                      SMALLINT     PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    certificado             TEXT         NOT NULL,
+    clave_privada           TEXT         NOT NULL,
+    actualizado             TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+-- La clave solo debe ser accesible por el rol del backend.
+REVOKE ALL ON gen_qz_configuracion FROM PUBLIC;
+ALTER TABLE gen_qz_configuracion ENABLE ROW LEVEL SECURITY;
+
 -- =============================================================================
 -- CLIENTES / PROVEEDORES / CONSORCIO
 -- =============================================================================
@@ -432,8 +447,8 @@ CREATE TABLE IF NOT EXISTS cli_convenio (
 CREATE TABLE IF NOT EXISTS cli_persona (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     tipo_persona            SMALLINT     NOT NULL,
-    tipo_documento          SMALLINT     NOT NULL,
-    num_documento           VARCHAR(20)  NOT NULL,
+    tipo_documento          SMALLINT,
+    num_documento           VARCHAR(20),
     razon_social            VARCHAR(255),
     nombres                 VARCHAR(100),
     apellido_paterno        VARCHAR(100),
@@ -495,8 +510,8 @@ CREATE TABLE IF NOT EXISTS pro_unidad_medida (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_pro_um_codigo UNIQUE (codigo),
-    CONSTRAINT fk_pro_unidad_medida_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_unidad_medida_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_um_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_um_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- factor: 1 unidad_origen = factor unidades_destino (botella 750 ml = 25.3605 oz)
@@ -515,8 +530,8 @@ CREATE TABLE IF NOT EXISTS pro_unidad_conversion (
     CONSTRAINT ck_pro_um_conversion_factor CHECK (factor > 0),
     CONSTRAINT fk_conv_origen FOREIGN KEY (id_unidad_origen) REFERENCES pro_unidad_medida (id),
     CONSTRAINT fk_conv_destino FOREIGN KEY (id_unidad_destino) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_pro_unidad_conversion_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_unidad_conversion_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_conv_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_conv_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: agrupación de carta (entradas, fondos, tragos, etc.).
@@ -531,8 +546,8 @@ CREATE TABLE IF NOT EXISTS pro_categoria (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_pro_categoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_categoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_cat_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_cat_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Utilidad: subgrupo dentro de la categoría.
@@ -547,8 +562,8 @@ CREATE TABLE IF NOT EXISTS pro_subcategoria (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_subcategoria_categoria FOREIGN KEY (id_categoria) REFERENCES pro_categoria (id),
-    CONSTRAINT fk_pro_subcategoria_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_subcategoria_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_subcat_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_subcat_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- tipo_producto (PRODUCTO_TIPO):
@@ -559,6 +574,22 @@ CREATE TABLE IF NOT EXISTS pro_subcategoria (
 --   5 TRAGO
 --   6 BEBIDA_UNITARIA    vino botella, gaseosa, agua
 --   7 ADICIONAL
+-- Utilidad: tipos de producto y qué permite cada uno (venta, receta, estación, stock inicial).
+CREATE TABLE IF NOT EXISTS pro_tipo_producto (
+    id                      SMALLINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    nombre                  VARCHAR(150) NOT NULL CHECK (length(trim(nombre)) > 0),
+    permite_venta           BOOLEAN      NOT NULL DEFAULT FALSE,
+    requiere_receta         BOOLEAN      NOT NULL DEFAULT FALSE,
+    requiere_estacion       BOOLEAN      NOT NULL DEFAULT FALSE,
+    permite_stock_inicial   BOOLEAN      NOT NULL DEFAULT TRUE,
+    estado                  SMALLINT     NOT NULL DEFAULT 1 CHECK (estado IN (0, 1)),
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pro_tipo_producto_nombre ON pro_tipo_producto (lower(trim(nombre)));
+
 -- Utilidad: ítem único: crudo, procesado, plato, menú, trago, botella o adicional.
 CREATE TABLE IF NOT EXISTS pro_producto (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -585,9 +616,15 @@ CREATE TABLE IF NOT EXISTS pro_producto (
     CONSTRAINT fk_producto_unidad FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
     CONSTRAINT fk_producto_estacion FOREIGN KEY (id_estacion) REFERENCES gen_estacion (id),
     CONSTRAINT fk_producto_almacen_stock FOREIGN KEY (id_almacen_stock) REFERENCES gen_almacen (id),
-    CONSTRAINT fk_pro_producto_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_producto_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_prod_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_prod_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
+
+-- NOT VALID permite cargar los tipos históricos antes de validar.
+DO $mig$ BEGIN
+    ALTER TABLE pro_producto ADD CONSTRAINT fk_pro_producto_tipo FOREIGN KEY (tipo_producto) REFERENCES pro_tipo_producto (id) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
 
 COMMENT ON COLUMN pro_producto.id_almacen_stock IS
     'Almacén donde vive el stock de este ítem (crudo, cocina o barra).';
@@ -639,8 +676,8 @@ CREATE TABLE IF NOT EXISTS pro_receta_insumo (
     CONSTRAINT fk_receta_insumo_receta FOREIGN KEY (id_receta) REFERENCES pro_receta (id),
     CONSTRAINT fk_receta_insumo_producto FOREIGN KEY (id_producto_insumo) REFERENCES pro_producto (id),
     CONSTRAINT fk_receta_insumo_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_pro_receta_insumo_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_receta_insumo_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_rec_ins_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_rec_ins_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 COMMENT ON COLUMN pro_receta_insumo.grupo_sustitucion IS
@@ -663,8 +700,8 @@ CREATE TABLE IF NOT EXISTS pro_adicional (
     CONSTRAINT fk_adicional_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_adicional_insumo FOREIGN KEY (id_producto_insumo) REFERENCES pro_producto (id),
     CONSTRAINT fk_adicional_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_pro_adicional_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
-    CONSTRAINT fk_pro_adicional_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+    CONSTRAINT fk_pro_adic_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_pro_adic_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Menú del día / carta activa (porciones vendibles hoy, PDF/QR posterior)
@@ -727,9 +764,10 @@ CREATE TABLE IF NOT EXISTS alm_producto_stock (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_alm_stock UNIQUE (id_almacen, id_producto),
     CONSTRAINT ck_alm_stock_no_neg CHECK (stock_actual >= 0),
+    CONSTRAINT ck_alm_stock_reserva CHECK (stock_minimo >= 0 AND costo_promedio >= 0 AND stock_reservado >= 0 AND stock_reservado <= stock_actual),
     CONSTRAINT fk_stock_almacen FOREIGN KEY (id_almacen) REFERENCES gen_almacen (id),
     CONSTRAINT fk_stock_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
-    CONSTRAINT fk_alm_producto_stock_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_alm_stock_creador FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_alm_producto_stock_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
@@ -846,11 +884,14 @@ CREATE TABLE IF NOT EXISTS prod_orden (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tipo_preparacion        VARCHAR(20)  NOT NULL DEFAULT 'ANTICIPADA' CHECK (tipo_preparacion IN ('ANTICIPADA', 'POR_PEDIDO')),
+    -- FK a ven_pedido_detalle: se agrega después de crear esa tabla.
+    id_pedido_detalle       BIGINT,
     CONSTRAINT uq_prod_orden_codigo UNIQUE (codigo),
     CONSTRAINT fk_prod_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_prod_almacen FOREIGN KEY (id_almacen_destino) REFERENCES gen_almacen (id),
     CONSTRAINT fk_prod_requerimiento FOREIGN KEY (id_requerimiento) REFERENCES prod_requerimiento (id),
-    CONSTRAINT fk_prod_orden_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_prod_orden_creador FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_prod_orden_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
@@ -868,10 +909,11 @@ CREATE TABLE IF NOT EXISTS prod_orden_detalle (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id_receta               BIGINT       REFERENCES pro_receta (id),
     CONSTRAINT fk_prod_det_orden FOREIGN KEY (id_orden) REFERENCES prod_orden (id),
     CONSTRAINT fk_prod_det_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
     CONSTRAINT fk_prod_det_um FOREIGN KEY (id_unidad_medida) REFERENCES pro_unidad_medida (id),
-    CONSTRAINT fk_prod_orden_detalle_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_prod_det_creador FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id),
     CONSTRAINT fk_prod_orden_detalle_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
@@ -1095,6 +1137,9 @@ CREATE TABLE IF NOT EXISTS ven_pedido (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tasa_igv                NUMERIC(5, 2) NOT NULL DEFAULT 18 CHECK (tasa_igv BETWEEN 0 AND 100),
+    motivo_anulacion        TEXT,
+    id_usuario_autoriza     BIGINT       REFERENCES auth_usuario (id),
     CONSTRAINT uq_ven_pedido_codigo UNIQUE (codigo),
     CONSTRAINT fk_pedido_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_pedido_mesa FOREIGN KEY (id_mesa) REFERENCES ven_mesa (id),
@@ -1151,7 +1196,19 @@ CREATE TABLE IF NOT EXISTS ven_pedido_detalle (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    afecto_igv              BOOLEAN      NOT NULL DEFAULT TRUE,
+    insumos_seleccionados   BIGINT[]     NOT NULL DEFAULT '{}',
+    motivo_anulacion        TEXT,
+    -- La reserva pertenece a la línea; alm_producto_stock.stock_reservado guarda el total.
+    cantidad_reservada      NUMERIC(14, 4) NOT NULL DEFAULT 0,
+    cantidad_entregada      NUMERIC(14, 4) NOT NULL DEFAULT 0,
+    cantidad_cancelada      NUMERIC(14, 4) NOT NULL DEFAULT 0,
+    id_almacen_reserva      BIGINT       REFERENCES gen_almacen (id),
     CONSTRAINT ck_pedido_det_cant CHECK (cantidad > 0),
+    CONSTRAINT ck_pedido_cantidades_inventario CHECK (
+        cantidad_reservada >= 0 AND cantidad_entregada >= 0 AND cantidad_cancelada >= 0
+        AND cantidad_reservada + cantidad_entregada + cantidad_cancelada <= cantidad
+        AND (cantidad_reservada = 0 OR id_almacen_reserva IS NOT NULL)),
     CONSTRAINT fk_pdet_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
     CONSTRAINT fk_pdet_comanda FOREIGN KEY (id_comanda) REFERENCES ven_comanda (id),
     CONSTRAINT fk_pdet_producto FOREIGN KEY (id_producto) REFERENCES pro_producto (id),
@@ -1261,6 +1318,93 @@ CREATE TABLE IF NOT EXISTS ven_pago (
     CONSTRAINT fk_ven_pago_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_ven_pago_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
+
+COMMENT ON COLUMN ven_pedido_detalle.afecto_igv IS
+    'Regla comercial de pedidos: true = precio incluye IGV; false = se agrega IGV. Copia del producto al agregar.';
+
+DO $mig$ BEGIN
+    ALTER TABLE prod_orden ADD CONSTRAINT prod_orden_id_pedido_detalle_fkey FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- Utilidad: ingredientes apartados al comandar para las unidades sin plato preparado.
+CREATE TABLE IF NOT EXISTS ven_pedido_reserva_insumo (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_pedido_detalle       BIGINT       NOT NULL REFERENCES ven_pedido_detalle (id),
+    id_producto             BIGINT       NOT NULL REFERENCES pro_producto (id),
+    id_almacen              BIGINT       NOT NULL REFERENCES gen_almacen (id),
+    cantidad                NUMERIC(14, 4) NOT NULL CHECK (cantidad >= 0),
+    id_usuario_creacion     BIGINT       NOT NULL REFERENCES auth_usuario (id),
+    id_usuario_modificacion BIGINT       REFERENCES auth_usuario (id),
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Sub-plato del que sale el ingrediente (NULL = componente directo de la línea).
+    id_producto_origen      BIGINT       REFERENCES pro_producto (id),
+    es_preparado            BOOLEAN      NOT NULL DEFAULT FALSE
+);
+CREATE INDEX IF NOT EXISTS ix_ven_reserva_insumo_stock ON ven_pedido_reserva_insumo (id_almacen, id_producto) WHERE cantidad > 0;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ven_reserva_insumo_origen
+    ON ven_pedido_reserva_insumo (id_pedido_detalle, id_producto, id_almacen, (COALESCE(id_producto_origen, 0)));
+
+-- Utilidad: comandas rechazadas por falta de insumos (aviso a cocina).
+CREATE TABLE IF NOT EXISTS ven_aviso_cocina (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_sucursal             BIGINT       NOT NULL REFERENCES gen_sucursal (id),
+    id_pedido               BIGINT       NOT NULL REFERENCES ven_pedido (id),
+    estaciones              BIGINT[]     NOT NULL DEFAULT '{}',
+    mensaje                 TEXT         NOT NULL CHECK (btrim(mensaje) <> ''),
+    faltantes               JSONB        NOT NULL CHECK (jsonb_typeof(faltantes) = 'array'),
+    estado                  SMALLINT     NOT NULL DEFAULT 1 CHECK (estado IN (1, 2)),
+    fecha_atencion          TIMESTAMPTZ,
+    id_usuario_atencion     BIGINT       REFERENCES auth_usuario (id),
+    id_usuario_creacion     BIGINT       NOT NULL REFERENCES auth_usuario (id),
+    id_usuario_modificacion BIGINT       REFERENCES auth_usuario (id),
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK ((estado = 2) = (fecha_atencion IS NOT NULL AND id_usuario_atencion IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS ix_ven_aviso_cocina_pendiente ON ven_aviso_cocina (id_sucursal, fecha_creacion) WHERE estado = 1;
+
+-- Utilidad: cola de impresión de comandas, precuentas y comprobantes.
+CREATE TABLE IF NOT EXISTS ven_impresion_trabajo (
+    id_comanda              BIGINT       PRIMARY KEY REFERENCES ven_comanda (id),
+    id_estacion             BIGINT       NOT NULL REFERENCES gen_estacion (id),
+    contenido               JSONB        NOT NULL,
+    estado                  TEXT         NOT NULL DEFAULT 'pendiente'
+        CHECK (estado IN ('pendiente', 'procesando', 'enviado', 'revision')),
+    propietario             UUID,
+    intentos                INTEGER      NOT NULL DEFAULT 0,
+    error                   TEXT,
+    actualizado             TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- PDF archivado en Supabase Storage (ruta dentro del bucket).
+    ruta_pdf                TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_impresion_pendientes ON ven_impresion_trabajo (id_estacion, id_comanda) WHERE estado = 'pendiente';
+
+-- Encola la comanda al COMMIT: los detalles ya tienen su id_comanda y quedan congelados.
+CREATE OR REPLACE FUNCTION ven_encolar_impresion()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE pedido JSONB;
+BEGIN
+  pedido := (ven_obtener_pedido(NEW.id_pedido)::JSONB)->'registro';
+  INSERT INTO ven_impresion_trabajo(id_comanda,id_estacion,contenido)
+  SELECT NEW.id,NEW.id_estacion,jsonb_build_object(
+    'id',NEW.id::TEXT,'numero',NEW.numero,'pedido',pedido->>'codigo',
+    'mesa',pedido->>'codigo_mesa','mozo',pedido->>'nombre_mozo',
+    'tipo_pedido',pedido->'tipo_pedido','observacion',pedido->>'observacion',
+    'fecha',NEW.fecha_envio,'estacion',e.nombre,
+    'items',COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(pedido->'items') x
+      WHERE x->>'id_comanda' = NEW.id::TEXT),'[]'::JSONB))
+  FROM gen_estacion e WHERE e.id=NEW.id_estacion
+  ON CONFLICT(id_comanda) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS tr_encolar_impresion ON ven_comanda;
+CREATE CONSTRAINT TRIGGER tr_encolar_impresion AFTER INSERT ON ven_comanda
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION ven_encolar_impresion();
 
 -- =============================================================================
 -- KDS
@@ -1738,10 +1882,42 @@ CREATE INDEX IF NOT EXISTS ix_gdo_detalle_dia ON gdo_gasto_detalle (id_gasto_dia
 CREATE INDEX IF NOT EXISTS ix_gdo_gasto_dia_fecha ON gdo_gasto_dia (fecha_gasto DESC, estado);
 
 -- =============================================================================
+-- NOTIFICACIONES
+-- =============================================================================
+
+-- Utilidad: historial de notificaciones enviadas por canal.
+CREATE TABLE IF NOT EXISTS notificaciones (
+    id                      UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    canal                   VARCHAR(40)  NOT NULL,
+    titulo                  VARCHAR(120) NOT NULL,
+    mensaje                 TEXT         NOT NULL,
+    severidad               VARCHAR(10)  NOT NULL DEFAULT 'info',
+    ruta                    VARCHAR(255) NOT NULL,
+    id_referencia           BIGINT,
+    creada_en               TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- Utilidad: qué usuario leyó cada notificación.
+CREATE TABLE IF NOT EXISTS notificacion_lectura (
+    id_notificacion         UUID         NOT NULL REFERENCES notificaciones (id) ON DELETE CASCADE,
+    id_usuario              BIGINT       NOT NULL,
+    leida_en                TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    PRIMARY KEY (id_notificacion, id_usuario)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_canal_creada ON notificaciones (canal, creada_en DESC);
+CREATE INDEX IF NOT EXISTS idx_notificacion_lectura_usuario ON notificacion_lectura (id_usuario);
+
+-- =============================================================================
 -- ÍNDICES
 -- =============================================================================
 
 CREATE INDEX IF NOT EXISTS ix_auth_sesion_usuario ON auth_sesion (id_usuario, estado);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auth_usuario_trabajador ON auth_usuario (id_trabajador);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_estacion_caja_principal ON gen_estacion (id_sucursal) WHERE es_caja_principal AND estado = 1;
+-- Si hay mesas con pedidos duplicados, corregir esos datos antes de ejecutar.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ven_pedido_mesa_en_curso ON ven_pedido (id_mesa)
+    WHERE id_mesa IS NOT NULL AND estado = 1 AND estado_pedido IN (1, 2, 3);
 CREATE INDEX IF NOT EXISTS ix_cli_persona_convenio ON cli_persona (id_convenio) WHERE id_convenio IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_pro_producto_tipo ON pro_producto (tipo_producto, estado);
 CREATE INDEX IF NOT EXISTS ix_pro_producto_nombre ON pro_producto (nombre);
@@ -1764,6 +1940,23 @@ CREATE INDEX IF NOT EXISTS ix_kds_estacion_estado ON kds_ticket (id_estacion, es
 -- =============================================================================
 -- VISTAS DE OPERACIÓN / DASHBOARD
 -- =============================================================================
+
+CREATE OR REPLACE VIEW vw_alm_kardex AS
+SELECT d.id, m.id AS id_movimiento, m.codigo, m.fecha_movimiento, m.fecha_confirmacion,
+    t.codigo AS tipo_movimiento, o.codigo AS motivo, d.id_producto, p.nombre AS producto,
+    d.id_almacen, a.nombre AS almacen, d.id_unidad_medida, u.simbolo AS unidad,
+    CASE WHEN d.signo = 1 THEN d.cantidad ELSE 0 END AS entrada,
+    CASE WHEN d.signo = -1 THEN d.cantidad ELSE 0 END AS salida,
+    d.stock_anterior, d.stock_nuevo AS saldo, d.costo_unitario, m.documento_tipo, m.documento_id,
+    m.observacion, m.id_usuario_creacion, m.id_usuario_modificacion
+FROM alm_movimiento m
+JOIN alm_movimiento_detalle d ON d.id_movimiento = m.id
+JOIN gen_lista_opcion t ON t.id = m.id_tipo_movimiento
+JOIN gen_lista_opcion o ON o.id = m.id_motivo_movimiento
+JOIN pro_producto p ON p.id = d.id_producto
+JOIN gen_almacen a ON a.id = d.id_almacen
+JOIN pro_unidad_medida u ON u.id = d.id_unidad_medida
+WHERE m.estado = 2;
 
 DROP VIEW IF EXISTS vw_stock_alerta;
 CREATE OR REPLACE VIEW vw_stock_alerta AS
@@ -1891,6 +2084,9 @@ BEGIN
         WHERE c.table_schema = current_schema()
           AND c.column_name = 'fecha_modificacion'
           AND tb.table_type = 'BASE TABLE'
+          -- Sin este trigger en la BD: alm_movimiento(_detalle) la actualiza alm_proteger_historial.
+          AND c.table_name NOT IN ('alm_movimiento', 'alm_movimiento_detalle', 'pro_tipo_producto',
+                                   'ven_aviso_cocina', 'ven_pedido_reserva_insumo')
     LOOP
         -- EXECUTE en PL/pgSQL admite una sola sentencia.
         EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_mod ON %I', t, t);

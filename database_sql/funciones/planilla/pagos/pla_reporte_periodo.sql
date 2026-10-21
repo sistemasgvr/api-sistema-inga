@@ -1,15 +1,10 @@
--- Reporte de planilla de un período: total, detalle por trabajador y pendientes.
---
--- Responde las tres preguntas del día de pago en una sola llamada:
---   1. ¿Cuánto se pagó en total y por qué medio?
---   2. ¿A quién se le pagó y cuánto?
---   3. ¿A quién FALTA pagarle?
---
--- La tercera es la que más valor da y la que no sale de un simple listado de
--- pagos: requiere cruzar los trabajadores activos contra los que ya cobraron.
--- Por eso la resuelvo acá y no en el front.
---
--- Si no se indica período, uso el mes actual.
+-- Reporte de planilla de un período (por defecto el mes actual): totales por medio,
+-- detalle por trabajador y pendientes de pago.
+DROP FUNCTION IF EXISTS pla_reporte_periodo(
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER
+);
 CREATE OR REPLACE FUNCTION pla_reporte_periodo(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL,
@@ -67,9 +62,7 @@ BEGIN
         GROUP BY t.id, t.nombres, t.apellidos, t.puesto, t.sueldo_referencial
     ) x;
 
-    -- Pendientes: solo tiene sentido con una quincena concreta. Sin ella,
-    -- "pendiente del mes" es ambiguo (¿le falta una quincena o las dos?),
-    -- así que devuelvo lista vacía en ese caso.
+    -- Pendientes solo con quincena concreta: sin ella "pendiente del mes" es ambiguo.
     IF p_quincena IS NULL THEN
         v_pendientes := '[]'::JSON;
         v_cant_pendientes := 0;
@@ -108,8 +101,7 @@ BEGIN
             'tarjeta', v_tarjeta,
             'cantidad_pagados', v_cant_pagados,
             'cantidad_pendientes', v_cant_pendientes,
-            -- Estimado según el sueldo referencial. Es una proyección para
-            -- saber cuánto falta desembolsar, no un monto exigible.
+            -- Estimado según el sueldo referencial, no un monto exigible.
             'estimado_pendiente', v_estimado_pendiente,
             'pagados', v_pagados,
             'pendientes', v_pendientes

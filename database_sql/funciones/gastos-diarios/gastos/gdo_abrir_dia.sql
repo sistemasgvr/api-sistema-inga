@@ -1,10 +1,10 @@
--- Abre (o recupera) el registro de gasto de un día.
---
--- Es idempotente a propósito: si el día ya existe lo devuelve en vez de fallar.
--- El cajero no debería tener que pensar en "crear el día"; simplemente entra a
--- la pantalla, y si es la primera compra de la jornada el día se crea solo.
---
--- El índice uq_gdo_gasto_dia garantiza uno por fecha y sucursal.
+-- Abre o recupera (idempotente) el registro de gasto de un día. Uno por fecha y sucursal.
+DROP FUNCTION IF EXISTS gdo_abrir_dia(
+    p_fecha_gasto DATE,
+    p_id_sucursal BIGINT,
+    p_id_turno BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_abrir_dia(
     p_fecha_gasto DATE DEFAULT NULL,
     p_id_sucursal BIGINT DEFAULT NULL,
@@ -35,7 +35,6 @@ BEGIN
         RETURN json_build_object('error', 'La sucursal indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    -- ¿Ya existe? Lo devuelvo tal cual.
     SELECT id INTO v_id
     FROM gdo_gasto_dia
     WHERE fecha_gasto = v_fecha

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS pro_listar_unidades_medida();
 CREATE OR REPLACE FUNCTION pro_listar_unidades_medida()
 RETURNS JSON
 LANGUAGE plpgsql

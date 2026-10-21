@@ -1,4 +1,11 @@
 
+DROP FUNCTION IF EXISTS pro_listar_categorias(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_solo_activos INTEGER,
+    p_es_carta BOOLEAN
+);
 CREATE OR REPLACE FUNCTION pro_listar_categorias(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

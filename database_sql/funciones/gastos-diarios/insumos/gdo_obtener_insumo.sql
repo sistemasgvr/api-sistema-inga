@@ -1,5 +1,6 @@
 -- Traigo un insumo de la lista maestra por ID.
 -- Crear y actualizar terminan llamando acá para devolver el mismo shape.
+DROP FUNCTION IF EXISTS gdo_obtener_insumo(p_id BIGINT);
 CREATE OR REPLACE FUNCTION gdo_obtener_insumo(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -23,8 +24,6 @@ BEGIN
                 p.razon_social
             ) AS nombre_proveedor_habitual,
             i.estado,
-            -- Cuántas veces se compró. Sirve para avisar antes de dar de baja
-            -- y para saber si un insumo realmente se usa.
             (
                 SELECT COUNT(*)
                 FROM gdo_gasto_detalle d

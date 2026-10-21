@@ -1,6 +1,7 @@
 -- Traigo un movimiento de CxC por ID.
 -- Registrar consumo, abono y ajuste terminan llamando acá para devolver
 -- siempre el mismo shape.
+DROP FUNCTION IF EXISTS cxc_obtener_movimiento(p_id BIGINT);    
 CREATE OR REPLACE FUNCTION cxc_obtener_movimiento(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

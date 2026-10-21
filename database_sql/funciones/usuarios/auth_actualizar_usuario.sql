@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS auth_actualizar_usuario(
+    p_id BIGINT,
+    p_username VARCHAR,
+    p_password_hash VARCHAR,
+    p_pin_hash VARCHAR,
+    p_roles_ids JSON,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_actualizar_usuario(
     p_id BIGINT,
     p_username VARCHAR DEFAULT NULL,

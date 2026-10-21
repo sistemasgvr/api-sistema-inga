@@ -1,12 +1,12 @@
--- Actualizo una categoría de gasto. Lo que llega en NULL se queda como está.
---
--- No dejo cambiar el padre: mover una categoría de rama recalcularía los
--- totales históricos del reporte mensual y dejaría los meses ya cerrados
--- contando distinto que antes. Si hace falta reorganizar, se crea una nueva y
--- se da de baja la anterior.
---
--- Tampoco dejo cambiar el tipo (fijo/variable) de una categoría que ya tiene
--- gastos: pasaría lo mismo con los totales por tipo de los meses cerrados.
+-- Actualizo una categoría de gasto (NULL = sin cambio). No se cambia el padre, ni el tipo si ya
+-- tiene gastos: alteraría los totales de meses cerrados.
+DROP FUNCTION IF EXISTS gad_actualizar_categoria(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_tipo_gasto SMALLINT,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_actualizar_categoria(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,
@@ -52,7 +52,6 @@ BEGIN
     END IF;
 
     IF p_tipo_gasto IS NOT NULL AND p_tipo_gasto <> v_actual.tipo_gasto THEN
-        -- Una subcategoría sigue el tipo de su padre, punto.
         IF v_actual.id_categoria_padre IS NOT NULL THEN
             RETURN json_build_object(
                 'error', 'Una subcategoría hereda el tipo de su categoría padre y no se puede cambiar por separado',
@@ -80,8 +79,7 @@ BEGIN
         id_usuario_modificacion = p_id_usuario_auditoria
     WHERE id = p_id AND estado = 1;
 
-    -- Si es una raíz y cambió de tipo, arrastro a sus hijas para no dejar la
-    -- rama contradictoria (una subcategoría fija colgando de una variable).
+    -- Si una raíz cambia de tipo, sus hijas la siguen.
     IF p_tipo_gasto IS NOT NULL AND v_actual.id_categoria_padre IS NULL THEN
         UPDATE gad_categoria
         SET tipo_gasto = p_tipo_gasto,

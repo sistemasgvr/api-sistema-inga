@@ -1,5 +1,6 @@
 -- Traigo un pago de planilla por ID, con los datos del trabajador y del turno.
 -- Registrar y anular terminan llamando acá para devolver siempre el mismo shape.
+DROP FUNCTION IF EXISTS pla_obtener_pago(p_id BIGINT);
 CREATE OR REPLACE FUNCTION pla_obtener_pago(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

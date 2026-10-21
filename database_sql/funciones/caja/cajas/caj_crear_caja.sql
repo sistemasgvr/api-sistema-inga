@@ -1,7 +1,8 @@
--- Creo una caja física.
---
--- El nombre es único por sucursal, no global: dos locales pueden tener cada
--- uno su "Caja principal" sin pisarse.
+DROP FUNCTION IF EXISTS caj_crear_caja(
+    p_id_sucursal BIGINT,
+    p_nombre VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_crear_caja(
     p_id_sucursal BIGINT,
     p_nombre VARCHAR,

@@ -1,3 +1,12 @@
+DROP FUNCTION IF EXISTS pro_actualizar_adicional(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_precio_adicional NUMERIC,
+    p_id_producto_insumo BIGINT,
+    p_cantidad_insumo NUMERIC,
+    p_id_unidad_medida BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_actualizar_adicional(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,

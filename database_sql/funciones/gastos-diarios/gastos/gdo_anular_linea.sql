@@ -1,21 +1,11 @@
--- Anulo una línea del gasto del día (baja lógica).
---
--- Lo delicado acá es el reverso: si la línea era a crédito, generó un cargo en
--- CxP y hay que deshacerlo, o la deuda con el proveedor quedaría inflada.
---
--- Uso `cxp_anular_movimiento`, que solo permite anular el ÚLTIMO movimiento del
--- proveedor. Si desde que se registró esta compra ya hubo otros movimientos
--- (otra compra o un abono), la anulación falla — y está bien que falle: anular
--- uno del medio dejaría mintiendo los saldos guardados de los posteriores.
--- En ese caso el mensaje le dice al usuario que use un ajuste en CxP.
---
--- También bloqueo anular una línea en efectivo cuyo turno ya se cerró: ese
--- turno se arqueó contra el conteo físico.
---
--- Si la línea era un producto del inventario, su compra ingresó stock: lo
--- saco con una SALIDA (motivo ANULACION_COMPRA) que referencia la entrada
--- original. Si ese stock ya se consumió, la anulación falla: no puedo sacar
--- del almacén lo que ya no está.
+-- Anulo una línea del gasto del día (baja lógica) revirtiendo su cargo en CxP y su ingreso de stock.
+-- Falla si el cargo ya no es el último movimiento del proveedor, si el stock ya se consumió
+-- o si fue en efectivo y su turno ya se cerró.
+DROP FUNCTION IF EXISTS gdo_anular_linea(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_anular_linea(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
@@ -76,10 +66,8 @@ BEGIN
         END IF;
     END IF;
 
-    -- Los reversos van en un bloque: si sacar el stock falla, tampoco queda
-    -- anulada la deuda en CxP.
+    -- Los reversos van en un bloque: si sacar el stock falla, tampoco se anula la deuda.
     BEGIN
-        -- Reverso del cargo en CxP.
         IF v_linea.id_cxp_movimiento IS NOT NULL THEN
             v_reverso := cxp_anular_movimiento(
                 v_linea.id_cxp_movimiento,
@@ -98,7 +86,6 @@ BEGIN
             END IF;
         END IF;
 
-        -- Reverso del ingreso a inventario.
         IF v_linea.id_alm_movimiento IS NOT NULL THEN
             PERFORM alm_registrar(jsonb_build_object(
                 'codigo', 'GDO-ANU-' || v_linea.id,

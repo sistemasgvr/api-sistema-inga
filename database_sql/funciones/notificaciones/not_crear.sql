@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS public.not_crear(
+    p_canal VARCHAR,
+    p_titulo VARCHAR,
+    p_mensaje TEXT,
+    p_severidad VARCHAR,
+    p_ruta VARCHAR,
+    p_id_referencia BIGINT
+);
 CREATE OR REPLACE FUNCTION public.not_crear(
   p_canal VARCHAR,
   p_titulo VARCHAR,

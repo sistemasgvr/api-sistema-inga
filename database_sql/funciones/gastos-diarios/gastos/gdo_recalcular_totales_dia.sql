@@ -1,14 +1,6 @@
--- Recalcula los totales de un día a partir de sus líneas vigentes.
---
--- La saqué a una función propia porque tres sitios la necesitan: agregar línea,
--- anular línea y anular el día entero. Si el cálculo estuviera copiado,
--- alcanzaría con que alguien corrija uno para que el cuadre del día mienta.
---
--- Los totales viven denormalizados en gdo_gasto_dia para que el listado de días
--- no tenga que re-sumar el detalle en cada fila. El precio de eso es que hay
--- que recalcular en cada cambio, y esta función es el único lugar que lo hace.
---
--- forma_pago: 1 contado efectivo, 2 contado Yape, 3 crédito.
+-- Recalcula los totales denormalizados de un día a partir de sus líneas vigentes.
+-- forma_pago: 1 efectivo, 2 Yape, 3 crédito.
+DROP FUNCTION IF EXISTS gdo_recalcular_totales_dia(p_id_gasto_dia BIGINT);
 CREATE OR REPLACE FUNCTION gdo_recalcular_totales_dia(p_id_gasto_dia BIGINT)
 RETURNS VOID
 LANGUAGE plpgsql

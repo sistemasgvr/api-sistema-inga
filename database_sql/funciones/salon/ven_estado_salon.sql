@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_estado_salon(p_id BIGINT, p_estado INTEGER, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_estado_salon(p_id BIGINT, p_estado INTEGER, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_salon%ROWTYPE;

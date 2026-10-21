@@ -1,5 +1,6 @@
 -- Traigo un gasto administrativo por ID.
 -- Registrar y actualizar terminan llamando acá para devolver el mismo shape.
+DROP FUNCTION IF EXISTS gad_obtener_gasto(p_id BIGINT);
 CREATE OR REPLACE FUNCTION gad_obtener_gasto(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -15,8 +16,6 @@ BEGIN
             g.id,
             g.id_categoria,
             c.nombre AS nombre_categoria,
-            -- Si es subcategoría, mando también el nombre de la rama para
-            -- poder mostrar "Servicios · Luz" sin otra consulta.
             c.id_categoria_padre,
             p.nombre AS nombre_categoria_padre,
             c.tipo_gasto,

@@ -1,3 +1,10 @@
+DROP FUNCTION IF EXISTS pro_crear_receta(
+    p_id_producto BIGINT,
+    p_nombre VARCHAR,
+    p_rendimiento_porciones NUMERIC,
+    p_observacion TEXT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_crear_receta(
     p_id_producto BIGINT,
     p_nombre VARCHAR DEFAULT NULL,

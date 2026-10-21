@@ -1,3 +1,16 @@
+DROP FUNCTION IF EXISTS cli_validar_datos_persona(
+    p_tipo_persona SMALLINT,
+    p_tipo_documento SMALLINT,
+    p_num_documento VARCHAR,
+    p_razon_social VARCHAR,
+    p_nombres VARCHAR,
+    p_apellido_paterno VARCHAR,
+    p_email VARCHAR,
+    p_es_cliente BOOLEAN,
+    p_es_proveedor BOOLEAN,
+    p_id_convenio BIGINT,
+    p_id_distrito BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_validar_datos_persona(
     p_tipo_persona SMALLINT,
     p_tipo_documento SMALLINT,
@@ -24,8 +37,7 @@ BEGIN
         RETURN 'El tipo de persona debe ser natural o jurídica';
     END IF;
 
-    -- El documento es opcional (ej. clientes de delivery que solo dan nombre y
-    -- teléfono). Si se envía, debe venir con su tipo y cumplir el formato.
+    -- El documento es opcional; si se envía, debe venir con su tipo y cumplir el formato.
     -- 1 = DNI, 4 = CE, 6 = RUC (catálogo DOCUMENTO_TIPO, códigos SUNAT)
     IF v_doc IS NOT NULL AND (p_tipo_documento IS NULL OR p_tipo_documento NOT IN (1, 4, 6, 7)) THEN
         RETURN 'El tipo de documento debe ser DNI, RUC, carné de extranjería o pasaporte';
@@ -47,8 +59,6 @@ BEGIN
         RETURN 'El pasaporte debe tener entre 1 y 20 caracteres alfanuméricos';
     END IF;
 
-    -- Una empresa siempre va con RUC y razón social. Esto es lo que después
-    -- permite emitir factura (M13) sin tener que pedir los datos de nuevo.
     IF p_tipo_persona = 2 THEN
         IF v_doc IS NULL OR p_tipo_documento IS DISTINCT FROM 6 THEN
             RETURN 'Una persona jurídica debe identificarse con RUC';
@@ -58,8 +68,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- Una persona natural necesita al menos nombre y apellido paterno, porque
-    -- con eso armo el "nombre_completo" que se muestra en todos los buscadores.
     IF p_tipo_persona = 1 THEN
         IF NULLIF(TRIM(p_nombres), '') IS NULL THEN
             RETURN 'Los nombres son obligatorios para una persona natural';
@@ -69,13 +77,10 @@ BEGIN
         END IF;
     END IF;
 
-    -- Sin al menos un rol la ficha no sirve para nada: no aparecería ni en el
-    -- buscador de compras ni en el de cobro a crédito.
     IF COALESCE(p_es_cliente, FALSE) = FALSE AND COALESCE(p_es_proveedor, FALSE) = FALSE THEN
         RETURN 'Marca al menos un rol: cliente, proveedor o ambos';
     END IF;
 
-    -- El convenio es crédito de consumo, así que solo tiene sentido en clientes.
     IF p_id_convenio IS NOT NULL AND COALESCE(p_es_cliente, FALSE) = FALSE THEN
         RETURN 'Solo un cliente puede tener convenio de crédito asignado';
     END IF;
@@ -92,9 +97,7 @@ BEGIN
         RETURN 'El distrito indicado no existe';
     END IF;
 
-    -- Validación de correo a propósito simple: solo descarto lo evidentemente
-    -- mal escrito. Una expresión estricta rechaza correos válidos raros y da
-    -- más problemas de los que resuelve.
+    -- Validación de correo simple a propósito: una estricta rechaza correos válidos.
     IF NULLIF(TRIM(p_email), '') IS NOT NULL AND TRIM(p_email) !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' THEN
         RETURN 'El correo electrónico no tiene un formato válido';
     END IF;

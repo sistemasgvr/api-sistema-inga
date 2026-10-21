@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS auth_listar_permisos(
+    p_busqueda VARCHAR,
+    p_modulo VARCHAR
+);
 CREATE OR REPLACE FUNCTION auth_listar_permisos(
     p_busqueda VARCHAR DEFAULT '',
     p_modulo VARCHAR DEFAULT NULL

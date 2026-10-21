@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS alm_registrar(p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION alm_registrar(p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE mov BIGINT; x JSONB; n INTEGER:=0;
 BEGIN
@@ -15,5 +16,3 @@ BEGIN
   IF COALESCE((p_datos->>'confirmar')::BOOLEAN,FALSE) THEN RETURN alm_confirmar(mov,p_usuario); END IF;
   RETURN json_build_object('registro',(SELECT to_jsonb(m) FROM alm_movimiento m WHERE id=mov));
 END $$;
-
--- Uso interno de producción y pedidos, con códigos del catálogo, nunca IDs fijos.

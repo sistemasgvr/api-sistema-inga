@@ -1,12 +1,17 @@
--- Actualizo un gasto administrativo. Lo que llega en NULL se queda como está.
---
--- Si cambia la fecha, recalculo anio/mes: son datos derivados y dejarlos
--- desincronizados haría que el gasto apareciera en el mes equivocado del
--- reporte mientras su fecha dice otra cosa.
---
--- No dejo editar un gasto en efectivo cuyo turno ya se cerró: ese turno se
--- arqueó contra el conteo físico y cambiar el monto ahora invalidaría la
--- diferencia que quedó firmada. Para eso está la anulación.
+-- Actualizo un gasto administrativo (NULL = sin cambio). Si cambia la fecha se recalculan anio/mes.
+-- No se edita un gasto en efectivo de un turno ya cerrado: para eso está la anulación.
+DROP FUNCTION IF EXISTS gad_actualizar_gasto(
+    p_id BIGINT,
+    p_id_categoria BIGINT,
+    p_concepto VARCHAR,
+    p_monto NUMERIC,
+    p_fecha_gasto DATE,
+    p_medio_pago SMALLINT,
+    p_id_persona BIGINT,
+    p_num_comprobante VARCHAR,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_actualizar_gasto(
     p_id BIGINT,
     p_id_categoria BIGINT DEFAULT NULL,
@@ -93,7 +98,6 @@ BEGIN
         concepto = COALESCE(v_concepto, concepto),
         monto = COALESCE(p_monto, monto),
         fecha_gasto = v_fecha,
-        -- Derivados de la fecha: siempre en sincronía con ella.
         anio = EXTRACT(YEAR FROM v_fecha)::SMALLINT,
         mes = EXTRACT(MONTH FROM v_fecha)::SMALLINT,
         medio_pago = COALESCE(p_medio_pago, medio_pago),

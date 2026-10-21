@@ -1,13 +1,12 @@
--- Listo clientes y proveedores desde cli_persona.
---
--- Una misma fila puede ser cliente, proveedor o las dos cosas (es_cliente /
--- es_proveedor). Por eso el filtro p_rol no es un campo de la tabla sino un
--- atajo para la pantalla: 'clientes', 'proveedores' o NULL para ver todo.
---
--- Armo "nombre_completo" acá, en la base, y no en el front. El motivo: una
--- persona natural se muestra como "Nombres Apellidos" y una jurídica como su
--- razón social. Si lo resolviera en el front tendría que repetir ese if en la
--- tabla, en el buscador del cobro a crédito (M12) y en el de compras (M07).
+-- Listo clientes y proveedores de cli_persona. p_rol: 'clientes', 'proveedores' o NULL para todos.
+DROP FUNCTION IF EXISTS cli_listar_personas(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_rol VARCHAR,
+    p_id_convenio BIGINT,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION cli_listar_personas(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -30,9 +29,7 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- Resumen para las tarjetas de la pantalla. Cuento sobre el universo
-    -- completo (sin filtro de estado ni de rol) para que los números no bailen
-    -- cada vez que el usuario cambia un filtro.
+    -- El resumen cuenta el universo completo, sin filtro de estado ni de rol.
     SELECT
         COUNT(*),
         COUNT(*) FILTER (WHERE p.estado = 1),
@@ -75,7 +72,6 @@ BEGIN
             p.nombres,
             p.apellido_paterno,
             p.apellido_materno,
-            -- Nombre listo para mostrar, sin que el front tenga que decidir.
             COALESCE(
                 NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' ||
                             COALESCE(p.apellido_paterno, '') || ' ' ||

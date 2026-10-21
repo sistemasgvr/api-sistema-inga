@@ -11,8 +11,7 @@ DECLARE
     v_padres BIGINT[];
     v_padre BIGINT;
 BEGIN
-    -- Red de seguridad ante un ciclo introducido por escrito directo en la base,
-    -- saltándose pro_guardar_receta_insumo. Sin esto la cascada no terminaría.
+    -- Corta la cascada ante un ciclo introducido saltándose pro_guardar_receta_insumo.
     IF p_profundidad >= 20 THEN
         RETURN;
     END IF;
@@ -25,9 +24,6 @@ BEGIN
         RETURN;
     END IF;
 
-    -- El costo de cada insumo lo resuelve pro_costo_unitario_insumo, la misma
-    -- función que usa pro_obtener_receta: así el detalle por insumo que ve el
-    -- usuario suma exactamente este total.
     SELECT COALESCE(SUM(
         ri.cantidad * (1 + (ri.porcentaje_merma / 100.0))
         * pro_costo_unitario_insumo(ri.id_producto_insumo)

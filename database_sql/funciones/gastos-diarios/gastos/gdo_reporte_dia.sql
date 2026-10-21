@@ -1,15 +1,9 @@
--- Reporte del día: el cuadre que hoy hacen a mano en el Excel de egresos.
---
--- Es el ítem del alcance: "al cierre del día, mostrar el desglose: cuánto se
--- gastó en efectivo, cuánto en Yape y cuánto quedó a crédito".
---
--- Devuelvo tres cortes del mismo día:
---   1. Los totales por forma de pago (el cuadre propiamente dicho).
---   2. El desglose por categoría, para saber en qué se fue la plata.
---   3. El desglose por proveedor de las compras a crédito, que es lo que se
---      va a abonar esta semana en CxP.
---
--- Si no se indica fecha, uso hoy.
+-- Reporte del día (hoy por defecto): totales por forma de pago, desglose por categoría
+-- y compras a crédito por proveedor.
+DROP FUNCTION IF EXISTS gdo_reporte_dia(
+    p_fecha_gasto DATE,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_reporte_dia(
     p_fecha_gasto DATE DEFAULT NULL,
     p_id_sucursal BIGINT DEFAULT NULL
@@ -37,8 +31,7 @@ BEGIN
       AND COALESCE(id_sucursal, 0) = COALESCE(p_id_sucursal, 0)
       AND estado = 1;
 
-    -- Si no hubo gasto ese día, devuelvo el reporte en cero. No es un error:
-    -- un día sin compras es una respuesta válida.
+    -- Un día sin compras devuelve el reporte en cero, no un error.
     IF v_id_dia IS NULL THEN
         RETURN json_build_object(
             'registro', json_build_object(
@@ -68,8 +61,7 @@ BEGIN
     INTO v_por_categoria
     FROM (
         SELECT
-            -- Las compras de productos del inventario no tienen categoría de
-            -- insumo: van juntas como "Inventario" (id 0).
+            -- Las compras de inventario van juntas como "Inventario" (id 0).
             COALESCE(cat.id, 0) AS id_categoria,
             COALESCE(cat.nombre, 'Inventario') AS nombre_categoria,
             SUM(det.subtotal) AS monto,
@@ -81,7 +73,6 @@ BEGIN
         GROUP BY COALESCE(cat.id, 0), COALESCE(cat.nombre, 'Inventario')
     ) x;
 
-    -- Solo las compras a crédito: es lo que suma deuda y se abona después.
     SELECT COALESCE(json_agg(row_to_json(y) ORDER BY y.monto DESC), '[]'::JSON)
     INTO v_por_proveedor
     FROM (

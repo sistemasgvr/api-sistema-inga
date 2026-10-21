@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS gen_listar_listas();
 CREATE OR REPLACE FUNCTION gen_listar_listas()
 RETURNS JSON
 LANGUAGE sql

@@ -1,9 +1,13 @@
 -- Listo el historial de turnos, con filtros por caja, cajero, estado y fechas.
---
--- No calculo los totales de cada fila acá: serían cuatro subconsultas por turno
--- y el historial se vuelve lento. Muestro lo que ya está guardado en la tabla
--- (apertura, cierre y diferencia), que es justo lo que se necesita ver en una
--- lista. Para el detalle completo está caj_resumen_turno.
+DROP FUNCTION IF EXISTS caj_listar_turnos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_caja BIGINT,
+    p_id_cajero BIGINT,
+    p_estado_turno INT,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE
+);
 CREATE OR REPLACE FUNCTION caj_listar_turnos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,

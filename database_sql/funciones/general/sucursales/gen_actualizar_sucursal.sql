@@ -1,3 +1,14 @@
+DROP FUNCTION IF EXISTS gen_actualizar_sucursal(
+    p_id BIGINT,
+    p_id_empresa BIGINT,
+    p_codigo VARCHAR,
+    p_nombre VARCHAR,
+    p_direccion VARCHAR,
+    p_telefono VARCHAR,
+    p_id_distrito BIGINT,
+    p_es_principal BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gen_actualizar_sucursal(
     p_id BIGINT,
     p_id_empresa BIGINT DEFAULT NULL,

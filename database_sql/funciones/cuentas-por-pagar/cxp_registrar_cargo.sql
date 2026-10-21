@@ -1,17 +1,14 @@
 -- Registro un cargo: una compra a crédito que aumenta lo que le debemos a un proveedor.
---
--- Esta es la función que **M14 va a llamar automáticamente** cuando un ítem del
--- gasto diario se marque como "a crédito". El parámetro p_id_gasto_diario
--- queda listo para ese enlace; hoy llega NULL porque M14 todavía no existe y
--- los cargos se cargan a mano.
---
--- El período (año, mes, semana) lo derivo de la fecha, no lo pido. La semana
--- ISO es la que importa acá: el abono a proveedores es semanal, así que el
--- reporte necesita agrupar por semana tal como se paga.
---
--- El saldo_resultante lo calculo y lo guardo en el momento. Lo hago así, y no
--- recalculándolo siempre desde cero, porque es una foto: permite reconstruir
--- el estado de la cuenta en cualquier punto del historial sin re-sumar todo.
+-- También la llama gastos diarios cuando una línea se marca a crédito.
+DROP FUNCTION IF EXISTS cxp_registrar_cargo(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE,
+    p_num_comprobante VARCHAR,
+    p_id_gasto_diario BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_registrar_cargo(
     p_id_persona BIGINT,
     p_monto NUMERIC,
@@ -41,9 +38,6 @@ BEGIN
         RETURN json_build_object('error', 'La persona indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    -- Requisito del alcance: la deuda se vincula a un proveedor, no a
-    -- cualquier persona. Si alguien eligiera un cliente por error, la deuda
-    -- aparecería en un reporte donde no tiene sentido.
     IF v_es_proveedor = FALSE THEN
         RETURN json_build_object(
             'error', 'Solo se puede registrar deuda a una persona marcada como proveedor',

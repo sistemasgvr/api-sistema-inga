@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS auth_cerrar_sesion(
+    p_id_sesion BIGINT,
+    p_id_usuario BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_cerrar_sesion(
     p_id_sesion BIGINT,
     p_id_usuario BIGINT

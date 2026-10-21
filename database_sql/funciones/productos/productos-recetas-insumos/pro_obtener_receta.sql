@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS pro_obtener_receta(p_id BIGINT);
 CREATE OR REPLACE FUNCTION pro_obtener_receta(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -21,9 +22,7 @@ BEGIN
             r.estado,
             r.fecha_creacion,
             r.fecha_modificacion,
-            -- Costo de la receta completa. Con rendimiento_porciones = 1 es el
-            -- costo del plato; pro_costo_unitario_insumo lo resuelve igual que el
-            -- cálculo guardado, así que el detalle de abajo suma este mismo valor.
+            -- Mismo cálculo que el costo guardado (pro_costo_unitario_insumo), así el detalle suma este valor.
             p.costo_receta_calculado AS costo_total_calculado,
             (
                 SELECT COALESCE(json_agg(row_to_json(ri_t)), '[]'::JSON)

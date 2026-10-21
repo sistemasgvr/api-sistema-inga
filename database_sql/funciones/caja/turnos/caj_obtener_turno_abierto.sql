@@ -1,11 +1,5 @@
 -- Devuelve el turno abierto de un cajero, o NULL si no tiene ninguno.
---
--- Esta es la primera llamada que hace la pantalla de caja al cargar: necesita
--- saber si el cajero ya tiene un turno en curso para mostrarle el panel del
--- turno, o la pantalla de apertura si no lo tiene.
---
--- La va a usar también el cobro (M12): antes de registrar un pago hay que saber
--- contra qué turno se registra, y ese dato sale de acá.
+DROP FUNCTION IF EXISTS caj_obtener_turno_abierto(p_id_cajero BIGINT);
 CREATE OR REPLACE FUNCTION caj_obtener_turno_abierto(p_id_cajero BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

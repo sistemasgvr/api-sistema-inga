@@ -1,3 +1,10 @@
+DROP FUNCTION IF EXISTS pro_crear_categoria(
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_es_carta BOOLEAN,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_crear_categoria(
     p_nombre VARCHAR,
     p_descripcion VARCHAR DEFAULT NULL,

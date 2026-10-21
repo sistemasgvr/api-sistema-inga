@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_factor_unidad(p_origen BIGINT, p_destino BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_factor_unidad(p_origen BIGINT, p_destino BIGINT)
 RETURNS NUMERIC LANGUAGE plpgsql STABLE AS $$
 DECLARE v NUMERIC;

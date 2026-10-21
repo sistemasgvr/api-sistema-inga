@@ -1,9 +1,9 @@
+DROP FUNCTION IF EXISTS ven_guardar_mesa(p_id BIGINT, p_d JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_guardar_mesa(p_id BIGINT, p_d JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_mesa%ROWTYPE; v_anterior ven_mesa%ROWTYPE;
 BEGIN
   -- Serializa el mantenimiento de la misma mesa antes de leer su salón actual.
-  -- Evita que un traslado concurrente invalide el bloqueo del salón de origen.
   IF p_id IS NOT NULL THEN PERFORM pg_advisory_xact_lock(505, (p_id % 2147483647)::INTEGER); END IF;
   -- Bloquea primero el salón: crear/reactivar una mesa no puede competir con su baja.
   IF p_id IS NOT NULL THEN

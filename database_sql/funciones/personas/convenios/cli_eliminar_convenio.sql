@@ -1,12 +1,8 @@
--- Doy de baja lógica un convenio (estado = 0). Nunca borro la fila.
---
--- No puedo borrar de verdad porque cxc_movimiento guarda el historial de
--- consumos a crédito y perdería la trazabilidad de las quincenas ya cerradas.
---
--- Bloqueo la baja si todavía hay clientes colgando del convenio, igual que
--- gen_eliminar_almacen bloquea cuando hay stock. Si dejara pasar la baja,
--- esos clientes quedarían apuntando a un convenio muerto y el cobro a crédito
--- (M12) fallaría recién al momento de cobrar, con el cliente en la caja.
+-- Doy de baja lógica un convenio (estado = 0). Se bloquea si aún tiene clientes asignados.
+DROP FUNCTION IF EXISTS cli_eliminar_convenio(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_eliminar_convenio(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

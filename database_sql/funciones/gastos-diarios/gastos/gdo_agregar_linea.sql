@@ -1,31 +1,5 @@
--- Agrego una compra al gasto del día.
---
--- Es la función más importante del módulo, porque es donde se cierra el
--- circuito con Cuentas por Pagar: **si la línea se marca como crédito
--- (forma_pago = 3), genero automáticamente el cargo en CxP**. Eso es
--- exactamente el requisito del alcance: "si el ítem se marca como crédito,
--- genera automáticamente una deuda del restaurante hacia ese proveedor".
---
--- Guardo el id del movimiento generado en la línea (id_cxp_movimiento) para
--- poder revertirlo si después se anula.
---
--- Tres reglas:
---   1. El crédito exige proveedor: la deuda tiene que quedar a nombre de alguien.
---   2. El efectivo exige turno de caja abierto, porque sale del cajón. Misma
---      regla que en planilla (M17), gastos administrativos (M16) y CxP (M15).
---   3. El Yape no exige nada: no toca el cajón ni genera deuda.
---
--- Al final actualizo el precio_referencial del insumo con lo que se acaba de
--- pagar. Así la próxima compra sugiere el precio real más reciente, que es como
--- el cliente lo tiene en su cabeza.
---
--- La línea puede ser un INSUMO libre (p_id_insumo) o un PRODUCTO del inventario
--- (p_id_producto), nunca ambos. El producto, además de ser gasto, ingresa stock:
--- genero una ENTRADA con motivo COMPRA en el almacén y guardo el movimiento en
--- la línea para revertirlo si se anula. Entra en la unidad base del producto,
--- que es la única que acepta el kardex, y al costo pagado (alimenta el costo
--- promedio). Da igual que el producto tenga stock en cero o que nunca haya
--- tenido: comprarlo es justamente cómo se repone.
+-- Agrego una compra al gasto del día. Si es a crédito genera el cargo en CxP (exige proveedor);
+-- si es en efectivo exige turno abierto. Un producto de inventario además ingresa stock (ENTRADA por COMPRA).
 DROP FUNCTION IF EXISTS gdo_agregar_linea(BIGINT, BIGINT, NUMERIC, NUMERIC, SMALLINT, BIGINT, BIGINT, VARCHAR, BIGINT);
 CREATE OR REPLACE FUNCTION gdo_agregar_linea(
     p_id_gasto_dia BIGINT,
@@ -49,9 +23,7 @@ DECLARE
     v_subtotal NUMERIC(12,2);
     v_estado_turno SMALLINT;
     v_id_cxp BIGINT;
-    -- JSONB y no JSON: necesito indexar con -> y ->> sobre el resultado, y
-    -- esos operadores trabajan sobre jsonb. cxp_registrar_cargo devuelve JSON,
-    -- así que lo casteo al asignarlo.
+    -- JSONB para usar -> y ->> sobre el resultado de cxp_registrar_cargo.
     v_cargo JSONB;
     v_nombre_insumo VARCHAR;
     v_producto RECORD;
@@ -104,7 +76,6 @@ BEGIN
             );
         END IF;
 
-        -- Misma regla que alm_confirmar para el motivo COMPRA.
         IF v_producto.solo_receta THEN
             RETURN json_build_object(
                 'error', v_producto.nombre || ' se prepara con su receta, no se compra',
@@ -112,7 +83,6 @@ BEGIN
             );
         END IF;
 
-        -- El alta en alm_movimiento exige autor: sin él no hay kardex.
         IF p_id_usuario_auditoria IS NULL THEN
             RETURN json_build_object('error', 'No se identificó al usuario que registra la compra', 'registro', NULL);
         END IF;
@@ -120,8 +90,7 @@ BEGIN
         v_nombre_insumo := v_producto.nombre;
         v_id_unidad := v_producto.id_unidad_medida;
 
-        -- Almacén: el elegido; si no, el habitual del producto; si no, el
-        -- principal de crudos de la sucursal del día.
+        -- Almacén: el elegido, si no el habitual del producto, si no el principal de crudos de la sucursal.
         v_id_almacen := COALESCE(p_id_almacen, v_producto.id_almacen_stock);
         IF v_id_almacen IS NULL THEN
             SELECT a.id INTO v_id_almacen
@@ -162,7 +131,6 @@ BEGIN
 
     v_subtotal := ROUND(p_cantidad * p_precio_unitario, 2);
 
-    -- Regla 1: el crédito necesita proveedor.
     IF p_forma_pago = 3 THEN
         IF p_id_proveedor IS NULL THEN
             RETURN json_build_object(
@@ -182,7 +150,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- Regla 2: el efectivo sale del cajón, así que exige turno abierto.
     IF p_forma_pago = 1 THEN
         IF v_dia.id_turno IS NULL THEN
             RETURN json_build_object(
@@ -202,10 +169,8 @@ BEGIN
         END IF;
     END IF;
 
-    -- Todo lo que escribe va en un bloque: si el ingreso a inventario falla (lo
-    -- valida alm_confirmar), se deshacen también el cargo en CxP y la línea.
+    -- Todo en un bloque: si el ingreso a inventario falla se deshacen también el cargo y la línea.
     BEGIN
-        -- Acá se cierra el circuito con M15: el cargo automático.
         IF p_forma_pago = 3 THEN
             v_cargo := cxp_registrar_cargo(
                 p_id_proveedor,
@@ -217,7 +182,6 @@ BEGIN
                 p_id_usuario_auditoria
             )::JSONB;
 
-            -- Si CxP rechazó el cargo, corto acá y no dejo la línea a medias.
             IF v_cargo->>'error' IS NOT NULL THEN
                 RETURN json_build_object(
                     'error', 'No se pudo generar la deuda al proveedor: ' || (v_cargo->>'error'),
@@ -244,13 +208,10 @@ BEGIN
         )
         RETURNING id INTO v_id;
 
-        -- Cierro el enlace en la otra dirección, para que desde el movimiento de
-        -- CxP se pueda llegar a la línea que lo originó.
         IF v_id_cxp IS NOT NULL THEN
             UPDATE cxp_movimiento SET id_gasto_diario = v_id WHERE id = v_id_cxp;
         END IF;
 
-        -- Producto de inventario: la compra ingresa stock al almacén.
         IF p_id_producto IS NOT NULL THEN
             v_id_mov := alm_aplicar(
                 'GDO-' || v_id, 'ENTRADA', 'COMPRA', 'gdo_gasto_detalle', v_id,
@@ -272,7 +233,6 @@ BEGIN
         RETURN json_build_object('error', 'No se pudo registrar la compra: ' || SQLERRM, 'registro', NULL);
     END;
 
-    -- El precio referencial sigue al último precio pagado.
     IF p_id_insumo IS NOT NULL THEN
         UPDATE gdo_insumo
         SET precio_referencial = p_precio_unitario,

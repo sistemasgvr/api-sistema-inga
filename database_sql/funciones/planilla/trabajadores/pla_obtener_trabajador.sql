@@ -1,10 +1,6 @@
--- Traigo un trabajador por ID, con el acumulado de lo que se le ha pagado.
---
--- Crear y actualizar terminan llamando acá para devolver siempre el mismo
--- formato, sin importar por cuál operación se haya pasado.
---
--- No filtro por estado: necesito poder leer a un trabajador inactivo para
--- mostrar su ficha y para que el botón de reactivar tenga algo que mostrar.
+-- Traigo un trabajador por ID con el acumulado pagado. No filtra por estado (ficha y reactivación).
+-- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
+DROP FUNCTION IF EXISTS pla_obtener_trabajador(p_id BIGINT);
 CREATE OR REPLACE FUNCTION pla_obtener_trabajador(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS auth_obtener_usuario_por_login(p_login VARCHAR);
 CREATE OR REPLACE FUNCTION auth_obtener_usuario_por_login(p_login VARCHAR)
 RETURNS JSON
 LANGUAGE plpgsql

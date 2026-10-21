@@ -1,18 +1,11 @@
 -- Reporte consolidado de una quincena, agrupado por empresa y con el detalle de
 -- cada trabajador.
---
--- Este es EL entregable del módulo. El alcance lo dice claro: a inicios de cada
--- mes hay que mandarle a cada empresa del consorcio el consolidado de lo que
--- consumió su gente, y la empresa paga contra eso y luego se lo descuenta al
--- trabajador de su planilla.
---
--- Lo devuelvo agrupado (empresa → trabajadores) en vez de una lista plana
--- porque así es como se imprime: una hoja por empresa, con el total abajo. Si
--- devolviera filas sueltas, el front tendría que reagrupar, y ese es
--- exactamente el trabajo que la base hace mejor.
---
--- Si no se pasa periodo, uso la quincena en curso, que es lo que se quiere el
--- 95% de las veces.
+DROP FUNCTION IF EXISTS cxc_reporte_periodo(
+    p_anio SMALLINT,
+    p_mes SMALLINT,
+    p_quincena SMALLINT,
+    p_id_convenio BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_reporte_periodo(
     p_anio SMALLINT DEFAULT NULL,
     p_mes SMALLINT DEFAULT NULL,

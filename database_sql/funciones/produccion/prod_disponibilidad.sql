@@ -1,4 +1,5 @@
 -- ¿Alcanza el stock libre para preparar p_cantidad de una receta estándar (con sub-platos)?
+DROP FUNCTION IF EXISTS prod_alcanza(p_receta BIGINT, p_cantidad NUMERIC, p_sucursal BIGINT);
 CREATE OR REPLACE FUNCTION prod_alcanza(p_receta BIGINT,p_cantidad NUMERIC,p_sucursal BIGINT) RETURNS BOOLEAN LANGUAGE plpgsql AS $$
 BEGIN
   RETURN NOT EXISTS(SELECT 1 FROM jsonb_to_recordset(prod_explosion(p_receta,p_cantidad,p_sucursal)) x(id_producto BIGINT,id_almacen BIGINT,cantidad NUMERIC)
@@ -10,6 +11,7 @@ END $$;
 -- Componentes para preparar p_cantidad, agrupados por sub-plato (id_producto_origen/origen/ruta).
 -- preparado = se usa un sub-plato ya preparado en lugar de sus ingredientes.
 -- Con p_item se arma desde lo apartado al comandar esa línea; sin reserva, con el stock del momento.
+DROP FUNCTION IF EXISTS public.prod_disponibilidad(p_receta BIGINT, p_almacen BIGINT, p_cantidad NUMERIC, p_item BIGINT);
 CREATE OR REPLACE FUNCTION public.prod_disponibilidad(p_receta BIGINT,p_almacen BIGINT,p_cantidad NUMERIC,p_item BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE r pro_receta%ROWTYPE; pr pro_producto%ROWTYPE; d ven_pedido_detalle%ROWTYPE; necesidades JSONB:='[]'; libre JSONB:='{}';

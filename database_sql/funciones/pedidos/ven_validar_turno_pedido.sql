@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_validar_turno_pedido(p_turno BIGINT, p_sucursal BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_validar_turno_pedido(p_turno BIGINT, p_sucursal BIGINT)
 RETURNS VOID LANGUAGE plpgsql AS $$
 BEGIN

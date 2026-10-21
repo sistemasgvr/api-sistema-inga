@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS alm_cancelar(p_id BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION alm_cancelar(p_id BIGINT,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE m alm_movimiento%ROWTYPE;
 BEGIN

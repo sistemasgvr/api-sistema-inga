@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_obtener_pedido(p_id BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_obtener_pedido(p_id BIGINT)
 RETURNS JSON LANGUAGE sql AS $$
   SELECT json_build_object('registro', (

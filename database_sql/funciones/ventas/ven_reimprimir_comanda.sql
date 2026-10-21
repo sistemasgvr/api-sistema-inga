@@ -1,8 +1,5 @@
 -- Vuelve a poner una comanda (o precuenta) en la cola de impresión de su estación.
---
--- El trabajo de impresión se identifica por id_comanda: si ya existe se reinicia
--- a 'pendiente' con el mismo contenido y la marca de reimpresión; si la comanda
--- es anterior a la cola de impresión, se arma igual que ven_encolar_impresion.
+DROP FUNCTION IF EXISTS ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE c ven_comanda%ROWTYPE; pedido JSONB;

@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS pro_activar_categoria(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_activar_categoria(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
@@ -19,7 +23,6 @@ BEGIN
     END IF;
 
     IF v_estado = 1 THEN
-        -- Opcional: podrías permitirlo o retornar un mensaje amigable sin romper con 404
         RAISE EXCEPTION 'La categoría ya se encuentra activa';
     END IF;
 

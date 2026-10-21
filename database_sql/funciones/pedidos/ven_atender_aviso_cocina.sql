@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_atender_aviso_cocina(p_id BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_atender_aviso_cocina(p_id BIGINT,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE aviso ven_aviso_cocina%ROWTYPE;
 BEGIN

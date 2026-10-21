@@ -1,14 +1,8 @@
--- Doy de baja lógica una categoría de gasto (estado = 0).
---
--- No borro la fila: gad_gasto apunta a ella y perdería la clasificación del
--- histórico, que es justo lo que alimenta el reporte mensual y la rentabilidad
--- del dashboard.
---
--- Bloqueo la baja en dos casos:
---   - tiene gastos registrados → el histórico quedaría apuntando a una
---     categoría invisible y el reporte mostraría filas sin nombre
---   - tiene subcategorías activas → quedarían huérfanas, colgando de una rama
---     que ya no aparece en el árbol
+-- Doy de baja lógica una categoría de gasto. Se bloquea si tiene gastos o subcategorías activas.
+DROP FUNCTION IF EXISTS gad_eliminar_categoria(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_eliminar_categoria(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

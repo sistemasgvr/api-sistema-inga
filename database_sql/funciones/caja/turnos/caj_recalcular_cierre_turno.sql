@@ -1,10 +1,10 @@
 -- Vuelve a calcular el cierre de un turno YA CERRADO cuando se corrige una
 -- venta suya (por ejemplo, un pago que pasó de efectivo a Yape).
---
--- Solo cambia lo que calcula el sistema: monto_cierre_sistema y, con él, la
--- diferencia. Lo que el cajero declaró que contó no se toca, porque es un hecho
--- de ese momento; así la diferencia refleja el efecto de la corrección.
--- La nota queda en la observación del turno para que el cambio se pueda rastrear.
+DROP FUNCTION IF EXISTS caj_recalcular_cierre_turno(
+    p_id BIGINT,
+    p_nota VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);  
 CREATE OR REPLACE FUNCTION caj_recalcular_cierre_turno(
     p_id BIGINT,
     p_nota VARCHAR,

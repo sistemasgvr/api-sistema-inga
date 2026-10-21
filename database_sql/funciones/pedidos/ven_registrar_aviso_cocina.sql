@@ -1,5 +1,6 @@
 -- Se invoca desde el backend DESPUÉS de que la comanda se revirtió por falta de stock (SQLSTATE IN001).
 -- Reintentar la misma comanda actualiza el aviso pendiente del pedido en lugar de duplicarlo.
+DROP FUNCTION IF EXISTS ven_registrar_aviso_cocina(p_pedido BIGINT, p_mensaje TEXT, p_faltantes JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_registrar_aviso_cocina(p_pedido BIGINT,p_mensaje TEXT,p_faltantes JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; v_estaciones BIGINT[]; aviso ven_aviso_cocina%ROWTYPE;

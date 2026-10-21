@@ -1,8 +1,7 @@
--- Doy de baja lógica una caja.
---
--- Bloqueo la baja si tiene un turno abierto. Si la dejara pasar, ese turno
--- quedaría huérfano: nadie podría cerrarlo desde la pantalla porque la caja ya
--- no aparecería en el listado, y el dinero del cajón quedaría sin cuadrar.
+DROP FUNCTION IF EXISTS caj_eliminar_caja(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_eliminar_caja(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

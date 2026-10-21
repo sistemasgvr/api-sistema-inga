@@ -1,3 +1,6 @@
+DROP FUNCTION IF EXISTS auth_listar_trabajadores_disponibles(
+    p_id BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_listar_trabajadores_disponibles(
     p_id BIGINT DEFAULT NULL
 )

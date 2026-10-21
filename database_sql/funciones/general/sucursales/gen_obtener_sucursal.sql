@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS gen_obtener_sucursal(p_id BIGINT);
 CREATE OR REPLACE FUNCTION gen_obtener_sucursal(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

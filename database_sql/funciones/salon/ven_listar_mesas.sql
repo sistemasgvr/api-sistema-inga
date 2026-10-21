@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_listar_mesas(p_f JSONB);
 CREATE OR REPLACE FUNCTION ven_listar_mesas(p_f JSONB) RETURNS JSON LANGUAGE sql AS $$
   WITH filtrados AS (
     SELECT m.* FROM ven_mesa m JOIN ven_salon s ON s.id = m.id_salon

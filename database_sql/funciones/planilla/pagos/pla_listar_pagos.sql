@@ -1,8 +1,15 @@
--- Listo los pagos de planilla con filtros por trabajador, período y medio.
---
--- El resumen desglosa por medio de pago porque es lo que el cuadre necesita:
--- solo el efectivo sale del cajón, lo demás sale del banco. Sin ese desglose,
--- el administrador no puede conciliar la caja del día 17.
+-- Listo los pagos de planilla con filtros por trabajador, período y medio de pago.
+DROP FUNCTION IF EXISTS pla_listar_pagos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_trabajador BIGINT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_medio_pago INTEGER,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE
+);
 CREATE OR REPLACE FUNCTION pla_listar_pagos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
@@ -28,8 +35,6 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- Los totales respetan los mismos filtros que el listado: si el usuario
-    -- está viendo septiembre, el total debe ser el de septiembre.
     SELECT
         COUNT(*),
         COALESCE(SUM(p.monto), 0),

@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS cxc_obtener_estado_cuenta(
+    p_id_persona BIGINT,
+    p_anio SMALLINT,
+    p_mes SMALLINT,
+    p_quincena SMALLINT
+);
 CREATE OR REPLACE FUNCTION cxc_obtener_estado_cuenta(
     p_id_persona BIGINT,
     p_anio SMALLINT DEFAULT NULL,

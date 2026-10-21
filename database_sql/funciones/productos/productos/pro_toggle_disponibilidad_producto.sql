@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS pro_toggle_disponibilidad_producto(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_toggle_disponibilidad_producto(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

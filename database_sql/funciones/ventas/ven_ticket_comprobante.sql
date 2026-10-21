@@ -1,7 +1,6 @@
--- Contenido del ticket de un comprobante (boleta, factura o nota de venta), con el
--- mismo formato que la cola de impresión (ver formatearComanda / ticket-formato.ts).
--- Lo usan ven_imprimir_comprobante (papel) y el PDF archivado en Storage, para que
--- ambos muestren exactamente lo mismo. Funciona también para comprobantes anulados.
+-- Contenido del ticket de un comprobante, con el mismo formato que la cola de impresión.
+-- Lo usan el papel y el PDF archivado, para que ambos muestren lo mismo.
+DROP FUNCTION IF EXISTS ven_ticket_comprobante(p_id_comprobante BIGINT);
 CREATE OR REPLACE FUNCTION ven_ticket_comprobante(p_id_comprobante BIGINT)
 RETURNS JSONB LANGUAGE plpgsql STABLE AS $$
 DECLARE cp ven_comprobante%ROWTYPE; pedido ven_pedido%ROWTYPE; detalle JSONB;

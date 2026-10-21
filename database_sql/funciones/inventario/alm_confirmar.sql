@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS alm_confirmar(p_id BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION alm_confirmar(p_id BIGINT,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE m alm_movimiento%ROWTYPE; d RECORD; s alm_producto_stock%ROWTYPE; t TEXT; motivo TEXT; motivo_tipo INTEGER; tipo_valor INTEGER;
 BEGIN

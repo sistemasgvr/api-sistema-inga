@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_pedido_anular(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_pedido_anular(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d RECORD;

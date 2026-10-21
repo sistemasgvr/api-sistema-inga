@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS gen_listar_sucursales(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION gen_listar_sucursales(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

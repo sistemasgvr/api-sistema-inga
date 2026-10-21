@@ -1,3 +1,14 @@
+DROP FUNCTION IF EXISTS pro_guardar_receta_insumo(
+    p_id_receta BIGINT,
+    p_id_producto_insumo BIGINT,
+    p_cantidad NUMERIC,
+    p_id_unidad_medida BIGINT,
+    p_porcentaje_merma NUMERIC,
+    p_es_opcional BOOLEAN,
+    p_grupo_sustitucion INTEGER,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_guardar_receta_insumo(
     p_id_receta BIGINT,
     p_id_producto_insumo BIGINT,
@@ -59,7 +70,6 @@ BEGIN
     FROM pro_receta
     WHERE id = p_id_receta AND estado = 1;
 
-    -- Un producto no puede ser insumo de sí mismo.
     IF p_id_producto_insumo = v_id_producto_receta THEN
         RETURN json_build_object(
             'error', 'Un producto no puede ser insumo de su propia receta',
@@ -67,11 +77,8 @@ BEGIN
         );
     END IF;
 
-    -- Una receta puede contener platos que tienen su propia receta. Eso está
-    -- permitido, pero abre la puerta a ciclos: si A contiene B y B contiene A,
-    -- el cálculo de costo y la producción entrarían en recursión infinita.
-    -- Se sube por los ancestros del insumo propuesto y se rechaza si aparece el
-    -- producto cuya receta se está editando.
+    -- Evita ciclos (A contiene B y B contiene A): se sube por los ancestros del insumo
+    -- y se rechaza si aparece el producto de esta receta.
     WITH RECURSIVE ancestros(id, nombre, nivel) AS (
         SELECT ri.id_producto_insumo, pa.nombre, 1
         FROM pro_receta_insumo ri

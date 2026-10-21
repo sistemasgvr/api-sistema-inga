@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS pro_listar_recetas_producto(p_id_producto BIGINT);
 CREATE OR REPLACE FUNCTION pro_listar_recetas_producto(p_id_producto BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

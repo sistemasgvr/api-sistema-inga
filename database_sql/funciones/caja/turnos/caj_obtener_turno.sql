@@ -1,8 +1,5 @@
 -- Traigo un turno con sus totales ya calculados.
---
--- Mezclo la fila del turno con lo que devuelve caj_calcular_totales_turno para
--- que el panel del turno activo tenga todo en una sola llamada: cuánto se abrió,
--- cuánto se vendió por cada medio y cuánto efectivo debería haber en el cajón.
+DROP FUNCTION IF EXISTS caj_obtener_turno(p_id BIGINT);
 CREATE OR REPLACE FUNCTION caj_obtener_turno(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

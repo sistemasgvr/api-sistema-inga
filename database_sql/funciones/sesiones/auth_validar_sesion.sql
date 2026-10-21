@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS auth_validar_sesion(p_refresh_token_hash VARCHAR);
 CREATE OR REPLACE FUNCTION auth_validar_sesion(p_refresh_token_hash VARCHAR)
 RETURNS JSON
 LANGUAGE plpgsql

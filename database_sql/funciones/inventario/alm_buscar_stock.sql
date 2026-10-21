@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.alm_buscar_stock(p_producto BIGINT, p_almacen BIGINT, p_limite INTEGER, p_offset INTEGER, p_buscar TEXT, p_estado TEXT);
 CREATE OR REPLACE FUNCTION public.alm_buscar_stock(p_producto BIGINT,p_almacen BIGINT,p_limite INTEGER,p_offset INTEGER,p_buscar TEXT,p_estado TEXT)
 RETURNS JSON LANGUAGE sql AS $$
  WITH base AS (

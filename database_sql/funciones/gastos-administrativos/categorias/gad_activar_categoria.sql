@@ -1,8 +1,8 @@
--- Reactivo una categoría de gasto dada de baja.
---
--- Si es una subcategoría, reviso que su padre siga activo: reactivarla bajo una
--- rama dada de baja la dejaría invisible en el árbol, sin que nadie entienda
--- por qué no aparece.
+-- Reactivo una categoría de gasto. Si es subcategoría, su padre debe seguir activo.
+DROP FUNCTION IF EXISTS gad_activar_categoria(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_activar_categoria(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

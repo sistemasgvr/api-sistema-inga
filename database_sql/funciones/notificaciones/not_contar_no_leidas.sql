@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS public.not_contar_no_leidas(
+    p_id_usuario BIGINT,
+    p_canales TEXT[]
+);
 CREATE OR REPLACE FUNCTION public.not_contar_no_leidas(
   p_id_usuario BIGINT,
   p_canales TEXT[]

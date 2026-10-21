@@ -1,18 +1,17 @@
--- Registro un pago de planilla.
---
--- La quincena la DEDUZCO de la fecha de pago en vez de pedirla, y es la
--- decisión más importante de esta función. Inga paga el día 17 la primera
--- quincena y el día 2 del mes siguiente la segunda. Si el cajero tuviera que
--- elegir el período a mano, el 2 de octubre marcaría "octubre" cuando en
--- realidad está pagando la segunda quincena de septiembre — y el gasto
--- quedaría en el mes equivocado, desviando la rentabilidad de los dos meses.
---
--- Regla que aplico:
---   pago entre el día 1 y el 15  → segunda quincena del MES ANTERIOR
---   pago del día 16 en adelante  → primera quincena del MES EN CURSO
---
--- El período se puede forzar (p_anio/p_mes/p_quincena) para cargar pagos
--- atrasados o corregir un registro histórico.
+-- Registro un pago de planilla. La quincena se deduce de la fecha (salvo que venga forzada):
+-- día 1-15 → 2da quincena del mes anterior; día 16 en adelante → 1ra quincena del mes en curso.
+DROP FUNCTION IF EXISTS pla_registrar_pago(
+    p_id_trabajador BIGINT,
+    p_monto NUMERIC,
+    p_fecha_pago DATE,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_registrar_pago(
     p_id_trabajador BIGINT,
     p_monto NUMERIC,
@@ -60,21 +59,16 @@ BEGIN
         );
     END IF;
 
-    -- No permito registrar un pago con fecha futura: el gasto entra al cuadre
-    -- del día y adelantarlo descuadraría la caja de una fecha que no ha pasado.
     IF v_fecha > CURRENT_DATE THEN
         RETURN json_build_object('error', 'No se puede registrar un pago con fecha futura', 'registro', NULL);
     END IF;
 
-    -- Deducción del período, salvo que venga forzado.
     IF p_anio IS NOT NULL AND p_mes IS NOT NULL AND p_quincena IS NOT NULL THEN
         v_anio := p_anio;
         v_mes := p_mes;
         v_quincena := p_quincena;
     ELSE
         IF EXTRACT(DAY FROM v_fecha) <= 15 THEN
-            -- Pago de la primera mitad del mes: corresponde a la 2da quincena
-            -- del mes anterior.
             v_referencia := (v_fecha - INTERVAL '1 month')::DATE;
             v_quincena := 2;
         ELSE
@@ -93,8 +87,7 @@ BEGIN
         RETURN json_build_object('error', 'La quincena debe ser 1 o 2', 'registro', NULL);
     END IF;
 
-    -- El índice uq_pla_pago_quincena ya lo impide, pero valido acá para dar un
-    -- mensaje que diga de qué período se trata.
+    -- uq_pla_pago_quincena ya lo impide; se valida para dar un mensaje con el período.
     IF EXISTS (
         SELECT 1 FROM pla_pago
         WHERE id_trabajador = p_id_trabajador
@@ -109,8 +102,6 @@ BEGIN
         );
     END IF;
 
-    -- Si el pago sale del cajón (efectivo), exijo un turno abierto: así el
-    -- egreso queda amarrado al cuadre del día, que es el objetivo del módulo.
     IF COALESCE(p_medio_pago, 1) = 1 THEN
         IF p_id_turno IS NULL THEN
             RETURN json_build_object(

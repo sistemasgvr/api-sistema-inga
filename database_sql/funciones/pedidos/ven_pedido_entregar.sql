@@ -1,3 +1,5 @@
+-- cantidad_entregada es el TOTAL acumulado deseado; repetir la petición es idempotente.
+DROP FUNCTION IF EXISTS ven_pedido_entregar(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_pedido_entregar(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE;
   objetivo NUMERIC:=(p_datos->>'cantidad_entregada')::NUMERIC; n NUMERIC; detalles JSONB; c RECORD;
@@ -39,6 +41,3 @@ BEGIN
     id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=d.id;
   RETURN ven_obtener_pedido(p_id);
 END $$;
-
--- Cancelación acumulada de unidades no entregadas. Libera el producto terminado
--- o lo da de baja por merma, sin devolver ingredientes consumidos.

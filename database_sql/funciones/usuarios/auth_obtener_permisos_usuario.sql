@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS auth_obtener_permisos_usuario(p_id_usuario BIGINT);
 CREATE OR REPLACE FUNCTION auth_obtener_permisos_usuario(p_id_usuario BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

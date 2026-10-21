@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_recalcular_pedido(p_id BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_recalcular_pedido(p_id BIGINT, p_usuario BIGINT)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE v_tasa NUMERIC; v_base NUMERIC; v_total NUMERIC;

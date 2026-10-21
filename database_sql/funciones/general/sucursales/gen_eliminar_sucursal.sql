@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS gen_eliminar_sucursal(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gen_eliminar_sucursal(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

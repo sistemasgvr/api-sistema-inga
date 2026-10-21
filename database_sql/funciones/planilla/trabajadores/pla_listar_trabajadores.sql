@@ -1,12 +1,13 @@
--- Listo el personal que cobra planilla.
---
--- Devuelvo "pagado_periodo" y "ultimo_pago" porque la pantalla necesita
--- responder de un vistazo la pregunta del día de pago: "¿a quién ya le pagué
--- esta quincena y a quién no?". Si no los mandara desde acá, el front tendría
--- que hacer una consulta por cada fila.
---
--- Los parámetros de período son opcionales: cuando no se mandan uso el mes y
--- año actuales, que es el caso normal al abrir la pantalla.
+-- Listo el personal de planilla con lo pagado en el período (por defecto el mes actual).
+DROP FUNCTION IF EXISTS pla_listar_trabajadores(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION pla_listar_trabajadores(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -65,10 +66,8 @@ BEGIN
             t.puesto,
             t.sueldo_referencial,
             t.estado,
-            -- Cuánto se le pagó ya en el período consultado.
             COALESCE(pg.pagado_periodo, 0) AS pagado_periodo,
             COALESCE(pg.pagos_periodo, 0) AS pagos_periodo,
-            -- Si se filtró por quincena concreta, esto dice si ya cobró esa.
             pg.quincenas_pagadas,
             up.fecha_pago AS ultimo_pago_fecha,
             up.monto AS ultimo_pago_monto,
@@ -80,8 +79,6 @@ BEGIN
             SELECT
                 SUM(p.monto) AS pagado_periodo,
                 COUNT(*) AS pagos_periodo,
-                -- Array con las quincenas ya pagadas del período: la pantalla
-                -- lo usa para marcar "1ra ✓ / 2da pendiente" sin más consultas.
                 COALESCE(json_agg(DISTINCT p.quincena ORDER BY p.quincena), '[]'::JSON) AS quincenas_pagadas
             FROM pla_pago p
             WHERE p.id_trabajador = t.id

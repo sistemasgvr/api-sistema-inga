@@ -1,3 +1,19 @@
+DROP FUNCTION IF EXISTS pro_crear_producto(
+    p_id_subcategoria BIGINT,
+    p_id_unidad_medida BIGINT,
+    p_nombre VARCHAR,
+    p_tipo_producto SMALLINT,
+    p_id_estacion BIGINT,
+    p_id_almacen_stock BIGINT,
+    p_descripcion TEXT,
+    p_precio_venta NUMERIC,
+    p_afecto_igv BOOLEAN,
+    p_controla_stock BOOLEAN,
+    p_disponible_venta BOOLEAN,
+    p_tiempo_prep_min INTEGER,
+    p_imagen_url VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_crear_producto(
     p_id_subcategoria BIGINT,
     p_id_unidad_medida BIGINT,

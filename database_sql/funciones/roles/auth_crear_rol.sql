@@ -1,6 +1,10 @@
--- El código del rol ya no se pide en el formulario: se deriva del nombre
--- ("Jefe de Barra" → JEFE_DE_BARRA). Se conserva en la tabla porque el sistema
--- reconoce al administrador por su código 'ADMIN'.
+-- El código se deriva del nombre ("Jefe de Barra" → JEFE_DE_BARRA); el sistema reconoce
+-- al administrador por su código 'ADMIN'.
+DROP FUNCTION IF EXISTS auth_crear_rol(
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_crear_rol(
     p_nombre VARCHAR,
     p_descripcion VARCHAR DEFAULT NULL,

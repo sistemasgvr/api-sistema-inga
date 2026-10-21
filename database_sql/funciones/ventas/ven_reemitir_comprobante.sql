@@ -1,14 +1,6 @@
--- Reemite el comprobante de una venta: anula el vigente y emite uno nuevo con
--- otro número, enlazado al anterior (id_comprobante_origen). Sirve para pasar
--- de boleta a factura o corregir el DNI/RUC del cliente.
---
--- Los ítems y montos se copian del comprobante anterior: la venta no cambia,
--- solo su documento. Los pagos pasan a apuntar al comprobante nuevo.
---
--- Hoy no hay envío a SUNAT. Cuando exista, una boleta o factura ya aceptada no
--- se podrá anular así: tendrá que emitirse una nota de crédito.
---
--- Las reglas del receptor son las mismas que en ven_pedido_cobrar.
+-- Reemite el comprobante de una venta: anula el vigente y emite uno nuevo enlazado al anterior,
+-- copiando ítems y montos. Los pagos pasan al nuevo comprobante.
+DROP FUNCTION IF EXISTS ven_reemitir_comprobante(p_id_pedido BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_reemitir_comprobante(p_id_pedido BIGINT, p_datos JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE pedido ven_pedido%ROWTYPE; anterior ven_comprobante%ROWTYPE; persona cli_persona%ROWTYPE;

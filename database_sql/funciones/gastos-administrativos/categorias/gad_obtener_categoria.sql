@@ -1,5 +1,6 @@
 -- Traigo una categoría de gasto por ID.
 -- Crear y actualizar terminan llamando acá para devolver siempre el mismo shape.
+DROP FUNCTION IF EXISTS gad_obtener_categoria(p_id BIGINT);
 CREATE OR REPLACE FUNCTION gad_obtener_categoria(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

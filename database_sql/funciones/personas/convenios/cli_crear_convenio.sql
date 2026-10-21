@@ -1,8 +1,11 @@
 -- Creo un convenio de crédito.
---
--- Pongo las validaciones acá y no solo en el DTO de Nest porque la base es la
--- última línea de defensa: si mañana alguien inserta desde otro lado (un script,
--- otro servicio), las reglas del negocio se siguen cumpliendo igual.
+DROP FUNCTION IF EXISTS cli_crear_convenio(
+    p_nombre VARCHAR,
+    p_id_condicion_pago BIGINT,
+    p_limite_credito NUMERIC,
+    p_corte_quincenal BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_crear_convenio(
     p_nombre VARCHAR,
     p_id_condicion_pago BIGINT,

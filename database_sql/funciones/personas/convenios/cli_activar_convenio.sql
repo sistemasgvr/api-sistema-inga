@@ -1,8 +1,8 @@
--- Reactivo un convenio que estaba dado de baja.
---
--- El WHERE pide estado = 0 a propósito: si el convenio ya estaba activo,
--- NOT FOUND se dispara y devuelvo activado = FALSE. Prefiero decir "no hice
--- nada" antes que responder un éxito que no ocurrió.
+-- Reactivo un convenio dado de baja. Si ya estaba activo devuelvo activado = FALSE.
+DROP FUNCTION IF EXISTS cli_activar_convenio(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_activar_convenio(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

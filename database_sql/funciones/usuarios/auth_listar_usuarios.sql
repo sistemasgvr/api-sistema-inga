@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS auth_listar_usuarios(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION auth_listar_usuarios(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

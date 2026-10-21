@@ -1,12 +1,16 @@
--- Listo los gastos administrativos con filtros por categoría, tipo y período.
---
--- El filtro por categoría incluye a sus subcategorías: si el usuario filtra
--- por "Servicios básicos" espera ver la luz, el agua y el internet, no una
--- lista vacía porque los gastos cuelgan de las hijas.
---
--- El resumen desglosa por tipo (fijo/variable) y por medio de pago, que son
--- las dos preguntas del cierre mensual: cuánto es estructura fija y cuánto
--- salió del cajón.
+-- Listo los gastos administrativos con filtros. El filtro por categoría incluye sus subcategorías.
+DROP FUNCTION IF EXISTS gad_listar_gastos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_categoria BIGINT,
+    p_tipo_gasto INT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_medio_pago INT,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE
+);
 CREATE OR REPLACE FUNCTION gad_listar_gastos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

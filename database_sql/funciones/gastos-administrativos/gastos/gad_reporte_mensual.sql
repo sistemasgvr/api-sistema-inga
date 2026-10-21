@@ -1,17 +1,9 @@
--- Reporte mensual de gastos administrativos: totales y desglose por categoría.
---
--- Es el ítem "vínculo con el dashboard" del alcance: este número es el que
--- entra al cálculo de rentabilidad (ventas − insumos − planilla − administrativos).
---
--- Devuelvo tres cosas en una sola llamada:
---   1. Los totales del mes, separados por tipo y por medio de pago.
---   2. El desglose por categoría raíz, con sus subcategorías sumadas dentro.
---   3. La comparación contra el mes anterior, que es lo que permite detectar
---      que la luz subió o que el alquiler se pagó dos veces.
---
--- El desglose agrupa por la categoría RAÍZ a propósito: al administrador le
--- interesa "Servicios básicos: S/ 890" y recién después abrir el detalle de
--- luz, agua e internet.
+-- Reporte mensual de gastos administrativos: totales por tipo y medio de pago, desglose por
+-- categoría raíz y comparación con el mes anterior.
+DROP FUNCTION IF EXISTS gad_reporte_mensual(
+    p_anio INTEGER,
+    p_mes INTEGER
+);
 CREATE OR REPLACE FUNCTION gad_reporte_mensual(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL
@@ -40,8 +32,6 @@ BEGIN
     v_anio := COALESCE(p_anio, EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER);
     v_mes  := COALESCE(p_mes,  EXTRACT(MONTH FROM CURRENT_DATE)::INTEGER);
 
-    -- Mes anterior, construido con una fecha real para que diciembre → enero
-    -- cruce bien el año.
     v_prev := (make_date(v_anio, v_mes, 1) - INTERVAL '1 month')::DATE;
     v_anio_prev := EXTRACT(YEAR FROM v_prev)::INTEGER;
     v_mes_prev := EXTRACT(MONTH FROM v_prev)::INTEGER;
@@ -64,8 +54,7 @@ BEGIN
     FROM gad_gasto g
     WHERE g.estado = 1 AND g.anio = v_anio_prev AND g.mes = v_mes_prev;
 
-    -- Desglose por categoría raíz. COALESCE(padre, propia) agrupa el gasto de
-    -- una subcategoría bajo su rama, y el de una raíz bajo sí misma.
+    -- COALESCE(padre, propia) agrupa cada subcategoría bajo su rama.
     SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.monto DESC), '[]'::JSON)
     INTO v_por_categoria
     FROM (
@@ -76,7 +65,6 @@ BEGIN
             CASE raiz.tipo_gasto WHEN 1 THEN 'Fijo' ELSE 'Variable' END AS tipo_gasto_nombre,
             SUM(g.monto) AS monto,
             COUNT(*) AS cantidad,
-            -- Detalle por subcategoría dentro de la rama, para poder expandir.
             COALESCE(json_agg(
                 json_build_object('nombre', c.nombre, 'monto', g.monto, 'concepto', g.concepto)
                 ORDER BY g.monto DESC
@@ -101,8 +89,7 @@ BEGIN
             'tarjeta', v_tarjeta,
             'cantidad', v_cantidad,
             'total_mes_anterior', v_total_prev,
-            -- Variación contra el mes anterior. NULL cuando no hay con qué
-            -- comparar: un 0% sería engañoso si el mes previo no tuvo gastos.
+            -- NULL si el mes anterior no tuvo gastos: un 0% sería engañoso.
             'variacion_porcentual',
                 CASE WHEN v_total_prev > 0
                      THEN ROUND(((v_total - v_total_prev) / v_total_prev) * 100, 2)

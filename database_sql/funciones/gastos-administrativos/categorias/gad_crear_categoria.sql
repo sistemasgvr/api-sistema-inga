@@ -1,14 +1,12 @@
--- Creo una categoría (o subcategoría) de gasto administrativo.
---
--- Dos reglas que impongo acá:
---
--- 1. Solo un nivel de anidación. Si el padre indicado ya es hijo de otro, lo
---    rechazo. Sin esto, alguien podría armar un árbol de cinco niveles que ni
---    el formulario ni el reporte saben mostrar.
---
--- 2. La subcategoría hereda el tipo del padre. No tiene sentido que "Luz" sea
---    variable si cuelga de "Servicios básicos", que es fijo: el reporte suma
---    por tipo y quedaría contradictorio.
+-- Creo una categoría o subcategoría de gasto. Solo un nivel de anidación y la subcategoría
+-- hereda el tipo del padre.
+DROP FUNCTION IF EXISTS gad_crear_categoria(
+    p_nombre VARCHAR,
+    p_tipo_gasto SMALLINT,
+    p_id_categoria_padre BIGINT,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_crear_categoria(
     p_nombre VARCHAR,
     p_tipo_gasto SMALLINT DEFAULT 1,
@@ -38,8 +36,6 @@ BEGIN
         RETURN json_build_object('error', 'El tipo de gasto debe ser fijo o variable', 'registro', NULL);
     END IF;
 
-    -- El nombre no se repite entre hermanas activas: dos "Luz" bajo el mismo
-    -- padre partirían el reporte mensual en dos filas iguales.
     IF EXISTS (
         SELECT 1 FROM gad_categoria
         WHERE estado = 1
@@ -73,7 +69,6 @@ BEGIN
             );
         END IF;
 
-        -- Hereda el tipo del padre, ignorando lo que haya llegado.
         v_tipo := v_padre.tipo_gasto;
     END IF;
 

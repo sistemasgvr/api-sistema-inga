@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS pro_actualizar_categoria(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_es_carta BOOLEAN,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_actualizar_categoria(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,

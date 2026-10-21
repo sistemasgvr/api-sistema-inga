@@ -1,6 +1,7 @@
 -- Descarta un pedido recién abierto que nunca llegó a tener productos (el usuario no continuó).
 -- A diferencia de ven_pedido_anular no hay stock, comandas ni cobros que revertir, por eso no
 -- requiere autorización de ADMIN/CAJERO: solo puede hacerlo quien abrió el pedido.
+DROP FUNCTION IF EXISTS public.ven_pedido_descartar(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_pedido_descartar(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE;

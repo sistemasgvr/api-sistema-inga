@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS pro_activar_sub_categoria(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_activar_sub_categoria(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

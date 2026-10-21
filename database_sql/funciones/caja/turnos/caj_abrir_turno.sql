@@ -1,13 +1,12 @@
 -- Abro un turno de caja.
---
--- La base ya garantiza que no haya dos turnos abiertos en la misma caja, con el
--- índice parcial uq_caj_turno_abierto. Aun así valido acá antes de insertar,
--- porque si dejo que reviente el índice el usuario recibe un error técnico de
--- Postgres en vez de un mensaje que le diga quién tiene la caja tomada.
---
--- También bloqueo que el mismo cajero tenga dos turnos abiertos en cajas
--- distintas: una persona no puede estar en dos cajas a la vez, y si pasara,
--- los cobros se repartirían entre los dos turnos sin que nadie se dé cuenta.
+
+DROP FUNCTION IF EXISTS caj_abrir_turno(
+    p_id_caja BIGINT,
+    p_id_cajero BIGINT,
+    p_monto_apertura NUMERIC,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_abrir_turno(
     p_id_caja BIGINT,
     p_id_cajero BIGINT,

@@ -1,15 +1,8 @@
--- Guardo el conteo de billetes y monedas de un turno.
---
--- Recibo el arqueo completo como un JSON de pares {denominacion, cantidad} y
--- REEMPLAZO todo lo que hubiera antes, en vez de ir insertando fila por fila.
---
--- Lo hago así porque el cajero cuenta, se equivoca, recuenta y vuelve a guardar
--- varias veces antes de cerrar. Si fuera acumulativo, cada recuento sumaría
--- sobre el anterior y el total saldría inflado. Reemplazar deja el arqueo
--- siempre igual a lo último que contó, que es lo que él espera.
---
--- El monto_subtotal lo calculo yo (denominación × cantidad) y no lo acepto del
--- front: es una multiplicación, no un dato de entrada.
+DROP FUNCTION IF EXISTS caj_guardar_arqueo(
+    p_id_turno BIGINT,
+    p_detalle JSON,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_guardar_arqueo(
     p_id_turno BIGINT,
     p_detalle JSON,

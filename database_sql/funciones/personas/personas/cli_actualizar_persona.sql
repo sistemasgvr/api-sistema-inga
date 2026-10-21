@@ -1,14 +1,24 @@
--- Actualizo una persona.
---
--- Detalle importante: primero leo la fila actual y mezclo cada parámetro con lo
--- que ya estaba guardado, y RECIÉN AHÍ valido. Si validara solo lo que llega,
--- podría dejar la ficha en un estado imposible. Ejemplo real: la persona es
--- jurídica y me mandan solo razon_social = '' para "limpiarla"; validando solo
--- ese campo no vería el problema, pero el resultado final sería una empresa sin
--- razón social. Validando la mezcla, lo detecto.
---
--- Uso NULL como "no me mandaron este campo", así el front puede enviar
--- únicamente lo que el usuario tocó.
+-- Actualizo una persona (NULL = sin cambio). Se valida la mezcla de lo que llega con lo guardado,
+-- no solo los campos enviados, para no dejar la ficha en un estado imposible.
+DROP FUNCTION IF EXISTS cli_actualizar_persona(
+    p_id BIGINT,
+    p_tipo_persona SMALLINT,
+    p_tipo_documento SMALLINT,
+    p_num_documento VARCHAR,
+    p_razon_social VARCHAR,
+    p_nombres VARCHAR,
+    p_apellido_paterno VARCHAR,
+    p_apellido_materno VARCHAR,
+    p_direccion VARCHAR,
+    p_id_distrito BIGINT,
+    p_telefono VARCHAR,
+    p_email VARCHAR,
+    p_es_cliente BOOLEAN,
+    p_es_proveedor BOOLEAN,
+    p_id_convenio BIGINT,
+    p_quitar_convenio BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_actualizar_persona(
     p_id BIGINT,
     p_tipo_persona SMALLINT DEFAULT NULL,
@@ -25,9 +35,7 @@ CREATE OR REPLACE FUNCTION cli_actualizar_persona(
     p_es_cliente BOOLEAN DEFAULT NULL,
     p_es_proveedor BOOLEAN DEFAULT NULL,
     p_id_convenio BIGINT DEFAULT NULL,
-    -- Bandera aparte para poder quitar el convenio. Sin esto no habría forma de
-    -- distinguir "no me mandaron convenio" de "quiero dejarlo sin convenio",
-    -- porque los dos casos llegan como NULL.
+    -- Bandera para quitar el convenio: NULL en p_id_convenio solo significa "sin cambio".
     p_quitar_convenio BOOLEAN DEFAULT FALSE,
     p_id_usuario_auditoria BIGINT DEFAULT NULL
 )
@@ -37,7 +45,6 @@ AS $function$
 DECLARE
     v_actual RECORD;
     v_error TEXT;
-    -- Valores finales: lo que quedará guardado si todo pasa la validación.
     v_tipo_persona SMALLINT;
     v_tipo_documento SMALLINT;
     v_num_documento VARCHAR;
@@ -58,7 +65,6 @@ BEGIN
         RETURN json_build_object('error', 'La persona no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    -- Mezclo lo que llega con lo que ya había.
     v_tipo_persona     := COALESCE(p_tipo_persona, v_actual.tipo_persona);
     v_tipo_documento   := COALESCE(p_tipo_documento, v_actual.tipo_documento);
     v_num_documento    := COALESCE(NULLIF(TRIM(p_num_documento), ''), v_actual.num_documento);
@@ -86,7 +92,6 @@ BEGIN
         RETURN json_build_object('error', v_error, 'registro', NULL);
     END IF;
 
-    -- Si cambió el documento, reviso que no choque con otra ficha.
     IF EXISTS (
         SELECT 1 FROM cli_persona
         WHERE tipo_documento = v_tipo_documento
@@ -107,8 +112,7 @@ BEGIN
         razon_social = v_razon_social,
         nombres = v_nombres,
         apellido_paterno = v_apellido_paterno,
-        -- El apellido materno y la dirección sí admiten quedar vacíos, así que
-        -- los trato distinto: uso el valor que llega tal cual cuando viene.
+        -- Apellido materno y dirección sí pueden quedar vacíos: se usa el valor tal cual llega.
         apellido_materno = COALESCE(NULLIF(TRIM(p_apellido_materno), ''), apellido_materno),
         direccion = COALESCE(NULLIF(TRIM(p_direccion), ''), direccion),
         id_distrito = v_id_distrito,

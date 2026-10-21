@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS public.alm_listar_kardex(
+    p_producto BIGINT,
+    p_almacen BIGINT,
+    p_limite INTEGER,
+    p_offset INTEGER
+);
 CREATE OR REPLACE FUNCTION public.alm_listar_kardex(
   p_producto BIGINT DEFAULT NULL,
   p_almacen BIGINT DEFAULT NULL,

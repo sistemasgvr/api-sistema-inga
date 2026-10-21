@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_listar_cocina(p_sucursal BIGINT, p_estacion BIGINT, p_historial BOOLEAN, p_limite INTEGER, p_offset INTEGER);
 CREATE OR REPLACE FUNCTION public.ven_listar_cocina(p_sucursal BIGINT,p_estacion BIGINT,p_historial BOOLEAN,p_limite INTEGER,p_offset INTEGER)
 RETURNS JSON LANGUAGE sql AS $$
  WITH lineas AS (

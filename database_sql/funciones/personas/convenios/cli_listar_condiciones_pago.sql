@@ -1,9 +1,5 @@
--- Listo las condiciones de pago activas (Contado, Crédito quincenal, Crédito 30 días).
---
--- Es una lista corta y fija, así que no la pagino: el formulario de convenio la
--- carga entera para llenar su selector. La saco a un endpoint propio en vez de
--- quemar las opciones en el front, porque son datos de la tabla gen_condicion_pago
--- y mañana pueden agregar una condición nueva sin tocar código.
+-- Listo las condiciones de pago activas (lista corta, sin paginar).
+DROP FUNCTION IF EXISTS cli_listar_condiciones_pago();
 CREATE OR REPLACE FUNCTION cli_listar_condiciones_pago()
 RETURNS JSON
 LANGUAGE plpgsql

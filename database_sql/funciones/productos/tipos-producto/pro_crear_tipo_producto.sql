@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS pro_crear_tipo_producto(
+    p_nombre VARCHAR,
+    p_permite_venta BOOLEAN,
+    p_requiere_receta BOOLEAN,
+    p_requiere_estacion BOOLEAN,
+    p_permite_stock_inicial BOOLEAN,
+    p_usuario BIGINT
+);
 CREATE OR REPLACE FUNCTION pro_crear_tipo_producto(
   p_nombre VARCHAR, p_permite_venta BOOLEAN, p_requiere_receta BOOLEAN,
   p_requiere_estacion BOOLEAN, p_permite_stock_inicial BOOLEAN, p_usuario BIGINT DEFAULT NULL

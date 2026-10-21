@@ -1,3 +1,11 @@
+DROP FUNCTION IF EXISTS auth_crear_usuario(
+    p_username VARCHAR,
+    p_id_trabajador BIGINT,
+    p_password_hash VARCHAR,
+    p_pin_hash VARCHAR,
+    p_roles_ids JSON,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_crear_usuario(
     p_username VARCHAR,
     p_id_trabajador BIGINT,

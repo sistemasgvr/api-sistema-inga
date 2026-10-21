@@ -1,5 +1,7 @@
+
 -- Traigo una caja por ID, con el turno abierto si lo tiene.
 -- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
+DROP FUNCTION IF EXISTS caj_obtener_caja(p_id BIGINT);
 CREATE OR REPLACE FUNCTION caj_obtener_caja(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

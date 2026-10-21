@@ -1,7 +1,5 @@
 -- Listo los movimientos de un turno.
---
--- Sin paginar: un turno tiene unos pocos movimientos (gastos y retiros del día),
--- no cientos. Paginarlos sería complicar la pantalla sin ganar nada.
+DROP FUNCTION IF EXISTS caj_listar_movimientos(p_id_turno BIGINT);
 CREATE OR REPLACE FUNCTION caj_listar_movimientos(p_id_turno BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

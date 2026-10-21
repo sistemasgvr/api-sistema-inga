@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS pro_obtener_producto(p_id BIGINT);
 CREATE OR REPLACE FUNCTION pro_obtener_producto(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

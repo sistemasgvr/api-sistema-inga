@@ -1,6 +1,7 @@
 -- Datos de la precuenta con los consumos vigentes del pedido: excluye las líneas
 -- canceladas y descuenta las cancelaciones parciales. Se arma en cada envío o
 -- reimpresión para no imprimir una foto vieja del pedido.
+DROP FUNCTION IF EXISTS ven_contenido_precuenta(p_id BIGINT);
 CREATE OR REPLACE FUNCTION ven_contenido_precuenta(p_id BIGINT)
 RETURNS JSONB LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; detalle JSONB;

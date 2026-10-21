@@ -1,12 +1,15 @@
--- Listo el historial de movimientos (cargos y abonos) con filtros.
---
--- Es el "estado de cuenta" de un proveedor: qué se compró a crédito, qué se
--- le pagó y cómo quedó el saldo después de cada movimiento.
---
--- Ordeno por fecha DESCENDENTE porque lo que se consulta es lo reciente. El
--- saldo_resultante de cada fila ya viene guardado desde el momento en que se
--- registró, así que la columna "saldo" del historial es la foto real de
--- entonces, no un recálculo de hoy.
+-- Listo el historial de movimientos (cargos y abonos) de CxP con filtros.
+DROP FUNCTION IF EXISTS cxp_listar_movimientos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_persona BIGINT,
+    p_tipo_movimiento INT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_semana INTEGER,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE
+);
 CREATE OR REPLACE FUNCTION cxp_listar_movimientos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,

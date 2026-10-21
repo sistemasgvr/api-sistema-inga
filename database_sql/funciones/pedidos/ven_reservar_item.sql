@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_reservar_item(p_item BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_reservar_item(p_item BIGINT,p_usuario BIGINT) RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE; s alm_producto_stock%ROWTYPE; n NUMERIC; suc BIGINT;
 BEGIN
@@ -24,5 +25,3 @@ BEGIN
       id_usuario_modificacion=p_usuario,fecha_modificacion=CURRENT_TIMESTAMP WHERE id=d.id;
   END IF;
 END $$;
-
--- cantidad_entregada es el TOTAL acumulado deseado; repetir la petición es idempotente.

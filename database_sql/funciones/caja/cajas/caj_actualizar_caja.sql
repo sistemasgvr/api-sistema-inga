@@ -1,8 +1,9 @@
--- Actualizo una caja. Lo que llega en NULL se queda como está.
---
--- No dejo cambiar la sucursal si la caja tiene un turno abierto: los pagos del
--- turno ya se están registrando contra esa sucursal y moverla a mitad de camino
--- dejaría el arqueo apuntando a otro local.
+DROP FUNCTION IF EXISTS caj_actualizar_caja(
+    p_id BIGINT,
+    p_id_sucursal BIGINT,
+    p_nombre VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_actualizar_caja(
     p_id BIGINT,
     p_id_sucursal BIGINT DEFAULT NULL,

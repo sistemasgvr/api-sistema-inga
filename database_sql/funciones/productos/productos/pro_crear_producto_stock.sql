@@ -1,4 +1,5 @@
 -- Producto y saldo inicial se confirman en la misma transacción.
+DROP FUNCTION IF EXISTS public.pro_crear_producto_stock(p JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.pro_crear_producto_stock(p JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE r JSON; pr pro_producto%ROWTYPE; n NUMERIC:=COALESCE((p->>'stock_inicial')::NUMERIC,0);
  minimo NUMERIC:=COALESCE((p->>'stock_minimo')::NUMERIC,0); costo NUMERIC:=COALESCE((p->>'costo_inicial')::NUMERIC,0);

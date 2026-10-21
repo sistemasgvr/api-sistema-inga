@@ -1,7 +1,6 @@
--- Cancelación acumulada de unidades no entregadas. Primero cancela las unidades sin plato preparado
--- (libera lo apartado o, si la preparación ya inició, puede registrarlo como merma: los ingredientes
--- según destino_insumos y los sub-platos preparados apartados según destino_preparado);
--- después las preparadas, que se conservan disponibles o se dan de baja por merma.
+-- Cancelación acumulada de unidades no entregadas: primero las que no tienen plato preparado
+-- (libera lo apartado o lo registra como merma), después las preparadas (se conservan o se dan de baja).
+DROP FUNCTION IF EXISTS ven_cancelar_stock_item(p_item BIGINT, p_objetivo NUMERIC, p_destino TEXT, p_destino_insumos TEXT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_cancelar_stock_item(p_item BIGINT,p_objetivo NUMERIC,p_destino TEXT,p_destino_insumos TEXT,p_usuario BIGINT)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE; n NUMERIC; sin_preparar NUMERIC; preparados NUMERIC; insumos JSONB; merma JSONB;

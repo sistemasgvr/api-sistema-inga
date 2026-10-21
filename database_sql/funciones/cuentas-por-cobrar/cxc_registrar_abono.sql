@@ -1,17 +1,14 @@
--- Registro un abono del cliente: el pago de la empresa o el descuento por planilla.
---
--- El medio de pago es obligatorio y decide cómo entra el dinero a la caja:
---
---   - Efectivo (1): exige turno de caja abierto. Ese dinero entra al cajón y
---     caj_calcular_totales_turno lo suma al efectivo esperado; sin el vínculo,
---     el arqueo del día saldría con sobrante.
---   - Yape (2) / tarjeta-transferencia (3): el turno es opcional. Si viene, el
---     abono aparece en el resumen del turno por medio de pago, pero no toca el
---     efectivo esperado: ese dinero nunca pasó por el cajón.
---
--- Misma regla que el abono de CxP (M15), planilla (M17) y gastos (M16).
-DROP FUNCTION IF EXISTS cxc_registrar_abono(BIGINT, NUMERIC, DATE, VARCHAR, BIGINT);
-DROP FUNCTION IF EXISTS cxc_registrar_abono(BIGINT, NUMERIC, DATE, VARCHAR, BIGINT, BIGINT);
+-- Registro un abono del cliente: el pago de la empresa
+DROP FUNCTION IF EXISTS cxc_registrar_abono(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_pedido BIGINT,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_registrar_abono(
     p_id_persona BIGINT,
     p_monto NUMERIC,

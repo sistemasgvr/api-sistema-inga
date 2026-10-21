@@ -1,8 +1,5 @@
 -- Traigo el gasto de un día con todas sus líneas.
---
--- Es la pantalla principal del módulo: el cajero abre el día y va agregando
--- compras. Devuelvo cabecera + detalle en una sola llamada porque siempre se
--- muestran juntos.
+DROP FUNCTION IF EXISTS gdo_obtener_dia(p_id BIGINT);
 CREATE OR REPLACE FUNCTION gdo_obtener_dia(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -51,8 +48,6 @@ BEGIN
         SELECT
             det.id,
             det.id_insumo,
-            -- Una línea es insumo libre o producto de inventario: muestro el
-            -- nombre del que sea, y al producto lo agrupo como "Inventario".
             COALESCE(i.nombre, pr.nombre) AS nombre_insumo,
             i.id_categoria,
             COALESCE(cat.nombre, 'Inventario') AS nombre_categoria,

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_bloquear_pedido(p_id BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_bloquear_pedido(p_id BIGINT)
 RETURNS ven_pedido LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; v_mesa BIGINT;

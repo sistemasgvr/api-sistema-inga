@@ -1,11 +1,12 @@
--- Listo el historial de días con gasto, con filtros por período.
---
--- Muestro los totales que ya están guardados en la cabecera, sin re-sumar el
--- detalle: para eso los mantengo denormalizados.
---
--- El resumen acumula el período completo, que es lo que el administrador mira
--- al cerrar el mes: cuánto se fue en efectivo, cuánto en Yape y cuánto quedó
--- a crédito.
+-- Listo el historial de días con gasto, usando los totales guardados en la cabecera.
+DROP FUNCTION IF EXISTS gdo_listar_dias(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE
+);
 CREATE OR REPLACE FUNCTION gdo_listar_dias(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,

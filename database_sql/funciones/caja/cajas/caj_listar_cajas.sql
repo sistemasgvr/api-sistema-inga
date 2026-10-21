@@ -1,9 +1,11 @@
--- Listo las cajas físicas del local.
---
--- Devuelvo "tiene_turno_abierto" y los datos del turno en curso porque la
--- pantalla los necesita para decidir qué botón mostrar: si la caja está libre
--- ofrece "Abrir turno", y si está ocupada muestra quién la tiene y desde cuándo.
--- Sin esto el front tendría que consultar los turnos de cada caja por separado.
+DROP FUNCTION IF EXISTS caj_listar_cajas(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_sucursal BIGINT,
+    p_estado INT
+);
+
 CREATE OR REPLACE FUNCTION caj_listar_cajas(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -23,13 +25,6 @@ DECLARE
     v_cant_abiertas BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
-
-    -- Resuelvo "¿tiene turno abierto?" con un LEFT JOIN LATERAL en lugar de un
-    -- EXISTS dentro del FILTER. El FILTER de un agregado admite condiciones
-    -- simples y meterle una subconsulta correlacionada es terreno resbaladizo;
-    -- con el LATERAL la condición queda como una simple comparación de columna
-    -- y es válida sin discusión. Además es el mismo recurso que uso más abajo
-    -- para traer los datos del turno, así que la función queda coherente.
     SELECT
         COUNT(*),
         COUNT(*) FILTER (WHERE c.estado = 1),

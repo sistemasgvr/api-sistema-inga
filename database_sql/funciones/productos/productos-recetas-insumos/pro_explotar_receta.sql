@@ -1,9 +1,15 @@
 -- Componentes de p_cantidad unidades de una receta, en la unidad base de cada insumo.
--- Un componente con receta vigente es un sub-plato: con p_explotar se reemplaza por sus
--- ingredientes (recursivo); sin p_explotar se devuelve marcado es_subplato para que el
--- llamador decida si usa platos ya preparados. El guard de pro_guardar_receta_insumo evita ciclos.
--- p_seleccionados NULL = receta estándar: sin opcionales y sin grupos de sustitución.
--- id_producto_origen NULL = componente de la receta inicial; si no, el sub-plato del que sale.
+-- Con p_explotar los sub-platos se reemplazan por sus ingredientes; sin él se devuelven marcados es_subplato.
+-- p_seleccionados NULL = receta estándar: sin opcionales ni grupos de sustitución.
+DROP FUNCTION IF EXISTS pro_explotar_receta(
+    p_receta BIGINT,
+    p_cantidad NUMERIC,
+    p_seleccionados BIGINT[],
+    p_sucursal BIGINT,
+    p_explotar BOOLEAN,
+    p_ruta TEXT,
+    p_nivel INTEGER
+);
 CREATE OR REPLACE FUNCTION pro_explotar_receta(p_receta BIGINT,p_cantidad NUMERIC,p_seleccionados BIGINT[] DEFAULT NULL,
   p_sucursal BIGINT DEFAULT NULL,p_explotar BOOLEAN DEFAULT TRUE,p_ruta TEXT DEFAULT NULL,p_nivel INTEGER DEFAULT 0)
 RETURNS TABLE(id_producto BIGINT,id_almacen BIGINT,id_unidad_medida BIGINT,cantidad NUMERIC,

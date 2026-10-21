@@ -1,5 +1,11 @@
 -- El código no se edita: es el identificador interno del rol (p. ej. 'ADMIN')
 -- y cambiarlo rompería los permisos que dependen de él.
+DROP FUNCTION IF EXISTS auth_actualizar_rol(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_actualizar_rol(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,

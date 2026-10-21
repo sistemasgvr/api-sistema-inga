@@ -1,3 +1,10 @@
+DROP FUNCTION IF EXISTS auth_crear_sesion(
+    p_id_usuario BIGINT,
+    p_refresh_token_hash VARCHAR,
+    p_ip VARCHAR,
+    p_user_agent VARCHAR,
+    p_fecha_expiracion TIMESTAMPTZ
+);
 CREATE OR REPLACE FUNCTION auth_crear_sesion(
     p_id_usuario BIGINT,
     p_refresh_token_hash VARCHAR,

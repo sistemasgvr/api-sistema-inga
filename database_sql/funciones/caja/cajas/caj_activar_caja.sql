@@ -1,4 +1,8 @@
 -- Reactivo una caja dada de baja.
+DROP FUNCTION IF EXISTS caj_activar_caja(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_activar_caja(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

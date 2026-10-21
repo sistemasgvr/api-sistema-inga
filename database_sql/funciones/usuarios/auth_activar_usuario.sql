@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS auth_activar_usuario(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_activar_usuario(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

@@ -1,20 +1,10 @@
--- Anulo un movimiento de CxC (borrado lógico: estado = 0).
---
--- No borro físicamente nada. El movimiento sigue en la tabla, solo deja de
--- contar para el saldo, porque cxc_calcular_saldo_persona filtra estado = 1.
---
--- Dos reglas que pongo a propósito:
---   1. No se anula un movimiento que vino de un pedido (id_pedido NOT NULL).
---      Ese consumo nació de una venta; si la venta se anula, M12 tendrá que
---      revertirla por su lado. Anularlo suelto dejaría la caja y la cuenta
---      contando cosas distintas.
---   2. No se anula un movimiento de una quincena ya cerrada, entendiendo por
---      cerrada cualquiera anterior a la quincena en curso. Si el corte ya se le
---      envió a la empresa, cambiarle el pasado le rompe la conciliación: para
---      eso está el ajuste.
---   3. No se anula un abono que entró en un turno de caja ya cerrado: su
---      dinero ya se contó en el arqueo, y sacarlo ahora dejaría ese cierre
---      descuadrado. Tampoco uno en efectivo si el cajón ya no tiene ese monto.
+-- Anulo un movimiento de CxC (borrado lógico: estado = 0).  No se anula un movimiento que vino de un pedido 
+-- No se anula un movimiento de una quincena ya cerrada | No se anula un abono que entró en un turno de caja ya cerrado: su dinero ya se contó en el arqueo
+DROP FUNCTION IF EXISTS cxc_anular_movimiento(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_anular_movimiento(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,

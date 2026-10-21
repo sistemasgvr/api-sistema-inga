@@ -1,5 +1,6 @@
 -- Platos preparables de la sucursal. stock_libre = preparados sin asignar a un pedido
 -- (preparación anticipada o cancelados con "guardar en stock"): cualquier pedido o sub-plato puede tomarlos.
+DROP FUNCTION IF EXISTS public.prod_listar_productos(p_sucursal BIGINT);
 CREATE OR REPLACE FUNCTION public.prod_listar_productos(p_sucursal BIGINT)
 RETURNS JSON LANGUAGE sql AS $$
  SELECT COALESCE(json_agg(x ORDER BY nombre),'[]'::JSON) FROM (

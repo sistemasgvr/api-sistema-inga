@@ -1,15 +1,8 @@
--- Listo las categorías de gasto administrativo en forma de árbol.
---
--- Devuelvo las raíces con sus subcategorías anidadas dentro (`subcategorias`),
--- no una lista plana. El formulario de gasto necesita mostrar "Servicios →
--- Luz / Agua / Internet" agrupado, y armar esa jerarquía en el front a partir
--- de una lista plana obliga a recorrerla dos veces en cada render.
---
--- Solo admito un nivel de anidación: es lo que el alcance pide y evita tener
--- que resolver recursión aquí.
---
--- "gastos_registrados" cuenta cuántos gastos vigentes cuelgan de cada
--- categoría. La pantalla lo usa para avisar antes de dar de baja.
+-- Listo las categorías de gasto en árbol: raíces con sus subcategorías anidadas (un solo nivel).
+DROP FUNCTION IF EXISTS gad_listar_categorias(
+    p_tipo_gasto INT,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION gad_listar_categorias(
     p_tipo_gasto INT DEFAULT NULL,
     p_estado INT DEFAULT NULL
@@ -49,8 +42,7 @@ BEGIN
                 FROM gad_gasto g
                 WHERE g.id_categoria = c.id AND g.estado = 1
             ) AS gastos_registrados,
-            -- Subcategorías anidadas. Uso el mismo filtro de estado que la raíz
-            -- para que al ver "solo activas" no aparezcan hijas dadas de baja.
+            -- Las hijas usan el mismo filtro de estado que la raíz.
             COALESCE((
                 SELECT json_agg(row_to_json(s) ORDER BY s.orden, s.nombre)
                 FROM (

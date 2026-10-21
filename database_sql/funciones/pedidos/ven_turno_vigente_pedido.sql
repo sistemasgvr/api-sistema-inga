@@ -1,6 +1,7 @@
 -- Un pedido puede seguir atendiéndose después de cerrar su turno de apertura:
 -- basta un turno abierto de la misma sucursal. id_turno del pedido se conserva
 -- como referencia histórica; se prefiere ese turno y luego el del usuario.
+DROP FUNCTION IF EXISTS public.ven_turno_vigente_pedido(p_sucursal BIGINT, p_turno_preferido BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_turno_vigente_pedido(p_sucursal BIGINT, p_turno_preferido BIGINT, p_usuario BIGINT)
 RETURNS BIGINT LANGUAGE plpgsql AS $$
 DECLARE v_turno BIGINT;

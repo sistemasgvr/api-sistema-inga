@@ -1,3 +1,9 @@
+DROP FUNCTION IF EXISTS public.auth_listar_roles(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION public.auth_listar_roles(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

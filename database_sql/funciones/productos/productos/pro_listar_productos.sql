@@ -1,3 +1,12 @@
+DROP FUNCTION IF EXISTS pro_listar_productos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_tipo_producto SMALLINT,
+    p_id_subcategoria BIGINT,
+    p_id_categoria BIGINT,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION pro_listar_productos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

@@ -1,14 +1,12 @@
--- Creo un insumo en la lista maestra.
---
--- Esta función la llaman DOS sitios: el mantenimiento de la lista y el propio
--- formulario de registro rápido. El alcance lo pide explícito: "si el producto
--- no está en la lista, el cajero puede crearlo en el momento". Por eso solo
--- exijo nombre y categoría — cualquier cosa más convertiría la creación al
--- vuelo en un trámite y el cajero terminaría poniéndolo en "Otros".
---
--- NO pido unidad de medida a propósito: el cliente fue claro en que el mismo
--- insumo se compra en kg un día y en paquete otro. La unidad se elige al
--- registrar cada compra.
+-- Creo un insumo en la lista maestra. Solo exige nombre y categoría (se crea al vuelo desde
+-- el registro rápido); la unidad se elige en cada compra.
+DROP FUNCTION IF EXISTS gdo_crear_insumo(
+    p_id_categoria BIGINT,
+    p_nombre VARCHAR,
+    p_precio_referencial NUMERIC,
+    p_id_proveedor_habitual BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_crear_insumo(
     p_id_categoria BIGINT,
     p_nombre VARCHAR,
@@ -42,9 +40,7 @@ BEGIN
         RETURN json_build_object('error', 'El precio referencial no puede ser negativo', 'registro', NULL);
     END IF;
 
-    -- El UNIQUE es por (categoría, nombre). Busco el duplicado yo para poder
-    -- avisar si existe pero está de baja: sin este mensaje el cajero pelearía
-    -- con un error sobre un insumo que no ve en la lista.
+    -- Busco el duplicado para avisar si existe pero está de baja.
     SELECT id, estado INTO v_existente
     FROM gdo_insumo
     WHERE id_categoria = p_id_categoria AND LOWER(nombre) = LOWER(v_nombre);

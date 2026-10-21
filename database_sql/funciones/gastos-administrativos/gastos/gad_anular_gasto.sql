@@ -1,10 +1,9 @@
--- Anulo un gasto administrativo (baja lógica, estado = 0).
---
--- Mismo criterio que en planilla: no borro ni dejo rastro perdido. El gasto
--- sigue en la tabla con estado = 0 y el motivo anexado a la observación.
---
--- Bloqueo la anulación si fue en efectivo y su turno ya se cerró: quitarle un
--- egreso a un turno arqueado invalidaría la diferencia que quedó firmada.
+-- Anulo un gasto administrativo (baja lógica). No si fue en efectivo y su turno ya se cerró.
+DROP FUNCTION IF EXISTS gad_anular_gasto(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_anular_gasto(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,

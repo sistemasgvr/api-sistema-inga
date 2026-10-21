@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_pedido_preparacion(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_pedido_preparacion(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; destino INTEGER:=(p_datos->>'estado_preparacion')::INTEGER;

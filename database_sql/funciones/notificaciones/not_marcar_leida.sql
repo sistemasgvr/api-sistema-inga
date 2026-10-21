@@ -1,3 +1,7 @@
+DROP FUNCTION IF EXISTS public.not_marcar_leida(
+    p_id_notificacion UUID,
+    p_id_usuario BIGINT
+);
 CREATE OR REPLACE FUNCTION public.not_marcar_leida(
   p_id_notificacion UUID,
   p_id_usuario BIGINT

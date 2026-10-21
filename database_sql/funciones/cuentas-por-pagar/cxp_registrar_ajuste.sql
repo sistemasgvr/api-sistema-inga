@@ -1,15 +1,11 @@
--- Registro un ajuste manual del saldo de un proveedor (tipo 3).
---
--- Existe por los casos que ni el cargo ni el abono cubren: un pago de más que
--- quedó a favor, una nota de crédito del proveedor, o un saldo inicial al
--- empezar a usar el sistema con deudas ya existentes.
---
--- A diferencia de cargo y abono, acá el monto **lleva signo**:
---   positivo → aumenta lo que debemos
---   negativo → reduce lo que debemos
---
--- Exijo motivo obligatorio. Un ajuste sin explicación es exactamente lo que
--- hace que nadie confíe en el saldo tres meses después.
+-- Registro un ajuste manual del saldo de un proveedor. El monto lleva signo y el motivo es obligatorio.
+DROP FUNCTION IF EXISTS cxp_registrar_ajuste(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_motivo VARCHAR,
+    p_fecha_movimiento DATE,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_registrar_ajuste(
     p_id_persona BIGINT,
     p_monto NUMERIC,
@@ -66,15 +62,8 @@ BEGIN
 
     v_saldo := cxp_calcular_saldo_proveedor(p_id_persona) + p_monto;
 
-    -- Detalle importante: la restricción ck_cxp_monto exige monto > 0, así que
-    -- NO puedo guardar un ajuste negativo tal cual. Y como
-    -- cxp_calcular_saldo_proveedor suma el tipo 3 en positivo, guardar el valor
-    -- absoluto haría que un ajuste a la baja se contara al revés.
-    --
-    -- Lo resuelvo guardando el ajuste como el tipo que le corresponde por su
-    -- efecto: si aumenta la deuda va como cargo (1), si la reduce va como
-    -- abono (2). El prefijo "AJUSTE" en la observación lo distingue de un
-    -- movimiento normal, y el saldo siempre cuadra sin casos especiales.
+    -- ck_cxp_monto exige monto > 0: el ajuste se guarda como cargo (1) si sube la deuda
+    -- o como abono (2) si la baja, con el prefijo "AJUSTE" en la observación.
     INSERT INTO cxp_movimiento (
         id_persona, tipo_movimiento, monto, saldo_resultante,
         fecha_movimiento, anio, mes, semana, observacion,

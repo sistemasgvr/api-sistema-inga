@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS alm_agrupar_detalles(p_detalles JSONB);
 CREATE OR REPLACE FUNCTION alm_agrupar_detalles(p_detalles JSONB) RETURNS JSONB LANGUAGE sql IMMUTABLE AS $$
   SELECT COALESCE(jsonb_agg(jsonb_build_object('id_producto',id_producto,'id_almacen',id_almacen,
     'id_unidad_medida',id_unidad_medida,'cantidad',cantidad,'signo',signo) ORDER BY id_almacen,id_producto),'[]'::JSONB)

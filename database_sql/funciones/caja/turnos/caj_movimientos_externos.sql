@@ -1,19 +1,6 @@
 -- Dinero que entró o salió en un turno desde OTROS módulos.
---
--- La caja no es el único lugar donde se cobra o se paga: cuentas por cobrar
--- recibe abonos, y cuentas por pagar, gastos administrativos, planilla y las
--- compras del día pagan contra el turno. Cada uno guarda su id_turno y su
--- medio de pago, pero el turno no los veía: un pago a proveedor en efectivo no
--- bajaba el efectivo esperado y el arqueo cerraba con sobrante.
---
--- Esta función los junta en una sola forma. La usan caj_calcular_totales_turno
--- (para los totales y el efectivo esperado) y caj_resumen_turno (para la lista
--- de movimientos), así los dos leen exactamente lo mismo.
---
--- tipo_movimiento: 1 ingreso, 2 egreso (mismo criterio que caj_movimiento).
--- medio_pago:      1 efectivo, 2 yape, 3 tarjeta/transferencia. Solo el 1 toca
---                  el cajón; los demás se muestran pero no cuentan para el arqueo.
--- Las compras a crédito (forma_pago 3) no están: no sale dinero, nace una deuda.
+-- Por ejemplo, un pago de planilla o un abono de cliente que no es una venta.
+DROP FUNCTION IF EXISTS caj_movimientos_externos(p_id_turno BIGINT);
 CREATE OR REPLACE FUNCTION caj_movimientos_externos(p_id_turno BIGINT)
 RETURNS TABLE (
     origen VARCHAR,

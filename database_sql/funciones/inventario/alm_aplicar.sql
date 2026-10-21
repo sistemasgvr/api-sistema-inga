@@ -1,3 +1,5 @@
+-- Uso interno de producción y pedidos, con códigos del catálogo, nunca IDs fijos.
+DROP FUNCTION IF EXISTS alm_aplicar(p_codigo TEXT, p_tipo TEXT, p_motivo TEXT, p_documento TEXT, p_documento_id BIGINT, p_detalles JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION alm_aplicar(p_codigo TEXT,p_tipo TEXT,p_motivo TEXT,p_documento TEXT,p_documento_id BIGINT,p_detalles JSONB,p_usuario BIGINT)
 RETURNS BIGINT LANGUAGE plpgsql AS $$
 DECLARE t BIGINT; m BIGINT; r JSON;

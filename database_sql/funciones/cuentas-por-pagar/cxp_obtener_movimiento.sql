@@ -1,6 +1,6 @@
 -- Traigo un movimiento de CxP por ID.
--- Registrar cargo, registrar abono y anular terminan llamando acá para
--- devolver siempre el mismo shape.
+-- Registrar cargo, abono y anular terminan llamando acá para devolver siempre el mismo shape.
+DROP FUNCTION IF EXISTS cxp_obtener_movimiento(p_id BIGINT);
 CREATE OR REPLACE FUNCTION cxp_obtener_movimiento(p_id BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql

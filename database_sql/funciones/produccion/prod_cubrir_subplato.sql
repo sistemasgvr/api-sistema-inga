@@ -1,7 +1,18 @@
--- Cubre p_cantidad de un sub-plato: primero con platos preparados LIBRES (stock_actual - stock_reservado)
--- y lo que falte con sus ingredientes, de forma recursiva. No modifica stock: agrega a p_necesidades
--- (formato de detalle de alm_aplicar + origen, ruta y preparado) y descuenta de p_libre lo tomado,
--- para que otra línea de la misma operación no tome dos veces el mismo plato. p_extra se copia a cada necesidad.
+-- Cubre p_cantidad de un sub-plato: primero con platos preparados LIBRES y lo que falte con sus
+-- ingredientes (recursivo). No modifica stock: agrega a p_necesidades y descuenta de p_libre lo tomado.
+DROP FUNCTION IF EXISTS prod_cubrir_subplato(
+    INOUT p_necesidades JSONB,
+    INOUT p_libre JSONB,
+    p_producto BIGINT,
+    p_almacen BIGINT,
+    p_unidad BIGINT,
+    p_cantidad NUMERIC,
+    p_origen BIGINT,
+    p_ruta TEXT,
+    p_sucursal BIGINT,
+    p_nivel INTEGER,
+    p_extra JSONB
+);
 CREATE OR REPLACE FUNCTION prod_cubrir_subplato(INOUT p_necesidades JSONB,INOUT p_libre JSONB,p_producto BIGINT,p_almacen BIGINT,
   p_unidad BIGINT,p_cantidad NUMERIC,p_origen BIGINT,p_ruta TEXT,p_sucursal BIGINT,p_nivel INTEGER DEFAULT 0,p_extra JSONB DEFAULT '{}')
 LANGUAGE plpgsql AS $$
@@ -40,6 +51,7 @@ END $$;
 
 -- Necesidades para preparar p_cantidad de una receta estándar sin pedido (anticipada o consulta):
 -- insumos directos y sub-platos cubiertos con platos libres o ingredientes.
+DROP FUNCTION IF EXISTS prod_explosion(p_receta BIGINT, p_cantidad NUMERIC, p_sucursal BIGINT);
 CREATE OR REPLACE FUNCTION prod_explosion(p_receta BIGINT,p_cantidad NUMERIC,p_sucursal BIGINT) RETURNS JSONB LANGUAGE plpgsql AS $$
 DECLARE necesidades JSONB:='[]'; libre JSONB:='{}'; c RECORD; v NUMERIC;
 BEGIN

@@ -1,7 +1,16 @@
 -- Actualizo un trabajador. Lo que llega en NULL se queda como está.
---
--- El "id <> p_id" al buscar documento duplicado es lo que permite guardar el
--- formulario sin cambiar el documento, sin que choque consigo mismo.
+DROP FUNCTION IF EXISTS pla_actualizar_trabajador(
+    p_id BIGINT,
+    p_nombres VARCHAR,
+    p_apellidos VARCHAR,
+    p_num_documento VARCHAR,
+    p_puesto VARCHAR,
+    p_sueldo_referencial NUMERIC,
+    p_id_sucursal BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_email VARCHAR,
+    p_telefono VARCHAR
+);
 CREATE OR REPLACE FUNCTION pla_actualizar_trabajador(
     p_id BIGINT,
     p_nombres VARCHAR DEFAULT NULL,

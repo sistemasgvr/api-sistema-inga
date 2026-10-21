@@ -1,16 +1,10 @@
--- Anulo un pago de planilla (baja lógica, estado = 0).
---
--- Hace falta porque el cajero se equivoca: escribe 800 en vez de 80, o carga el
--- pago al trabajador equivocado. No lo borro ni dejo editarlo, para que quede
--- el rastro de que existió y quién lo anuló.
---
--- Al anularlo, el índice parcial uq_pla_pago_quincena (que solo mira los
--- registros con estado = 1) libera esa quincena y permite registrar el pago
--- corregido. Por eso el índice es parcial y no una constraint normal.
---
--- Si el pago fue en efectivo contra un turno ya cerrado, bloqueo la anulación:
--- ese turno ya se arqueó contra el conteo físico y quitarle un egreso ahora
--- invalidaría la diferencia que quedó firmada.
+-- Anulo un pago de planilla (baja lógica); el índice parcial uq_pla_pago_quincena libera la quincena
+-- para registrar el pago corregido. No si fue en efectivo y su turno ya se cerró.
+DROP FUNCTION IF EXISTS pla_anular_pago(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_anular_pago(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
@@ -50,8 +44,6 @@ BEGIN
 
     UPDATE pla_pago
     SET estado = 0,
-        -- Conservo la observación previa y le agrego el motivo de anulación:
-        -- las dos son parte de la historia del registro.
         observacion = TRIM(BOTH ' ' FROM
             COALESCE(observacion || ' | ', '') ||
             'ANULADO: ' || COALESCE(NULLIF(TRIM(p_motivo), ''), 'sin motivo indicado')

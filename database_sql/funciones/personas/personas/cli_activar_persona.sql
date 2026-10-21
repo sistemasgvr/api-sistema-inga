@@ -1,10 +1,8 @@
--- Reactivo una persona dada de baja.
---
--- Antes de reactivar reviso que su convenio siga activo. Puede pasar que la
--- persona se dio de baja hace meses y en ese tiempo el convenio se cerró; si la
--- reactivara así nomás, quedaría como cliente a crédito de un convenio muerto y
--- el cobro (M12) recién fallaría en la caja, con el cliente esperando.
--- Prefiero avisar acá y que la corrijan con calma.
+-- Reactivo una persona dada de baja, siempre que su convenio siga activo.
+DROP FUNCTION IF EXISTS cli_activar_persona(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_activar_persona(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT DEFAULT NULL

@@ -1,5 +1,6 @@
 -- Costo unitario de un producto, para valorar recetas.
 
+DROP FUNCTION IF EXISTS pro_costo_unitario_insumo(p_id_producto BIGINT);
 CREATE OR REPLACE FUNCTION pro_costo_unitario_insumo(p_id_producto BIGINT)
 RETURNS NUMERIC(14, 4)
 LANGUAGE plpgsql

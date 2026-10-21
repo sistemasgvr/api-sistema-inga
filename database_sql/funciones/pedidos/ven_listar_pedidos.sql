@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.ven_listar_pedidos(p_f JSONB);
 CREATE OR REPLACE FUNCTION public.ven_listar_pedidos(p_f JSONB)
 RETURNS JSON LANGUAGE sql AS $$
   WITH filtrados AS (

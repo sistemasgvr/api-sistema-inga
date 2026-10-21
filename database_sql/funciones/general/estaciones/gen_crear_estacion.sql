@@ -1,3 +1,12 @@
+DROP FUNCTION IF EXISTS gen_crear_estacion(
+    p_id_sucursal BIGINT,
+    p_nombre VARCHAR,
+    p_tipo_estacion INTEGER,
+    p_impresora_nombre VARCHAR,
+    p_impresora_ip VARCHAR,
+    p_usa_kds BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gen_crear_estacion(
     p_id_sucursal BIGINT,
     p_nombre VARCHAR,

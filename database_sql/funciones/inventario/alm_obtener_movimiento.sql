@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.alm_obtener_movimiento(p_id BIGINT);
 CREATE OR REPLACE FUNCTION public.alm_obtener_movimiento(p_id BIGINT)
 RETURNS JSON LANGUAGE sql AS $$
   SELECT json_build_object('registro', (

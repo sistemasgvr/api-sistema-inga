@@ -1,4 +1,13 @@
 -- Actualizo un insumo de la lista maestra. Lo que llega en NULL se queda igual.
+DROP FUNCTION IF EXISTS gdo_actualizar_insumo(
+    p_id BIGINT,
+    p_id_categoria BIGINT,
+    p_nombre VARCHAR,
+    p_precio_referencial NUMERIC,
+    p_id_proveedor_habitual BIGINT,
+    p_quitar_proveedor BOOLEAN,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_actualizar_insumo(
     p_id BIGINT,
     p_id_categoria BIGINT DEFAULT NULL,
@@ -35,8 +44,7 @@ BEGIN
         RETURN json_build_object('error', 'La categoría indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
-    -- Valido el duplicado contra la categoría FINAL, no la actual: si se está
-    -- moviendo de categoría, el choque puede aparecer en la de destino.
+    -- El duplicado se valida contra la categoría final, no la actual.
     IF EXISTS (
         SELECT 1 FROM gdo_insumo
         WHERE id_categoria = v_categoria
@@ -68,8 +76,7 @@ BEGIN
         id_categoria = v_categoria,
         nombre = COALESCE(v_nombre, nombre),
         precio_referencial = COALESCE(p_precio_referencial, precio_referencial),
-        -- La bandera permite desasignar el proveedor: mandar NULL significa
-        -- "no lo estoy cambiando", no "quítalo".
+        -- La bandera permite desasignar el proveedor: NULL solo significa "sin cambio".
         id_proveedor_habitual = CASE
             WHEN p_quitar_proveedor THEN NULL
             ELSE COALESCE(p_id_proveedor_habitual, id_proveedor_habitual)

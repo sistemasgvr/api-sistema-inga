@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.gen_filtrar_opciones_lista(p_id BIGINT, p_tipo INTEGER);
 CREATE OR REPLACE FUNCTION public.gen_filtrar_opciones_lista(p_id BIGINT,p_tipo INTEGER)
 RETURNS JSON LANGUAGE sql AS $$
  SELECT json_build_object('registro',(SELECT json_build_object('id',l.id,'codigo',l.codigo,'nombre',l.nombre,'descripcion',l.descripcion,

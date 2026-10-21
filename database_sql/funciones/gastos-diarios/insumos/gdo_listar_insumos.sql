@@ -1,12 +1,10 @@
--- Listo la lista maestra de insumos frecuentes, agrupada por categoría.
---
--- Devuelvo el árbol completo (categorías con sus insumos dentro) y sin paginar:
--- son los ~200 productos de la hoja física del cliente y el formulario de
--- registro rápido necesita todos a mano para que el cajero busque y elija sin
--- esperar. Paginar acá obligaría a ir al servidor en cada tecla.
---
--- Cuando hay búsqueda, devuelvo solo las categorías que tienen coincidencias:
--- mostrar categorías vacías haría creer que no encontró nada.
+-- Listo la lista maestra de insumos agrupada por categoría, sin paginar.
+-- Con búsqueda, solo las categorías con coincidencias.
+DROP FUNCTION IF EXISTS gdo_listar_insumos(
+    p_busqueda VARCHAR,
+    p_id_categoria BIGINT,
+    p_estado INT
+);
 CREATE OR REPLACE FUNCTION gdo_listar_insumos(
     p_busqueda VARCHAR DEFAULT '',
     p_id_categoria BIGINT DEFAULT NULL,
@@ -70,7 +68,6 @@ BEGIN
         FROM gdo_categoria c
         WHERE c.estado = 1
           AND (p_id_categoria IS NULL OR c.id = p_id_categoria)
-          -- Con búsqueda activa, oculto las categorías sin coincidencias.
           AND (
               p_busqueda = ''
               OR EXISTS (

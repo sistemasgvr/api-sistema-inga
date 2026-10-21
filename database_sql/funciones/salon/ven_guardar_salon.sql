@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_guardar_salon(p_id BIGINT, p_d JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_guardar_salon(p_id BIGINT, p_d JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_salon%ROWTYPE; v_anterior ven_salon%ROWTYPE;

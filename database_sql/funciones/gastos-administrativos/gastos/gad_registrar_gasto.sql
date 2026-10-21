@@ -1,13 +1,18 @@
--- Registro un gasto administrativo.
---
--- El período (anio/mes) lo derivo de la fecha del gasto, no lo pido. A
--- diferencia de planilla, acá la regla es directa: un gasto del 5 de octubre
--- pertenece a octubre. Lo guardo denormalizado en las columnas anio/mes para
--- poder agrupar por período sin funciones de fecha en cada consulta del reporte.
---
--- Si el gasto se paga en efectivo, exijo un turno de caja abierto: ese dinero
--- sale del cajón y sin el vínculo el cuadre del día no cerraría. Es la misma
--- regla que apliqué en planilla (M17).
+-- Registro un gasto administrativo; anio/mes se derivan de la fecha.
+-- Si es en efectivo exige turno de caja abierto.
+DROP FUNCTION IF EXISTS gad_registrar_gasto(
+    p_id_categoria BIGINT,
+    p_concepto VARCHAR,
+    p_monto NUMERIC,
+    p_fecha_gasto DATE,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT,
+    p_id_persona BIGINT,
+    p_num_comprobante VARCHAR,
+    p_id_sucursal BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_registrar_gasto(
     p_id_categoria BIGINT,
     p_concepto VARCHAR,
@@ -62,7 +67,6 @@ BEGIN
         );
     END IF;
 
-    -- Un gasto con fecha futura descuadraría la caja de un día que no ha pasado.
     IF v_fecha > CURRENT_DATE THEN
         RETURN json_build_object(
             'error', 'No se puede registrar un gasto con fecha futura',

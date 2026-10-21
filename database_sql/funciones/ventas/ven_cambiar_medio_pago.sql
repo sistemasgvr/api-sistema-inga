@@ -1,14 +1,6 @@
--- Cambia el medio de pago de una venta ya cobrada (efectivo, Yape o tarjeta).
---
--- El pago no se edita: se anula y se registra uno nuevo con el nuevo medio en
--- el MISMO turno, así queda el historial de quién cambió qué. Los totales de la
--- caja se calculan desde ven_pago (estado = 1), por lo que:
---   - si el turno sigue abierto, su resumen se actualiza solo;
---   - si ya se cerró, se recalcula su cierre (caj_recalcular_cierre_turno):
---     cambia el efectivo esperado y la diferencia, no lo que declaró el cajero.
---
--- El crédito (medio 4) queda fuera: moverlo cambia la deuda del cliente en
--- cuentas por cobrar y eso se corrige desde ese módulo.
+-- Cambia el medio de pago de una venta cobrada: anula el pago y registra uno nuevo en el mismo turno.
+-- Si el turno ya se cerró recalcula su cierre. El crédito (4) se corrige desde CxC.
+DROP FUNCTION IF EXISTS ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE g ven_pago%ROWTYPE; pedido ven_pedido%ROWTYPE; turno caj_turno%ROWTYPE; nombre_anterior TEXT; nombre_nuevo TEXT;

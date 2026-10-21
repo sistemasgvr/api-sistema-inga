@@ -1,7 +1,5 @@
--- Imprime un comprobante en la estación principal de caja, por la misma cola
--- que las comandas. Sigue el patrón de ven_pedido_precuenta: registra una
--- comanda sin ítems solo para identificar el trabajo de impresión, y el ticket
--- se arma con el tipo 'COMPROBANTE' (ver formatearComanda en el front).
+-- Imprime un comprobante en la estación principal de caja, por la misma cola que las comandas.
+DROP FUNCTION IF EXISTS ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE cp ven_comprobante%ROWTYPE; pedido ven_pedido%ROWTYPE; estacion gen_estacion%ROWTYPE;

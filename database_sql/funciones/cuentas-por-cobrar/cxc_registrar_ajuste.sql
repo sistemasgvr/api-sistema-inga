@@ -1,23 +1,11 @@
 -- Registro un ajuste manual sobre la cuenta de una persona.
---
--- Es la válvula de escape: una nota de crédito, un consumo mal cargado que ya
--- no se puede anular porque la quincena se cerró, o un pago de más que hay que
--- devolver contra la cuenta.
---
--- Aquí repito la decisión que ya tomé en CxP, y por el mismo motivo: aunque el
--- esquema tiene el tipo 3 = "Ajuste", NO guardo el movimiento como tipo 3 con
--- monto negativo. cxc_calcular_saldo_persona suma el tipo 3 tal cual, así que un
--- ajuste negativo guardado como monto positivo contaría al revés y el saldo
--- mentiría.
---
--- Lo que hago: guardo el ajuste con el tipo que corresponde a su EFECTO real
---   p_monto > 0  → aumenta la deuda → tipo 1
---   p_monto < 0  → reduce la deuda  → tipo 2
--- y le pongo el prefijo "AJUSTE —" a la observación, para que en el estado de
--- cuenta se distinga a simple vista de un consumo o un abono normal.
---
--- Exijo observación obligatoria: un ajuste sin explicación es un agujero en la
--- auditoría.
+DROP FUNCTION IF EXISTS cxc_registrar_ajuste(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_observacion VARCHAR,
+    p_fecha_movimiento DATE,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_registrar_ajuste(
     p_id_persona BIGINT,
     p_monto NUMERIC,

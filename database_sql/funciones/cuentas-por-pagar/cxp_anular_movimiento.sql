@@ -1,19 +1,10 @@
--- Anulo un movimiento de CxP (baja lógica, estado = 0).
---
--- Solo permito anular el ÚLTIMO movimiento vigente del proveedor. Es la regla
--- más importante de esta función y merece explicación:
---
--- Cada movimiento guarda su saldo_resultante como una foto del momento. Si
--- anulara uno del medio, todas las fotos posteriores quedarían mintiendo: el
--- historial mostraría saldos que nunca existieron. Recalcular hacia adelante
--- sería posible, pero reescribir el histórico de una cuenta por pagar es justo
--- lo que uno no quiere en un módulo de deuda.
---
--- Anulando solo el último, el saldo siempre queda consistente. Para corregir
--- algo más viejo está el ajuste (tipo 3), que deja el rastro visible.
---
--- Además bloqueo la anulación de un abono en efectivo cuyo turno ya se cerró:
--- ese turno se arqueó contra el conteo físico.
+-- Anulo un movimiento de CxP (baja lógica). Solo el último vigente del proveedor: anular uno del medio
+-- dejaría mintiendo los saldo_resultante posteriores. Tampoco un abono en efectivo de un turno ya cerrado.
+DROP FUNCTION IF EXISTS cxp_anular_movimiento(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_anular_movimiento(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,

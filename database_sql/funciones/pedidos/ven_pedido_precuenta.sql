@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS ven_pedido_precuenta(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION ven_pedido_precuenta(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; estacion gen_estacion%ROWTYPE; comanda BIGINT; numero INTEGER;

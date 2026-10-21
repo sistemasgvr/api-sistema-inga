@@ -1,3 +1,20 @@
+DROP FUNCTION IF EXISTS cli_crear_persona(
+    p_tipo_persona SMALLINT,
+    p_tipo_documento SMALLINT,
+    p_num_documento VARCHAR,
+    p_razon_social VARCHAR,
+    p_nombres VARCHAR,
+    p_apellido_paterno VARCHAR,
+    p_apellido_materno VARCHAR,
+    p_direccion VARCHAR,
+    p_id_distrito BIGINT,
+    p_telefono VARCHAR,
+    p_email VARCHAR,
+    p_es_cliente BOOLEAN,
+    p_es_proveedor BOOLEAN,
+    p_id_convenio BIGINT,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cli_crear_persona(
     p_tipo_persona SMALLINT,
     p_tipo_documento SMALLINT,
@@ -38,12 +55,8 @@ BEGIN
         RETURN json_build_object('error', v_error, 'registro', NULL);
     END IF;
 
-    -- La restricción uq_cli_persona_doc es por (tipo_documento, num_documento).
-    -- Busco el duplicado yo mismo para poder dar un mensaje útil: si la persona
-    -- existe pero está inactiva, le digo al usuario que la reactive en vez de
-    -- dejarlo peleando con un error de "documento repetido" sobre alguien que
-    -- no ve en la lista.
-    -- Sin documento no hay duplicado que buscar (el UNIQUE admite varios NULL).
+    -- Busco el duplicado para avisar si existe pero está inactiva. Sin documento no hay
+    -- duplicado que buscar (el UNIQUE admite varios NULL).
     SELECT id, estado INTO v_existente
     FROM cli_persona
     WHERE v_doc IS NOT NULL AND tipo_documento = p_tipo_documento AND num_documento = v_doc;

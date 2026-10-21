@@ -1,19 +1,15 @@
--- Registro un abono: el pago semanal que le hacemos a un proveedor.
---
--- Es el movimiento que el administrador hace cada semana (S/1000 al de pollo,
--- S/800 al de carnes, etc. según lo consumido).
---
--- Dos reglas que impongo:
---
--- 1. **El abono no puede superar la deuda.** Pagar más de lo que se debe deja
---    el saldo en negativo, que en este módulo no significa nada: la cuenta es
---    "cuánto le debemos", no una cuenta corriente con saldo a favor. Si de
---    verdad hubo un pago de más, eso se corrige con un ajuste (tipo 3), que
---    queda explícito en el historial.
---
--- 2. **Si el abono sale en efectivo, exige turno de caja abierto.** Ese dinero
---    sale del cajón y sin el vínculo el cuadre del día no cerraría. Misma
---    regla que en planilla (M17) y gastos administrativos (M16).
+-- Registro un abono a un proveedor. No puede superar la deuda (un pago de más va como ajuste)
+-- y, si es en efectivo, exige turno de caja abierto.
+DROP FUNCTION IF EXISTS cxp_registrar_abono(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT,
+    p_fecha_movimiento DATE,
+    p_num_comprobante VARCHAR,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_registrar_abono(
     p_id_persona BIGINT,
     p_monto NUMERIC,

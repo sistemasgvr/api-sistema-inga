@@ -1,3 +1,15 @@
+DROP FUNCTION IF EXISTS cxc_listar_movimientos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_persona BIGINT,
+    p_id_convenio BIGINT,
+    p_tipo SMALLINT,
+    p_anio SMALLINT,
+    p_mes SMALLINT,
+    p_quincena SMALLINT,
+    p_incluir_anulados BOOLEAN
+);
 CREATE OR REPLACE FUNCTION cxc_listar_movimientos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,

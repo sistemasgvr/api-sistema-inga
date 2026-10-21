@@ -4,20 +4,13 @@
 --   monto_cierre_sistema    → lo que el sistema dice que debería haber
 --   monto_cierre_declarado  → lo que el cajero contó de verdad
 --   monto_diferencia        → sistema − declarado
---
--- El orden de la resta lo tomo del resumen funcional del proyecto
--- (resumen_sistema_inga.md, M11): "monto_diferencia = sistema − declarado".
--- Con esa convención:
---   positiva = FALTANTE (el sistema esperaba más de lo que hay en el cajón)
---   negativa = SOBRANTE (hay más plata de la que debería)
---
--- Lo dejo escrito porque es contraintuitivo: en contabilidad lo habitual es
--- "real − esperado", donde positivo sería sobrante. Acá es al revés a propósito.
--- Si guardara el valor absoluto perdería la distinción, que es justo la que le
--- importa al administrador cuando revisa los cierres.
---
--- Calculo monto_cierre_sistema en el momento del cierre y no lo tomo de lo que
--- mande el front: es un dato que no debe poder manipularse desde afuera.
+
+DROP FUNCTION IF EXISTS caj_cerrar_turno(
+    p_id BIGINT,
+    p_monto_cierre_declarado NUMERIC,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_cerrar_turno(
     p_id BIGINT,
     p_monto_cierre_declarado NUMERIC,
