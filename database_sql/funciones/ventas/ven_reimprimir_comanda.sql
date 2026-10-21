@@ -13,9 +13,13 @@ BEGIN
     RAISE EXCEPTION 'La estación de esta comanda está desactivada';
   END IF;
 
+  -- La precuenta se rearma con los consumos vigentes (sin platos cancelados
+  -- después de pedirla) y se descarta su PDF archivado.
   UPDATE ven_impresion_trabajo
   SET estado = 'pendiente', propietario = NULL, intentos = 0, error = NULL, actualizado = CURRENT_TIMESTAMP,
       contenido = contenido || jsonb_build_object('reimpresion', TRUE)
+        || CASE WHEN contenido->>'tipo' = 'PRECUENTA' THEN ven_contenido_precuenta(c.id_pedido) ELSE '{}'::JSONB END,
+      ruta_pdf = CASE WHEN contenido->>'tipo' = 'PRECUENTA' THEN NULL ELSE ruta_pdf END
   WHERE id_comanda = c.id;
 
   IF NOT FOUND THEN

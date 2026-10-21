@@ -16,6 +16,7 @@ import {
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { CantidadBilletesMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 /** Catálogo TURNO_ESTADO. */
 export const ESTADO_TURNO = { ABIERTO: 1, CERRADO: 2 } as const;
@@ -74,6 +75,7 @@ export class AbrirTurnoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   monto_apertura?: number;
 
   @ApiPropertyOptional({ maxLength: 255 })
@@ -91,6 +93,7 @@ export class CerrarTurnoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   monto_cierre_declarado!: number;
 
   @ApiPropertyOptional({
@@ -113,6 +116,7 @@ export class CreateMovimientoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01, { message: 'El monto debe ser mayor a cero' })
+  @MontoMaximo()
   monto!: number;
 
   @ApiProperty({ example: 'Compra de hielo', maxLength: 255 })
@@ -133,12 +137,14 @@ export class ArqueoLineaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
+  @MontoMaximo()
   denominacion!: number;
 
   @ApiProperty({ example: 5, description: 'Cuántos hay de esa denominación' })
   @Type(() => Number)
   @IsInt()
   @Min(0)
+  @CantidadBilletesMaxima()
   cantidad!: number;
 }
 

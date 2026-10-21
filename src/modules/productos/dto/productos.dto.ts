@@ -3,6 +3,7 @@ import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength
 import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { CantidadMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export type ProductoEstadoFiltro = 'todos' | 'activos' | 'inactivos';
 
@@ -34,9 +35,9 @@ export class FiltroProductosDto extends FiltroPaginacionDto {
 }
 
 export class CreateProductoDto extends AuditoriaDto {
-  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(9999999999.9999) stock_inicial?: number;
-  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(9999999999.9999) stock_minimo?: number;
-  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(99999999.9999) costo_inicial?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @CantidadMaxima() stock_inicial?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @CantidadMaxima() stock_minimo?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @MontoMaximo() costo_inicial?: number;
 
   @ApiProperty({ description: 'ID de la subcategoría', example: 1 })
   @IsInt()
@@ -78,6 +79,7 @@ export class CreateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional({ description: 'Precio de venta', example: 35.00 })
   @IsOptional()
   @IsNumber()
+  @MontoMaximo()
   precio_venta?: number;
 
   @ApiPropertyOptional({ description: 'Si está afecto a IGV', default: true })
@@ -148,6 +150,7 @@ export class UpdateProductoDto extends AuditoriaDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
+  @MontoMaximo()
   precio_venta?: number;
 
   @ApiPropertyOptional()

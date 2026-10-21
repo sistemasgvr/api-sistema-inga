@@ -57,15 +57,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     if (!user.permisos) {
-      throw new ForbiddenException('No tiene permisos suficientes');
+      throw new ForbiddenException('No tienes permiso para realizar esta acción.');
     }
 
     const faltantes = required.filter((p) => !user.permisos.includes(p));
 
     if (faltantes.length > 0) {
-      throw new ForbiddenException(
-        `Permisos requeridos: ${required.join(', ')}`,
-      );
+      // Sin códigos técnicos: el mensaje llega tal cual a la pantalla.
+      throw new ForbiddenException('No tienes permiso para realizar esta acción.');
     }
 
     return true;

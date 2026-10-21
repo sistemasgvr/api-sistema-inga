@@ -18,6 +18,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { CantidadMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export class AbrirPedidoDto {
   @ApiProperty({ enum: [1, 2, 3] })
@@ -54,10 +55,11 @@ export class AbrirPedidoDto {
   @Min(1)
   @Max(1000)
   num_comensales?: number;
+  // En delivery el front junta teléfono, dirección y notas (200) en este campo.
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(500)
   observacion?: string;
 }
 
@@ -71,7 +73,7 @@ export class AgregarItemDto {
   @ApiProperty()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad!: number;
   @ApiPropertyOptional({
     description: 'Si se omite se usa el precio vigente del producto.',
@@ -79,12 +81,12 @@ export class AgregarItemDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  @Max(9999999999.99)
+  @MontoMaximo()
   precio_unitario?: number;
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(200)
   observacion?: string;
   @ApiPropertyOptional({ type: [AdicionalPedidoDto] })
   @IsOptional()
@@ -113,12 +115,12 @@ export class EditarItemDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad?: number;
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(200)
   observacion?: string;
 }
 
@@ -129,7 +131,7 @@ export class EntregarItemDto {
   })
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad_entregada!: number;
 }
 
@@ -144,7 +146,7 @@ export class AnularPedidoDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad_cancelada?: number;
   @ApiPropertyOptional({
     enum: ['DISPONIBLE', 'MERMA'],

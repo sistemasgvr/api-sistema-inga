@@ -104,7 +104,10 @@ export class CuentasPorCobrarLogic {
       .emitir({
         canal: 'cuentas-por-cobrar' as any,
         titulo: 'Consumo por cobrar registrado',
-        mensaje: `Cliente ${dto.id_persona ?? ''}`.trim(),
+        // El nombre, no el ID: "Cliente 43" no le dice nada a la cajera.
+        mensaje:
+          (registro as { nombre_persona?: string })?.nombre_persona ??
+          'Se cargó un consumo a la cuenta de un cliente',
         severidad: 'info',
         ruta: '/cuentas-por-cobrar',
         idReferencia: (registro as { id?: number })?.id ?? null,

@@ -57,19 +57,20 @@ export class PermisosGuard implements CanActivate {
       return true;
     }
 
+    // Sin códigos técnicos (roles.listar...): el mensaje llega tal cual a la pantalla.
+    const sinPermiso = 'No tienes permiso para realizar esta acción.';
+
     if (!user.permisos) {
-      throw new ForbiddenException('No tiene permisos suficientes');
+      throw new ForbiddenException(sinPermiso);
     }
 
     if (anyRequired?.length && !anyRequired.some(permission => user.permisos.includes(permission))) {
-      throw new ForbiddenException("No tiene permiso para consultar categorías y subcategorías");
+      throw new ForbiddenException(sinPermiso);
     }
     const faltantes = (required ?? []).filter((p) => !user.permisos.includes(p));
 
     if (faltantes.length > 0) {
-      throw new ForbiddenException(
-        `Permisos requeridos: ${(required ?? []).join(', ')}`,
-      );
+      throw new ForbiddenException(sinPermiso);
     }
 
     return true;

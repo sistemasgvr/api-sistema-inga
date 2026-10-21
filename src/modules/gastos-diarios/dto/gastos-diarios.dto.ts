@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { CantidadMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 /**
  * Forma de pago por línea. No reutilizo el catálogo MEDIO_PAGO porque acá el
@@ -72,6 +73,7 @@ export class CreateInsumoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   precio_referencial?: number;
 
   @ApiPropertyOptional({
@@ -99,6 +101,7 @@ export class UpdateInsumoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   precio_referencial?: number;
 
   @ApiPropertyOptional()
@@ -194,12 +197,14 @@ export class CreateLineaDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001, { message: 'La cantidad debe ser mayor a cero' })
+  @CantidadMaxima()
   cantidad!: number;
 
   @ApiProperty({ example: 4.5 })
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   precio_unitario!: number;
 
   @ApiPropertyOptional({

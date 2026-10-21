@@ -17,6 +17,7 @@ import {
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export type TrabajadorEstadoFiltro = 'todos' | 'activos' | 'inactivos';
 
@@ -121,6 +122,7 @@ export class CreateTrabajadorDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   sueldo_referencial?: number;
 
   @ApiPropertyOptional()
@@ -173,6 +175,7 @@ export class UpdateTrabajadorDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   sueldo_referencial?: number;
 
   @ApiPropertyOptional()
@@ -239,6 +242,7 @@ export class CreatePagoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01, { message: 'El monto debe ser mayor a cero' })
+  @MontoMaximo()
   monto!: number;
 
   @ApiPropertyOptional({

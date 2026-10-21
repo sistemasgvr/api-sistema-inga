@@ -58,7 +58,9 @@ export class CuentasPorPagarLogic {
     this.notificaciones.emitir({
       canal: 'cuentas-por-pagar' as any,
       titulo: 'Cargo por pagar registrado',
-      mensaje: `Proveedor ${dto.id_persona ?? ''}`.trim(),
+      mensaje:
+        (registro as { nombre_proveedor?: string })?.nombre_proveedor ??
+        'Se cargó una compra a la cuenta de un proveedor',
       severidad: 'info',
       ruta: '/cuentas-por-pagar',
       idReferencia: (registro as { id?: number })?.id ?? null,

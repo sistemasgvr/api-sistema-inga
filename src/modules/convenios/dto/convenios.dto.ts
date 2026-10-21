@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export type ConvenioEstadoFiltro = 'todos' | 'activos' | 'inactivos';
 
@@ -47,6 +48,7 @@ export class CreateConvenioDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   limite_credito?: number;
 
   @ApiPropertyOptional({
@@ -76,6 +78,7 @@ export class UpdateConvenioDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
+  @MontoMaximo()
   limite_credito?: number;
 
   @ApiPropertyOptional()

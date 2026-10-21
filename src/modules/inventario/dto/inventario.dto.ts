@@ -16,6 +16,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { CantidadMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export class DetalleMovimientoDto {
   @ApiProperty() @IsInt() @Min(1) id_producto!: number;
@@ -24,14 +25,14 @@ export class DetalleMovimientoDto {
   @ApiProperty()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad!: number;
   @ApiProperty({ enum: [-1, 1] }) @IsIn([-1, 1]) signo!: number;
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0)
-  @Max(99999999.9999)
+  @MontoMaximo()
   costo_unitario?: number;
   @ApiPropertyOptional()
   @IsOptional()
@@ -87,7 +88,7 @@ export class PrepararDto {
   @ApiProperty()
   @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0.0001)
-  @Max(9999999999.9999)
+  @CantidadMaxima()
   cantidad!: number;
   @ApiPropertyOptional()
   @IsOptional()
@@ -104,7 +105,7 @@ export class PrepararDto {
 export class DisponibilidadDto {
  @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_receta!: number;
  @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_almacen!: number;
- @ApiProperty() @Type(() => Number) @IsNumber({maxDecimalPlaces:4}) @Min(0.0001) cantidad!: number;
+ @ApiProperty() @Type(() => Number) @IsNumber({maxDecimalPlaces:4}) @Min(0.0001) @CantidadMaxima() cantidad!: number;
  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_pedido_detalle?: number;
 }
 export class CocinaFiltroDto {

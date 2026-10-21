@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
+import { CantidadMaxima } from '../../../common/decorators/limites.decorator';
 
 /**
  * Filtros del selector de insumos del recetario.
@@ -56,6 +57,7 @@ export class CreateRecetaDto extends AuditoriaDto {
   @ApiProperty({ description: 'Rendimiento en porciones', example: 1 })
   @IsNumber()
   @IsNotEmpty()
+  @CantidadMaxima()
   rendimiento_porciones!: number;
 
   @ApiPropertyOptional({ description: 'Observaciones de preparación' })
@@ -77,6 +79,7 @@ export class GuardarRecetaInsumoDto extends AuditoriaDto {
   @IsNumber()
   @IsNotEmpty()
   @Min(0.0001)
+  @CantidadMaxima()
   cantidad!: number;
 
   @ApiProperty({

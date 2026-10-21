@@ -7,6 +7,7 @@ BEGIN;
 \ir funciones/ventas/ven_listar_ventas.sql
 \ir funciones/ventas/ven_cambiar_medio_pago.sql
 \ir funciones/ventas/ven_reemitir_comprobante.sql
+\ir funciones/pedidos/ven_contenido_precuenta.sql
 \ir funciones/ventas/ven_reimprimir_comanda.sql
 \ir funciones/ventas/ven_imprimir_comprobante.sql
 \ir seeds/permisos/13_ventas.sql

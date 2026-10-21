@@ -14,7 +14,12 @@ BEGIN
   IF EXISTS(SELECT 1 FROM ven_pago WHERE id_pedido=p_id AND estado=1) THEN RAISE EXCEPTION 'El pedido ya tiene pagos; revise el saldo antes de cobrar'; END IF;
   PERFORM ven_recalcular_pedido(p_id,p_usuario);
   SELECT * INTO v FROM ven_pedido WHERE id=p_id;
-  IF v.monto_total<=0 THEN RAISE EXCEPTION 'El pedido no tiene importe por cobrar'; END IF;
+  -- A crédito se admite un pedido de S/ 0 (cortesía del convenio; el front avisa): no genera
+  -- pago ni deuda, solo cierra el pedido a nombre del cliente. Debe tener algún plato vigente.
+  -- El cobro normal sigue exigiendo importe: emitiría un comprobante y un pago de S/ 0.
+  IF v.monto_total<0 OR (v.monto_total=0 AND NOT credito) THEN RAISE EXCEPTION 'El pedido no tiene importe por cobrar'; END IF;
+  IF v.monto_total=0 AND NOT EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido=p_id AND estado=1 AND tipo_linea<>3
+    AND cantidad>cantidad_cancelada) THEN RAISE EXCEPTION 'El pedido no tiene consumos'; END IF;
   -- Basta una caja abierta en la sucursal; si quien cobra tiene su propio turno, el pago va a ese.
   SELECT ct.id INTO t FROM caj_turno ct JOIN caj_caja c ON c.id=ct.id_caja
     WHERE ct.estado=1 AND ct.estado_turno=1 AND c.estado=1 AND c.id_sucursal=v.id_sucursal

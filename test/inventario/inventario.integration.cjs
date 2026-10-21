@@ -598,6 +598,24 @@ async function main() {
   check((await st(cerdo)).actual,r4(a15.cerdo.actual-0.3));
   check((await st(canchita)).actual,r4(a15.canchita.actual-0.05));
   check((await st(barco)).reservado,r4(a15.barco.reservado+1));
+
+  // 16. Tras la precuenta (estado 3) se sigue pudiendo entregar y cancelar: antes el pedido quedaba trabado.
+  for (const f of ['migraciones/09_cierre_pedidos.sql','migraciones/20261003_impresion_comandas.sql',
+    'migraciones/20261019_impresion_principal.sql','funciones/pedidos/ven_contenido_precuenta.sql','funciones/pedidos/ven_pedido_precuenta.sql'])
+    await q(fs.readFileSync(path.join(root,'database_sql',f),'utf8'));
+  await insert('gen_estacion',{id_sucursal:sucursal,nombre:'Caja principal',tipo_estacion:1,impresora_ip:'127.0.0.1',es_caja_principal:true});
+  await q('UPDATE alm_producto_stock SET stock_actual=stock_actual+5 WHERE id_producto=$1 AND id_almacen=$2',[bebida,almacen]);
+  let pre=await llevar();
+  pre=await agregar(pre.id,bebida,3);
+  const lineaPre=pre.items[0].id;
+  await call('comandar',pre.id);
+  pre=await call('precuenta',pre.id);
+  check(pre.estado_pedido,3);
+  pre=await call('entregar',pre.id,lineaPre,{cantidad_entregada:1});
+  check(pre.items[0].cantidad_entregada,1);
+  pre=await call('anular_item',pre.id,lineaPre,{...anulacion,cantidad_cancelada:1,destino_preparado:'DISPONIBLE'});
+  check(pre.items[0].cantidad_cancelada,1);
+  check(pre.estado_pedido,3);
   console.log('Inventario: '+checks+' comprobaciones correctas');
 }
 main().catch(e=>{ console.error(e);process.exitCode=1; }).finally(async()=>{

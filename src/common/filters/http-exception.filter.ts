@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
+import { MONTO_MAXIMO } from '../constants/limites';
+import { formatearNumero } from '../helpers/validacion-mensajes.helper';
 
 interface ErrorCause {
   message: string;
@@ -42,10 +44,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
         if (Array.isArray(rawMessage)) {
           errors = rawMessage as string[];
-          message = 'Error de validación';
+          // El front muestra `message`: va el detalle, no un genérico.
+          message = errors.length ? errors.join(' ') : 'Revisa los datos ingresados.';
         } else if (typeof rawMessage === 'string') {
           message = rawMessage;
         }
+      }
+    } else {
+      const errorDatos = this.getDataError(exception);
+      if (errorDatos) {
+        status = HttpStatus.BAD_REQUEST;
+        message = errorDatos;
       }
     }
 
@@ -64,6 +73,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     response.status(status).json(body);
+  }
+
+  /**
+   * Errores de PostgreSQL causados por el dato que envió el usuario. Los DTO ya
+   * ponen topes; esto evita un "Error interno" si algún campo se escapa.
+   */
+  private getDataError(exception: unknown): string | null {
+    const code = (exception as { code?: unknown } | null)?.code;
+    switch (code) {
+      case '22003':
+        return `Uno de los montos o cantidades supera el máximo permitido (${formatearNumero(MONTO_MAXIMO)}).`;
+      case '22001':
+        return 'Uno de los textos supera la longitud permitida.';
+      default:
+        return null;
+    }
   }
 
   private getErrorCause(exception: unknown): ErrorCause {

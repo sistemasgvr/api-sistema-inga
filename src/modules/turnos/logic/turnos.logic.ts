@@ -146,7 +146,9 @@ export class TurnosLogic {
     this.notificaciones.emitir({
       canal: 'caja' as any,
       titulo: 'Turno cerrado',
-      mensaje: `Caja cerrada (turno ${id})`,
+      mensaje: (registro as { nombre_caja?: string })?.nombre_caja
+        ? `Se cerró ${(registro as { nombre_caja?: string }).nombre_caja}.`
+        : 'Se cerró un turno de caja.',
       severidad: 'info',
       ruta: '/caja/turnos',
       idReferencia: id,

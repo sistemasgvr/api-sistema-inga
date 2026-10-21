@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
+import { MontoMaximo } from '../../../common/decorators/limites.decorator';
 
 export type GastoEstadoFiltro = 'todos' | 'activos' | 'inactivos';
 
@@ -164,6 +165,7 @@ export class CreateGastoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01, { message: 'El monto debe ser mayor a cero' })
+  @MontoMaximo()
   monto!: number;
 
   @ApiPropertyOptional({
@@ -234,6 +236,7 @@ export class UpdateGastoDto extends AuditoriaDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
+  @MontoMaximo()
   monto?: number;
 
   @ApiPropertyOptional()
