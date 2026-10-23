@@ -19,10 +19,24 @@ import {
   UpdateTrabajadorDto,
 } from '../dto/planilla.dto';
 import { PlanillaModel } from '../models/planilla.model';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
+
+type PagoNotificado = {
+  id?: number;
+  nombre_trabajador?: string;
+  monto?: number | string;
+  anio?: number;
+  mes?: number;
+  quincena?: number;
+} | null;
 
 @Injectable()
 export class PlanillaLogic {
-  constructor(private readonly planillaModel: PlanillaModel) {}
+  constructor(
+    private readonly planillaModel: PlanillaModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   /* ---------------------------- Trabajadores ---------------------------- */
 
@@ -109,19 +123,58 @@ export class PlanillaLogic {
 
   async registrarPago(dto: CreatePagoDto) {
     const result = await this.planillaModel.registrarPago(dto);
-    return mapSingleResult(result, 'No se pudo registrar el pago');
+    const registro = mapSingleResult(result, 'No se pudo registrar el pago');
+    this.notificarPago('registrado', registro);
+    return registro;
   }
 
   async anularPago(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+    // Se lee antes de anular para poder contar en el aviso de quién era el pago.
+    const pago = await this.planillaModel
+      .obtenerPago(id)
+      .then((r) => (r as { registro?: PagoNotificado })?.registro ?? null)
+      ?.catch(() => null);
     const result = await this.planillaModel.anularPago(
       id,
       motivo,
       idUsuarioAuditoria,
     );
-    return mapDeleteResult(
+    const respuesta = mapDeleteResult(
       result,
       `Pago con ID ${id} no encontrado o ya anulado`,
     );
+    if (pago) this.notificarPago('anulado', { ...pago, id }, motivo);
+    return respuesta;
+  }
+
+  private notificarPago(
+    evento: 'registrado' | 'anulado',
+    pago: PagoNotificado,
+    motivo?: string,
+  ) {
+    if (!pago) return;
+    const quincena = `${pago.quincena === 1 ? '1ra' : '2da'} quincena ${pago.mes}/${pago.anio}`;
+    const detalle = `${pago.nombre_trabajador ?? 'Trabajador'} · S/ ${Number(pago.monto ?? 0).toFixed(2)} · ${quincena}`;
+    this.notificaciones
+      .emitir({
+        canal: 'planilla',
+        titulo:
+          evento === 'registrado'
+            ? 'Pago de planilla registrado'
+            : 'Pago de planilla anulado',
+        mensaje:
+          evento === 'anulado' && motivo?.trim()
+            ? `${detalle}. Motivo: ${motivo.trim()}`
+            : detalle,
+        severidad: evento === 'registrado' ? 'success' : 'warning',
+        ruta: RutasNotificacion.planilla(
+          Number(pago.anio),
+          Number(pago.mes),
+          Number(pago.quincena),
+        ),
+        idReferencia: pago.id ?? null,
+      })
+      ?.catch(() => undefined);
   }
 
   async reportePeriodo(filtros: FiltroReportePeriodoDto) {

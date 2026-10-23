@@ -1894,8 +1894,17 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     severidad               VARCHAR(10)  NOT NULL DEFAULT 'info',
     ruta                    VARCHAR(255) NOT NULL,
     id_referencia           BIGINT,
-    creada_en               TIMESTAMPTZ  NOT NULL DEFAULT now()
+    creada_en               TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    ids_usuario_destino     BIGINT[],
+    emitida_en              TIMESTAMPTZ,
+    clave_unica             VARCHAR(160),
+    datos                   JSONB
 );
+-- Destinatarios (NULL = todo el canal), outbox de avisos generados en SQL e idempotencia.
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS ids_usuario_destino BIGINT[];
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS emitida_en TIMESTAMPTZ;
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS clave_unica VARCHAR(160);
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS datos JSONB;
 
 -- Utilidad: qué usuario leyó cada notificación.
 CREATE TABLE IF NOT EXISTS notificacion_lectura (
@@ -1907,6 +1916,17 @@ CREATE TABLE IF NOT EXISTS notificacion_lectura (
 
 CREATE INDEX IF NOT EXISTS idx_notificaciones_canal_creada ON notificaciones (canal, creada_en DESC);
 CREATE INDEX IF NOT EXISTS idx_notificacion_lectura_usuario ON notificacion_lectura (id_usuario);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_pendientes ON notificaciones (creada_en) WHERE emitida_en IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notificaciones_clave ON notificaciones (clave_unica) WHERE clave_unica IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_notificaciones_creada ON notificaciones (creada_en);
+
+-- Utilidad: último nivel avisado del stock consolidado de cada producto (0 normal, 1 bajo, 2 agotado).
+CREATE TABLE IF NOT EXISTS alm_alerta_stock_estado (
+    id_producto             BIGINT       PRIMARY KEY REFERENCES pro_producto (id) ON DELETE CASCADE,
+    nivel                   SMALLINT     NOT NULL DEFAULT 0,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    CONSTRAINT ck_alm_alerta_stock_nivel CHECK (nivel IN (0, 1, 2))
+);
 
 -- =============================================================================
 -- ÍNDICES

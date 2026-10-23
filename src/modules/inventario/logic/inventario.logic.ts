@@ -9,11 +9,15 @@ import {
   OperacionInventario,
 } from '../models/inventario.model';
 import { mapSingleResult } from '../../../common/helpers/auth-response.helper';
+import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
 import { FiltroInventarioDto, DisponibilidadDto, CocinaFiltroDto, AvisosCocinaFiltroDto } from '../dto/inventario.dto';
 
 @Injectable()
 export class InventarioLogic {
-  constructor(private readonly model: InventarioModel) {}
+  constructor(
+    private readonly model: InventarioModel,
+    private readonly notificaciones: NotificacionesLogic,
+  ) {}
 
   async ejecutar(
     funcion: OperacionInventario,
@@ -21,10 +25,13 @@ export class InventarioLogic {
     usuario: number,
   ) {
     try {
-      return mapSingleResult(
+      const registro = mapSingleResult(
         await this.model.ejecutar(funcion, datos, usuario),
         'Registro no encontrado',
       );
+      // Movimientos, ajustes y preparaciones cambian stock: la alerta de mínimo sale al instante.
+      void this.notificaciones.despachar();
+      return registro;
     } catch (error: unknown) {
       const db = error as { code?: string; message?: string };
       if (db.code === 'P0002') throw new NotFoundException(db.message);

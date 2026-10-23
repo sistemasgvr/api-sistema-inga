@@ -19,6 +19,17 @@ import {
 } from '../dto/cuentas-por-cobrar.dto';
 import { CuentasPorCobrarModel } from '../models/cuentas-por-cobrar.model';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
+
+type MovimientoNotificado = {
+  id?: number;
+  id_persona?: number;
+  nombre_persona?: string;
+  monto?: number | string;
+} | null;
+
+const soles = (monto?: number | string) =>
+  `S/ ${Number(monto ?? 0).toFixed(2)}`;
 
 @Injectable()
 export class CuentasPorCobrarLogic {
@@ -100,17 +111,18 @@ export class CuentasPorCobrarLogic {
     const result = await this.model.registrarConsumo(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el consumo');
 
+    const movimiento = registro as MovimientoNotificado;
     this.notificaciones
       .emitir({
-        canal: 'cuentas-por-cobrar' as any,
+        canal: 'cuentas-por-cobrar',
         titulo: 'Consumo por cobrar registrado',
         // El nombre, no el ID: "Cliente 43" no le dice nada a la cajera.
-        mensaje:
-          (registro as { nombre_persona?: string })?.nombre_persona ??
-          'Se cargó un consumo a la cuenta de un cliente',
+        mensaje: movimiento?.nombre_persona
+          ? `${movimiento.nombre_persona} · ${soles(movimiento.monto)}`
+          : 'Se cargó un consumo a la cuenta de un cliente',
         severidad: 'info',
-        ruta: '/cuentas-por-cobrar',
-        idReferencia: (registro as { id?: number })?.id ?? null,
+        ruta: RutasNotificacion.cuentaPorCobrar(movimiento?.id_persona),
+        idReferencia: movimiento?.id ?? null,
       })
       ?.catch(() => undefined);
 
@@ -124,14 +136,17 @@ export class CuentasPorCobrarLogic {
   async registrarAbono(dto: CreateAbonoCxcDto) {
     const result = await this.model.registrarAbono(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el abono');
+    const movimiento = registro as MovimientoNotificado;
     this.notificaciones
       .emitir({
-        canal: 'cuentas-por-cobrar' as any,
+        canal: 'cuentas-por-cobrar',
         titulo: 'Abono a cuenta por cobrar',
-        mensaje: 'Movimiento registrado',
+        mensaje: movimiento?.nombre_persona
+          ? `${movimiento.nombre_persona} · ${soles(movimiento.monto)}`
+          : 'Movimiento registrado',
         severidad: 'success',
-        ruta: '/cuentas-por-cobrar',
-        idReferencia: (registro as { id?: number })?.id ?? null,
+        ruta: RutasNotificacion.cuentaPorCobrar(movimiento?.id_persona),
+        idReferencia: movimiento?.id ?? null,
       })
       ?.catch(() => undefined);
     return registro;

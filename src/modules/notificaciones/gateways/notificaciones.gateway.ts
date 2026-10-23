@@ -6,37 +6,36 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
-import { randomUUID } from 'node:crypto';
 import { Request } from 'express';
 import {
   JwtPayload,
   JwtStrategy,
 } from '../../../common/strategies/jwt.strategy';
 import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
-import { CrearNotificacionDto } from '../dto/crear-notificacion.dto';
+import { canalesPermitidos } from '../constants/canales';
 
-// Canal -> permiso requerido (null = cualquier autenticado).
-const CANAL_PERMISO: Record<string, string | null> = {
-  pedidos: 'pedidos.listar',
-  cocina: 'pedidos.comandar',
-  caja: 'cajas.ver',
-  inventario: 'inventario.ver',
-  ventas: 'ventas.listar',
-  'cuentas-por-pagar': 'cxp.listar',
-  'cuentas-por-cobrar': 'cxc.listar',
-  gastos: 'gastos.listar',
-  'gastos-diarios': 'gdo.listar',
-  sistema: null,
-};
-
-const CANALES_VALIDOS = Object.keys(CANAL_PERMISO);
+export interface NotificacionEmitida {
+  id: string;
+  canal: string;
+  titulo: string;
+  mensaje: string;
+  severidad: string;
+  ruta: string;
+  idReferencia: number | null;
+  creadaEn: string;
+  leida: boolean;
+}
 
 interface ClienteInfo {
   user: AuthenticatedUser;
   canales: Set<string>;
 }
 
-@WebSocketGateway({ namespace: '/notificaciones', transports: ['websocket'], cors: { origin: true, credentials: true } })
+@WebSocketGateway({
+  namespace: '/notificaciones',
+  transports: ['websocket'],
+  cors: { origin: true, credentials: true },
+})
 export class NotificacionesGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -59,49 +58,35 @@ export class NotificacionesGateway
     return user as unknown as AuthenticatedUser;
   }
 
-  private canalesPermitidos(user: AuthenticatedUser, canales: string[]) {
-    return canales.filter((c) => {
-      if (!CANALES_VALIDOS.includes(c)) return false;
-      const permiso = CANAL_PERMISO[c];
-      if (permiso === null) return true;
-      if (user.es_super_admin) return true;
-      return user.permisos.includes(permiso);
-    });
-  }
-
-  canalesPermitidosUsuario(user: AuthenticatedUser): string[] {
-    return this.canalesPermitidos(user, CANALES_VALIDOS);
-  }
-
   async handleConnection(socket: Socket) {
     try {
       const user = await this.autorizar(socket);
       if (!socket.connected) return;
-      const info = { user, canales: new Set(this.canalesPermitidos(user, CANALES_VALIDOS)) };
-      this.clients.set(socket, info);
+      // Por defecto se recibe todo lo que el usuario puede ver.
+      const permitidos = canalesPermitidos(user);
+      this.clients.set(socket, { user, canales: new Set(permitidos) });
 
+      // Permite al cliente reducir (nunca ampliar) los canales que escucha.
       socket.on('notificaciones:suscribir', (data: unknown, ack: unknown) => {
-        if (typeof ack !== 'function') return;
-        const responder = ack as (r: unknown) => void;
+        const responder =
+          typeof ack === 'function' ? (ack as (r: unknown) => void) : () => {};
         const raw = (data as { canales?: unknown })?.canales;
         if (!Array.isArray(raw)) {
           responder({ ok: false, message: 'Canales inválidos' });
           return;
         }
-        const permitidos = this.canalesPermitidos(
+        const canales = canalesPermitidos(
           user,
           raw.filter((c): c is string => typeof c === 'string'),
         );
         const info = this.clients.get(socket);
-        if (info) {
-          info.canales = new Set(permitidos);
-        }
-        responder({ ok: true, canales: permitidos });
+        if (info) info.canales = new Set(canales);
+        responder({ ok: true, canales });
       });
 
-      socket.emit('notificacion:conectado', { canales: CANALES_VALIDOS });
+      socket.emit('notificacion:conectado', { canales: permitidos });
     } catch (error) {
-      this.logger.error('WS connection rejected', error as Error);
+      this.logger.warn(`WS rechazado: ${(error as Error)?.message ?? error}`);
       socket.emit('notificacion:error', 'Sesión inválida o sin permisos');
       socket.disconnect(true);
     }
@@ -111,23 +96,24 @@ export class NotificacionesGateway
     this.clients.delete(socket);
   }
 
-  emitirNotificacion(notif: { id: string; canal: string; titulo: string; mensaje: string; severidad: string; ruta: string; idReferencia: number | null; creadaEn: string; leida: boolean }, idsUsuario?: number[]) {
-    const canal = notif.canal;
+  /**
+   * Con destinatarios, solo les llega a ellos; si no, a los suscritos al canal.
+   */
+  emitirNotificacion(notif: NotificacionEmitida, idsUsuario?: number[] | null) {
+    const dirigida = Boolean(idsUsuario?.length);
     for (const [socket, info] of this.clients) {
-      if (info.canales.has(canal)) {
-        socket.emit('notificacion:nueva', notif);
-      }
-    }
-    if (idsUsuario?.length) {
-      for (const [socket, info] of this.clients) {
-        if (idsUsuario.includes(info.user.id) && !info.canales.has(canal)) {
-          socket.emit('notificacion:nueva', notif);
-        }
-      }
+      const llega = dirigida
+        ? idsUsuario!.includes(info.user.id)
+        : info.canales.has(notif.canal);
+      if (llega) socket.emit('notificacion:nueva', notif);
     }
   }
 
-  notificarDisponible() {
-    for (const socket of this.clients.keys()) socket.emit('notificacion:disponible');
+  /** Sincroniza el estado de lectura entre las pestañas del mismo usuario. */
+  notificarLeidas(idUsuario: number, ids: string[] | 'todas') {
+    for (const [socket, info] of this.clients) {
+      if (info.user.id === idUsuario)
+        socket.emit('notificacion:leidas', { ids });
+    }
   }
 }

@@ -18,6 +18,8 @@ import { FiltroPedidoDto } from '../dto/pedido.dto';
 import { AccionPedido, PedidoModel } from '../models/pedido.model';
 import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { CrearNotificacionDto } from '../../notificaciones/dto/crear-notificacion.dto';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
 import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
 
 // SQLSTATE de ven_reservar_insumos_pedido: faltan insumos o productos para comandar.
@@ -88,49 +90,96 @@ export class PedidoLogic {
     }).then((result) => {
       const pedidoId = (id ?? (result as { id?: number } | null)?.id) as
         number | null;
-      if (
+      const comandado =
         accion === 'comandar' ||
-        accion === 'precuenta' ||
-        (accion === 'estado' && payload.estado_pedido === 2)
-      ) {
-        this.impresion.notificar();
-        if (pedidoId) {
-          this.notificaciones
-            .emitir({
-              canal: 'pedidos',
-              titulo:
-                accion === 'comandar'
-                  ? 'Pedido comandado'
-                  : 'Pedido actualizado',
-              mensaje: `Pedido #${pedidoId}`,
-              severidad: 'info',
-              ruta: `/pedidos/${pedidoId}`,
-              idReferencia: pedidoId,
-            })
-            ?.catch(() => undefined);
-        }
-      }
-      if (
+        (accion === 'estado' && payload.estado_pedido === 2);
+      const cobrado =
         accion === 'cobrar' ||
-        (accion === 'estado' && payload.estado_pedido === 4)
-      ) {
-        // El comprobante emitido se archiva en PDF (Storage) sin demorar la respuesta del cobro.
-        if (pedidoId) this.tickets.archivarComprobantes(pedidoId);
-        if (pedidoId) {
-          this.notificaciones
-            .emitir({
-              canal: 'ventas' as any,
-              titulo: 'Pedido cobrado',
-              mensaje: `Pedido #${pedidoId} cobrado`,
-              severidad: 'success',
-              ruta: `/pedidos/${pedidoId}`,
-              idReferencia: pedidoId,
-            })
-            ?.catch(() => undefined);
-        }
-      }
+        (accion === 'estado' && payload.estado_pedido === 4);
+      const anulado =
+        accion === 'anular' ||
+        (accion === 'estado' && payload.estado_pedido === 5);
+      if (comandado || accion === 'precuenta') this.impresion.notificar();
+      // El comprobante emitido se archiva en PDF (Storage) sin demorar la respuesta del cobro.
+      if (cobrado && pedidoId) this.tickets.archivarComprobantes(pedidoId);
+      if (pedidoId)
+        this.notificarPedido(
+          accion,
+          { comandado, cobrado, anulado },
+          pedidoId,
+          result,
+        );
+      // Entregar descuenta stock: la alerta de mínimo, si la hay, sale al instante.
+      if (accion === 'entregar') void this.notificaciones.despachar();
       return result;
     });
+  }
+
+  private notificarPedido(
+    accion: AccionPedido,
+    evento: { comandado: boolean; cobrado: boolean; anulado: boolean },
+    pedidoId: number,
+    result: unknown,
+  ) {
+    const pedido = result as {
+      codigo?: string;
+      codigo_mesa?: string | null;
+    } | null;
+    const nombre = pedido?.codigo ?? `#${pedidoId}`;
+    const lugar = pedido?.codigo_mesa
+      ? `Mesa ${pedido.codigo_mesa}`
+      : 'Para llevar / delivery';
+    let aviso: CrearNotificacionDto | null = null;
+    if (evento.comandado)
+      aviso = {
+        canal: 'cocina',
+        titulo: 'Nueva comanda',
+        mensaje: `${lugar} · Pedido ${nombre}`,
+        severidad: 'info',
+        ruta: RutasNotificacion.cocina(pedidoId),
+      };
+    else if (accion === 'precuenta')
+      aviso = {
+        canal: 'pedidos',
+        titulo: 'Precuenta solicitada',
+        mensaje: `${lugar} · Pedido ${nombre}`,
+        severidad: 'info',
+        ruta: RutasNotificacion.pedido(pedidoId),
+      };
+    else if (evento.cobrado || accion === 'credito')
+      aviso = {
+        canal: 'ventas',
+        titulo: evento.cobrado
+          ? 'Pedido cobrado'
+          : 'Pedido registrado a crédito',
+        mensaje: `${lugar} · Pedido ${nombre}`,
+        severidad: 'success',
+        ruta: RutasNotificacion.venta(pedidoId),
+      };
+    else if (evento.anulado)
+      aviso = {
+        canal: 'pedidos',
+        titulo: 'Pedido anulado',
+        mensaje: `${lugar} · Pedido ${nombre}`,
+        severidad: 'warning',
+        ruta: RutasNotificacion.pedido(pedidoId),
+      };
+    else if (accion === 'anular_item')
+      aviso = {
+        canal: 'pedidos',
+        titulo: 'Producto anulado en un pedido',
+        mensaje: `${lugar} · Pedido ${nombre}`,
+        severidad: 'warning',
+        ruta: RutasNotificacion.pedido(pedidoId),
+      };
+    if (!aviso) return;
+    this.notificaciones
+      .emitir({ ...aviso, idReferencia: pedidoId })
+      ?.catch((error: unknown) =>
+        this.logger.warn(
+          `No se notificó el pedido ${pedidoId}: ${String(error)}`,
+        ),
+      );
   }
 
   private async avisarCocina(
@@ -147,11 +196,11 @@ export class PedidoLogic {
       );
       this.notificaciones
         .emitir({
-          canal: 'inventario' as any,
-          titulo: 'Stock insuficiente',
+          canal: 'cocina',
+          titulo: 'Stock insuficiente para comandar',
           mensaje: db.message ?? 'Stock insuficiente para comandar',
           severidad: 'warning',
-          ruta: `/pedidos/${pedido}`,
+          ruta: RutasNotificacion.cocina(pedido),
           idReferencia: pedido,
         })
         ?.catch(() => undefined);

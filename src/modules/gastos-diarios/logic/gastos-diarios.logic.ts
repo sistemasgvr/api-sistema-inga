@@ -16,6 +16,7 @@ import {
 } from '../dto/gastos-diarios.dto';
 import { GastosDiariosModel } from '../models/gastos-diarios.model';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
 
 @Injectable()
 export class GastosDiariosLogic {
@@ -85,14 +86,18 @@ export class GastosDiariosLogic {
   async agregarLinea(idGastoDia: number, dto: CreateLineaDto) {
     const result = await this.model.agregarLinea(idGastoDia, dto);
     const registro = mapSingleResult(result, 'No se pudo agregar la compra');
-    this.notificaciones.emitir({
-      canal: 'gastos-diarios' as any,
-      titulo: 'Compra registrada',
-      mensaje: `Gasto diario ${idGastoDia}`,
-      severidad: 'info',
-      ruta: '/gastos/diarios',
-      idReferencia: (registro as { id?: number })?.id ?? null,
-    })?.catch(() => undefined);
+    this.notificaciones
+      .emitir({
+        canal: 'gastos-diarios',
+        titulo: 'Compra registrada',
+        mensaje: 'Se registró una compra en los gastos del día.',
+        severidad: 'info',
+        ruta: RutasNotificacion.gastosDiarios(),
+        idReferencia: (registro as { id?: number })?.id ?? null,
+      })
+      ?.catch(() => undefined);
+    // Una compra con inventario mueve stock: la alerta de mínimo sale al instante.
+    void this.notificaciones.despachar();
     return registro;
   }
 

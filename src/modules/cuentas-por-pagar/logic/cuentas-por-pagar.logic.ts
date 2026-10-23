@@ -14,6 +14,17 @@ import {
 } from '../dto/cuentas-por-pagar.dto';
 import { CuentasPorPagarModel } from '../models/cuentas-por-pagar.model';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
+
+type MovimientoNotificado = {
+  id?: number;
+  id_persona?: number;
+  nombre_proveedor?: string;
+  monto?: number | string;
+} | null;
+
+const soles = (monto?: number | string) =>
+  `S/ ${Number(monto ?? 0).toFixed(2)}`;
 
 @Injectable()
 export class CuentasPorPagarLogic {
@@ -55,30 +66,38 @@ export class CuentasPorPagarLogic {
   async registrarCargo(dto: CreateCargoDto) {
     const result = await this.model.registrarCargo(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el cargo');
-    this.notificaciones.emitir({
-      canal: 'cuentas-por-pagar' as any,
-      titulo: 'Cargo por pagar registrado',
-      mensaje:
-        (registro as { nombre_proveedor?: string })?.nombre_proveedor ??
-        'Se cargó una compra a la cuenta de un proveedor',
-      severidad: 'info',
-      ruta: '/cuentas-por-pagar',
-      idReferencia: (registro as { id?: number })?.id ?? null,
-    })?.catch(() => undefined);
+    const movimiento = registro as MovimientoNotificado;
+    this.notificaciones
+      .emitir({
+        canal: 'cuentas-por-pagar',
+        titulo: 'Cargo por pagar registrado',
+        mensaje: movimiento?.nombre_proveedor
+          ? `${movimiento.nombre_proveedor} · ${soles(movimiento.monto)}`
+          : 'Se cargó una compra a la cuenta de un proveedor',
+        severidad: 'info',
+        ruta: RutasNotificacion.cuentaPorPagar(movimiento?.id_persona),
+        idReferencia: movimiento?.id ?? null,
+      })
+      ?.catch(() => undefined);
     return registro;
   }
 
   async registrarAbono(dto: CreateAbonoDto) {
     const result = await this.model.registrarAbono(dto);
     const registro = mapSingleResult(result, 'No se pudo registrar el abono');
-    this.notificaciones.emitir({
-      canal: 'cuentas-por-pagar' as any,
-      titulo: 'Abono a cuenta por pagar',
-      mensaje: `Movimiento registrado`,
-      severidad: 'success',
-      ruta: '/cuentas-por-pagar',
-      idReferencia: (registro as { id?: number })?.id ?? null,
-    })?.catch(() => undefined);
+    const movimiento = registro as MovimientoNotificado;
+    this.notificaciones
+      .emitir({
+        canal: 'cuentas-por-pagar',
+        titulo: 'Abono a cuenta por pagar',
+        mensaje: movimiento?.nombre_proveedor
+          ? `${movimiento.nombre_proveedor} · ${soles(movimiento.monto)}`
+          : 'Movimiento registrado',
+        severidad: 'success',
+        ruta: RutasNotificacion.cuentaPorPagar(movimiento?.id_persona),
+        idReferencia: movimiento?.id ?? null,
+      })
+      ?.catch(() => undefined);
     return registro;
   }
 

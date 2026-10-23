@@ -18,6 +18,7 @@ import {
 } from '../dto/turnos.dto';
 import { TurnosModel } from '../models/turnos.model';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
+import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
 
 /** Código del rol administrador en auth_rol. */
 export const CODIGO_ROL_ADMIN = 'ADMIN';
@@ -143,16 +144,38 @@ export class TurnosLogic {
     await this.validarCierre(id, dto.idUsuarioAuditoria);
     const result = await this.turnosModel.cerrar(id, dto);
     const registro = mapSingleResult(result, `Turno con ID ${id} no encontrado`);
-    this.notificaciones.emitir({
-      canal: 'caja' as any,
-      titulo: 'Turno cerrado',
-      mensaje: (registro as { nombre_caja?: string })?.nombre_caja
-        ? `Se cerró ${(registro as { nombre_caja?: string }).nombre_caja}.`
-        : 'Se cerró un turno de caja.',
-      severidad: 'info',
-      ruta: '/caja/turnos',
-      idReferencia: id,
-    })?.catch(() => undefined);
+    const turno = registro as {
+      nombre_caja?: string;
+      nombre_cajero?: string;
+      monto_diferencia?: number | string | null;
+    };
+    const caja = turno?.nombre_caja ?? 'un turno de caja';
+    const diferencia = Number(turno?.monto_diferencia ?? 0);
+    // Un descuadre se avisa como alerta; un cierre cuadrado, como información.
+    this.notificaciones
+      .emitir(
+        diferencia !== 0
+          ? {
+              canal: 'caja',
+              titulo:
+                diferencia < 0
+                  ? 'Faltante al cerrar caja'
+                  : 'Sobrante al cerrar caja',
+              mensaje: `${caja}: diferencia de S/ ${Math.abs(diferencia).toFixed(2)}${turno?.nombre_cajero ? ` (${turno.nombre_cajero})` : ''}.`,
+              severidad: 'warning',
+              ruta: RutasNotificacion.turno(id),
+              idReferencia: id,
+            }
+          : {
+              canal: 'caja',
+              titulo: 'Turno cerrado',
+              mensaje: `Se cerró ${caja} sin diferencias.`,
+              severidad: 'info',
+              ruta: RutasNotificacion.turno(id),
+              idReferencia: id,
+            },
+      )
+      ?.catch(() => undefined);
     return registro;
   }
 
