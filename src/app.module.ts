@@ -37,6 +37,7 @@ import { VentasModule } from './modules/ventas/ventas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 import { EmpresaModule } from './modules/empresa/empresa.module';
+import { SunatModule } from './modules/sunat/sunat.module';
 
 @Module({
   imports: [
@@ -90,8 +91,10 @@ import { EmpresaModule } from './modules/empresa/empresa.module';
     ReportesModule,
     // Notificaciones en tiempo real.
     NotificacionesModule,
-    // Datos de la empresa para tickets y, más adelante, facturación electrónica.
+    // Datos de la empresa para tickets y facturación electrónica.
     EmpresaModule,
+    // Facturación electrónica SUNAT vía APIsPERU.
+    SunatModule,
   ],
   controllers: [],
   providers: [

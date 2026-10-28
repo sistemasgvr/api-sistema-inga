@@ -39,6 +39,48 @@ const comprobante: ComandaImpresion = {
 };
 const texto = (pdf: Buffer) => pdf.toString('latin1');
 
+describe('QR de la representación impresa', () => {
+  const electronica: ComandaImpresion = {
+    ...comprobante,
+    comprobante: {
+      ...comprobante.comprobante!,
+      tipo_comprobante: 1,
+      receptor_tipo_doc: 1,
+      fecha_emision: '2026-10-19',
+    },
+  };
+  const empresa = {
+    ruc: '20123456789',
+    razon_social: 'INGA SAC',
+    direccion: null,
+    logo: null,
+  };
+
+  it('la boleta lleva el QR de SUNAT con comandos GS ( k', () => {
+    const escpos = formatearComanda(electronica, empresa, 58);
+    expect(escpos).toContain('BOLETA DE VENTA ELECTRONICA');
+    const qr = '20123456789|03|B001|12|6.33|41.50|2026-10-19|1|45678912|';
+    // GS ( k pL pH 1 P 0 <datos>: pL/pH = largo de los datos + 3.
+    expect(escpos).toContain(
+      `\x1d(k${String.fromCharCode(qr.length + 3)}\x001P0${qr}`,
+    );
+    expect(escpos).toContain('\x1d(k\x03\x001Q0');
+  });
+
+  it('el PDF dibuja el QR y conserva el texto que sigue', () => {
+    const s = texto(ticketPdf(formatearComanda(electronica, empresa, 80)));
+    expect(s).toMatch(/0 g\n([\d.]+ [\d.]+ [\d.]+ [\d.]+ re\n)+f/);
+    expect(s).toContain('Consulte en www.sunat.gob.pe');
+    const xref = Number(/startxref\n(\d+)/.exec(s)![1]);
+    expect(s.slice(xref).startsWith('xref')).toBe(true);
+  });
+
+  it('la nota de venta y el ticket sin RUC no llevan QR', () => {
+    expect(formatearComanda(comprobante, empresa)).not.toContain('\x1d(k');
+    expect(formatearComanda(electronica, null)).not.toContain('\x1d(k');
+  });
+});
+
 describe('PDF de tickets', () => {
   it('el PDF de 58 mm usa 32 columnas, igual que el papel', () => {
     const s = texto(

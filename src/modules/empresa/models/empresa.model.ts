@@ -1,17 +1,44 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import type {
+  AuthListResult,
+  AuthSingleResult,
+} from '../../../common/interfaces/auth-db.interface';
 import { DatabaseService } from '../../../database/database.service';
 
 export interface EmpresaRegistro {
-  id: string;
+  id: number;
   ruc: string;
   razon_social: string;
+  nombre_comercial: string | null;
   direccion: string | null;
+  id_distrito: number | null;
+  tasa_igv: number;
   logo_url: string | null;
   logo_ticket: string | null;
 }
 
-const COLUMNAS =
-  'id::text AS id, ruc, razon_social, direccion, logo_url, logo_ticket';
+export interface DistritoRegistro {
+  id: number;
+  codigo_ubigeo: string | null;
+  distrito: string;
+  provincia: string;
+  departamento: string;
+}
+
+export interface DatosEmpresa {
+  ruc: string;
+  razonSocial: string;
+  nombreComercial: string | null;
+  direccion: string | null;
+  idDistrito: number | null;
+  tasaIgv: number;
+}
+
+/** Las validaciones de gen_guardar_* llegan como { error }: se devuelven como 400. */
+function registro<T>(result: AuthSingleResult<T>) {
+  if (result?.error) throw new BadRequestException(result.error);
+  return (result?.registro ?? null) as T;
+}
 
 /**
  * Hoy el sistema trabaja con una sola empresa (las sucursales usan id_empresa 1):
@@ -22,53 +49,59 @@ export class EmpresaModel {
   constructor(private readonly db: DatabaseService) {}
 
   async obtener() {
-    const result = await this.db.query<EmpresaRegistro>(
-      `SELECT ${COLUMNAS} FROM gen_empresa WHERE estado = 1 ORDER BY id LIMIT 1`,
+    return registro(
+      await this.db.callFunctionJson<AuthSingleResult<EmpresaRegistro>>(
+        'gen_obtener_empresa',
+      ),
     );
-    return result.rows[0] ?? null;
   }
 
-  async guardar(
-    datos: { ruc: string; razonSocial: string; direccion: string | null },
-    usuario: number,
-  ) {
-    const actual = await this.obtener();
-    try {
-      const result = actual
-        ? await this.db.query<EmpresaRegistro>(
-            `UPDATE gen_empresa SET ruc = $2, razon_social = $3, direccion = $4,
-               id_usuario_modificacion = $5, fecha_modificacion = CURRENT_TIMESTAMP
-             WHERE id = $1 RETURNING ${COLUMNAS}`,
-            [actual.id, datos.ruc, datos.razonSocial, datos.direccion, usuario],
-          )
-        : await this.db.query<EmpresaRegistro>(
-            `INSERT INTO gen_empresa (ruc, razon_social, direccion, id_usuario_creacion, id_usuario_modificacion)
-             VALUES ($1, $2, $3, $4, $4) RETURNING ${COLUMNAS}`,
-            [datos.ruc, datos.razonSocial, datos.direccion, usuario],
-          );
-      return result.rows[0];
-    } catch (error) {
-      if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'Ya existe otra empresa registrada con ese RUC',
-        );
-      }
-      throw error;
-    }
+  async guardar(datos: DatosEmpresa, usuario: number) {
+    return registro(
+      await this.db.callFunctionJson<AuthSingleResult<EmpresaRegistro>>(
+        'gen_guardar_empresa',
+        [
+          JSON.stringify({
+            ruc: datos.ruc,
+            razon_social: datos.razonSocial,
+            nombre_comercial: datos.nombreComercial,
+            direccion: datos.direccion,
+            id_distrito: datos.idDistrito,
+            tasa_igv: datos.tasaIgv,
+          }),
+          usuario,
+        ],
+      ),
+    );
   }
 
   async guardarLogo(
-    id: string,
+    id: number,
     logoUrl: string | null,
     logoTicket: string | null,
     usuario: number,
   ) {
-    const result = await this.db.query<EmpresaRegistro>(
-      `UPDATE gen_empresa SET logo_url = $2, logo_ticket = $3,
-         id_usuario_modificacion = $4, fecha_modificacion = CURRENT_TIMESTAMP
-       WHERE id = $1 RETURNING ${COLUMNAS}`,
-      [id, logoUrl, logoTicket, usuario],
+    return registro(
+      await this.db.callFunctionJson<AuthSingleResult<EmpresaRegistro>>(
+        'gen_guardar_logo_empresa',
+        [id, logoUrl, logoTicket, usuario],
+      ),
     );
-    return result.rows[0];
+  }
+
+  async distrito(id: number) {
+    return registro(
+      await this.db.callFunctionJson<AuthSingleResult<DistritoRegistro>>(
+        'gen_obtener_distrito',
+        [id],
+      ),
+    );
+  }
+
+  async buscarDistritos(buscar: string) {
+    const result = await this.db.callFunctionJson<
+      AuthListResult<DistritoRegistro>
+    >('gen_buscar_distritos', [buscar, 50]);
+    return result?.registros ?? [];
   }
 }

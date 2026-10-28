@@ -12,6 +12,7 @@ import {
 import { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
 import { ImpresionGateway } from '../../impresion/gateways/impresion.gateway';
 import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
+import { SunatLotesLogic } from '../../sunat/logic/sunat-lotes.logic';
 import { FiltroVentasDto, ReemitirComprobanteDto } from '../dto/ventas.dto';
 import { VentasModel } from '../models/ventas.model';
 
@@ -21,6 +22,7 @@ export class VentasLogic {
     private readonly model: VentasModel,
     private readonly impresion: ImpresionGateway,
     private readonly tickets: TicketPdfLogic,
+    private readonly sunat: SunatLotesLogic,
   ) {}
 
   async listar(filtros: FiltroVentasDto) {
@@ -52,10 +54,13 @@ export class VentasLogic {
     dto: ReemitirComprobanteDto,
     usuario: number,
   ) {
+    const anterior = await this.sunat.comprobanteVigente(idPedido);
     const venta = await this.resolver(() =>
       this.model.reemitirComprobante(idPedido, dto, usuario),
     );
     this.tickets.archivarComprobantes(idPedido);
+    // Si SUNAT ya había aceptado el comprobante reemplazado, se envía su baja.
+    this.sunat.bajaPorReemision(anterior, usuario);
     return venta;
   }
 

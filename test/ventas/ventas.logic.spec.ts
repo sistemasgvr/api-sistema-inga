@@ -7,6 +7,7 @@ import { VentasLogic } from '../../src/modules/ventas/logic/ventas.logic';
 import { VentasModel } from '../../src/modules/ventas/models/ventas.model';
 import { ImpresionGateway } from '../../src/modules/impresion/gateways/impresion.gateway';
 import { TicketPdfLogic } from '../../src/modules/impresion/logic/ticket-pdf.logic';
+import { SunatLotesLogic } from '../../src/modules/sunat/logic/sunat-lotes.logic';
 
 describe('Ventas', () => {
   const model = {
@@ -20,10 +21,15 @@ describe('Ventas', () => {
     regenerarComprobantes: jest.fn(),
     archivarComprobantes: jest.fn(),
   };
+  const sunat = {
+    comprobanteVigente: jest.fn(),
+    bajaPorReemision: jest.fn(),
+  };
   const logic = new VentasLogic(
     model as unknown as VentasModel,
     impresion as unknown as ImpresionGateway,
     tickets as unknown as TicketPdfLogic,
+    sunat as unknown as SunatLotesLogic,
   );
   beforeEach(() => jest.resetAllMocks());
 

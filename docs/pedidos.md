@@ -21,7 +21,7 @@ La migración agrega tasa de IGV por pedido, la condición de precio del product
 
 Asignar los permisos `pedidos.ver`, `pedidos.abrir`, `pedidos.editar`, `pedidos.comandar`, `pedidos.estado` y `pedidos.anular` mediante el módulo de roles existente. El seed no concede permisos automáticamente.
 
-Variable opcional del backend: `PEDIDOS_TASA_IGV=18` (porcentaje, predeterminado 18). La tasa se copia al abrir cada pedido; cambiar la configuración no cambia pedidos anteriores.
+La tasa de IGV se configura en Configuración → Empresa (`gen_empresa.tasa_igv`, según el régimen vigente) y se copia al abrir cada pedido; cambiarla no cambia pedidos anteriores. `PEDIDOS_TASA_IGV=18` solo aplica si la sucursal no tiene empresa.
 
 ## Endpoints
 

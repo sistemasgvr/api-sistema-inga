@@ -9,6 +9,7 @@ DECLARE
   v_turno BIGINT := (p_datos->>'id_turno')::BIGINT;
   v_persona BIGINT := NULLIF(p_datos->>'id_persona', '')::BIGINT;
   v ven_mesa%ROWTYPE; v_salon ven_salon%ROWTYPE;
+  v_tasa_igv NUMERIC;
 BEGIN
 IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido inválido'; END IF;
   IF v_tipo = 1 THEN
@@ -31,10 +32,17 @@ IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido 
   -- El mozo no abre caja: basta un turno abierto de la sucursal. Si se envía
   -- id_turno (el cajero con su propio turno) se prefiere ese.
   v_turno := ven_turno_vigente_pedido(v_sucursal, v_turno, p_usuario);
+  -- La tasa vigente es la de la empresa (Configuración → Empresa, según su régimen);
+  -- la que envía el API solo aplica si la sucursal no tiene empresa.
+  SELECT e.tasa_igv INTO v_tasa_igv
+  FROM gen_sucursal s
+  JOIN gen_empresa e ON e.id = s.id_empresa
+  WHERE s.id = v_sucursal;
+  v_tasa_igv := COALESCE(v_tasa_igv, (p_datos->>'tasa_igv')::NUMERIC, 18);
   v_id := nextval(pg_get_serial_sequence('public.ven_pedido', 'id'));
   INSERT INTO ven_pedido(id,id_sucursal,id_mesa,id_mozo,id_turno,id_persona,tipo_pedido,codigo,num_comensales,observacion,tasa_igv,id_usuario_creacion,id_usuario_modificacion)
   OVERRIDING SYSTEM VALUE VALUES(v_id,v_sucursal,v_mesa,v_mozo,v_turno,v_persona,v_tipo,'PED-' || v_id,
-    COALESCE((p_datos->>'num_comensales')::INTEGER,1),p_datos->>'observacion',COALESCE((p_datos->>'tasa_igv')::NUMERIC,18),p_usuario,p_usuario);
+    COALESCE((p_datos->>'num_comensales')::INTEGER,1),p_datos->>'observacion',v_tasa_igv,p_usuario,p_usuario);
   UPDATE ven_mesa SET estado_mesa = 2, id_usuario_modificacion = p_usuario, fecha_modificacion = CURRENT_TIMESTAMP WHERE id = v_mesa;
   RETURN ven_obtener_pedido(v_id);
 END;

@@ -61,17 +61,17 @@ INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VA
 ('sucursales.eliminar', 'Desactivar sucursal',      'Permite dar de baja lógica a una sucursal', 'Sucursales', 1),
 ('sucursales.activar',  'Activar sucursal',         'Permite reactivar una sucursal inactiva', 'Sucursales', 1),
 
--- MÓDULO: SUNAT
-('sunat.listar',   'Consultar configuración SUNAT',  'Permite ver la configuración de facturación electrónica', 'SUNAT', 1),
-('sunat.ver',      'Ver detalle SUNAT',              'Permite consultar el detalle de la configuración SUNAT', 'SUNAT', 1),
-('sunat.crear',    'Crear configuración SUNAT',      'Permite registrar series y configuración SUNAT', 'SUNAT', 1),
-('sunat.editar',   'Editar configuración SUNAT',     'Permite modificar series, certificado y credenciales SUNAT', 'SUNAT', 1),
-('sunat.eliminar', 'Desactivar configuración SUNAT', 'Permite dar de baja una configuración SUNAT', 'SUNAT', 1),
+-- MÓDULO: SUNAT (facturación electrónica vía APIsPERU)
+('sunat.listar',   'Consultar comprobantes electrónicos', 'Permite ver el estado SUNAT de boletas y facturas, el resumen del día y descargar XML, CDR y PDF A4', 'SUNAT', 1),
+('sunat.ver',      'Ver configuración SUNAT',             'Permite consultar la configuración de facturación electrónica (sin ver credenciales)', 'SUNAT', 1),
+('sunat.crear',    'Enviar comprobantes a SUNAT',         'Permite enviar boletas y facturas a SUNAT, una por una o el envío masivo del día', 'SUNAT', 1),
+('sunat.editar',   'Editar configuración SUNAT',          'Permite modificar el token de APIsPERU, el ambiente, la clave SOL, el certificado y los plazos de envío', 'SUNAT', 1),
+('sunat.eliminar', 'Dar de baja en SUNAT',                'Permite enviar la baja de comprobantes ya aceptados por SUNAT', 'SUNAT', 1),
 ('sunat.activar',  'Activar configuración SUNAT',    'Permite reactivar una configuración SUNAT', 'SUNAT', 1),
 
 -- MÓDULO: Empresa (datos y logo de los tickets)
-('empresa.ver',    'Ver datos de la empresa',    'Permite consultar RUC, razón social, dirección y logo', 'Empresa', 1),
-('empresa.editar', 'Editar datos de la empresa', 'Permite modificar RUC, razón social, dirección y logo', 'Empresa', 1)
+('empresa.ver',    'Ver datos de la empresa',    'Permite consultar RUC, razón social, dirección, logo y tasa de IGV', 'Empresa', 1),
+('empresa.editar', 'Editar datos de la empresa', 'Permite modificar RUC, razón social, dirección, logo y tasa de IGV', 'Empresa', 1)
 
 ON CONFLICT (codigo) DO UPDATE
 SET

@@ -8,7 +8,11 @@ import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { SupabaseStorageService } from '../../../integrations/supabase-storage/supabase-storage.service';
 import { GuardarEmpresaDto } from '../dto/empresa.dto';
-import { EmpresaModel, type EmpresaRegistro } from '../models/empresa.model';
+import {
+  EmpresaModel,
+  type DistritoRegistro,
+  type EmpresaRegistro,
+} from '../models/empresa.model';
 
 /** Medidas del logo en el ticket, en puntos de la impresora (58 mm ≈ 384 puntos de ancho). */
 const TICKET_ANCHO = 320;
@@ -29,15 +33,31 @@ export class EmpresaLogic {
   }
 
   async guardar(dto: GuardarEmpresaDto, usuario: number) {
+    // Los campos nuevos son opcionales: si el front no los envía se conservan.
+    const actual = await this.model.obtener();
     const empresa = await this.model.guardar(
       {
         ruc: dto.ruc,
         razonSocial: dto.razonSocial,
+        nombreComercial:
+          dto.nombreComercial !== undefined
+            ? dto.nombreComercial || null
+            : (actual?.nombre_comercial ?? null),
         direccion: dto.direccion || null,
+        idDistrito:
+          dto.idDistrito ??
+          (actual?.id_distrito ? Number(actual.id_distrito) : null),
+        tasaIgv: dto.tasaIgv ?? Number(actual?.tasa_igv ?? 18),
       },
       usuario,
     );
     return this.respuesta(empresa);
+  }
+
+  buscarDistritos(buscar?: string) {
+    return this.model
+      .buscarDistritos(buscar ?? '')
+      .then((filas) => filas.map((d) => this.distritoRespuesta(d)));
   }
 
   async subirLogo(file: Express.Multer.File | undefined, usuario: number) {
@@ -155,12 +175,29 @@ export class EmpresaLogic {
     }
   }
 
-  private respuesta(empresa: EmpresaRegistro) {
+  private distritoRespuesta(d: DistritoRegistro) {
+    return {
+      id: Number(d.id),
+      ubigeo: d.codigo_ubigeo,
+      distrito: d.distrito,
+      provincia: d.provincia,
+      departamento: d.departamento,
+    };
+  }
+
+  private async respuesta(empresa: EmpresaRegistro) {
+    const distrito = empresa.id_distrito
+      ? await this.model.distrito(empresa.id_distrito)
+      : null;
     return {
       id: Number(empresa.id),
       ruc: empresa.ruc,
       razonSocial: empresa.razon_social,
+      nombreComercial: empresa.nombre_comercial,
       direccion: empresa.direccion,
+      idDistrito: empresa.id_distrito ? Number(empresa.id_distrito) : null,
+      distrito: distrito ? this.distritoRespuesta(distrito) : null,
+      tasaIgv: Number(empresa.tasa_igv),
       logoUrl: empresa.logo_url,
       logoTicket: empresa.logo_ticket
         ? `data:image/png;base64,${empresa.logo_ticket}`

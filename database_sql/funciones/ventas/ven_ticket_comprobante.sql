@@ -17,8 +17,13 @@ BEGIN
       'tipo_comprobante', cp.tipo_comprobante,
       'nombre_tipo', CASE cp.tipo_comprobante WHEN 1 THEN 'BOLETA DE VENTA' WHEN 2 THEN 'FACTURA' ELSE 'NOTA DE VENTA' END,
       'numero', cp.serie || '-' || cp.correlativo,
+      'receptor_tipo_doc', cp.receptor_tipo_doc,
       'receptor_num_doc', cp.receptor_num_doc, 'receptor_razon_social', cp.receptor_razon_social,
-      'monto_gravado', cp.monto_gravado, 'monto_igv', cp.monto_igv, 'monto_total', cp.monto_total),
+      'monto_gravado', cp.monto_gravado, 'monto_exonerado', cp.monto_exonerado,
+      'monto_igv', cp.monto_igv, 'monto_total', cp.monto_total,
+      -- Para el QR de la representación impresa (boleta/factura electrónica).
+      'fecha_emision', to_char(cp.fecha_emision AT TIME ZONE 'America/Lima', 'YYYY-MM-DD'),
+      'hash', cp.hash_qr),
     'pagos', COALESCE((SELECT jsonb_agg(jsonb_build_object('nombre_medio', COALESCE(o.nombre, g.medio_pago::TEXT), 'monto', g.monto)
         ORDER BY g.id)
       FROM ven_pago g

@@ -51,6 +51,16 @@ export const envValidationSchema = Joi.object({
 
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('24h'),
+
+  /** Llave para cifrar credenciales SUNAT (token APIsPERU, clave SOL, certificado). No cambiarla luego. */
+  SUNAT_CRYPTO_KEY: Joi.string().min(32).optional(),
+  /** URL base del servicio de APIsPERU (sin valor por defecto en el código). */
+  APISPERU_URL: Joi.string()
+    .uri({ scheme: ['https', 'http'] })
+    .optional(),
+  APISPERU_TIMEOUT_MS: Joi.number().integer().min(1000).default(60_000),
+  /** false desactiva el envío automático al vencer el plazo y la consulta de tickets. */
+  SUNAT_PROGRAMADOR: Joi.boolean().truthy('true').falsy('false').default(true),
 })
   .or('DATABASE_URL', 'DB_HOST')
   .messages({

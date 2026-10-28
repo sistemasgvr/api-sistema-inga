@@ -68,16 +68,28 @@ BEGIN
       ORDER BY id LIMIT 1 FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante en esta sucursal antes de cobrar'; END IF;
     UPDATE gen_correlativo SET ultimo_numero=ultimo_numero+1 WHERE id=correlativo.id RETURNING * INTO correlativo;
-    INSERT INTO ven_comprobante(id_pedido,id_persona,tipo_comprobante,receptor_tipo_doc,receptor_num_doc,receptor_razon_social,serie,correlativo,
-      monto_gravado,monto_igv,monto_total,id_usuario_creacion,id_usuario_modificacion)
-    VALUES(p_id,persona.id,tipo,COALESCE(persona.tipo_documento,CASE WHEN tipo=2 THEN 6 ELSE 1 END),
-      COALESCE(NULLIF(p_datos->>'documento',''),persona.num_documento),
-      COALESCE(NULLIF(btrim(persona.razon_social),''),NULLIF(btrim(concat_ws(' ',persona.nombres,persona.apellido_paterno,persona.apellido_materno)),'')),correlativo.serie,
-      lpad(correlativo.ultimo_numero::TEXT,correlativo.longitud,'0'),v.monto_subtotal,v.monto_igv,v.monto_total,p_usuario,p_usuario) RETURNING id INTO comprobante;
-    INSERT INTO ven_comprobante_detalle(id_comprobante,id_pedido_detalle,descripcion,cantidad,unidad,precio_unitario,monto_total)
-    SELECT comprobante,d.id,p.nombre,d.cantidad-d.cantidad_cancelada,u.simbolo,d.precio_unitario,d.monto_subtotal
-      FROM ven_pedido_detalle d JOIN pro_producto p ON p.id=d.id_producto JOIN pro_unidad_medida u ON u.id=p.id_unidad_medida
-      WHERE d.id_pedido=p_id AND d.estado=1 AND d.tipo_linea<>3 AND d.cantidad>d.cantidad_cancelada;
+    -- SUNAT: boleta y factura quedan pendientes (1) hasta su fecha límite de envío;
+    -- la nota de venta no se envía (0). Con tasa 0 el importe va como exonerado.
+    INSERT INTO ven_comprobante (
+      id_pedido, id_persona, tipo_comprobante, receptor_tipo_doc, receptor_num_doc, receptor_razon_social,
+      serie, correlativo, monto_gravado, monto_exonerado, monto_igv, monto_total,
+      estado_sunat, fecha_limite_envio, id_usuario_creacion, id_usuario_modificacion
+    )
+    VALUES (
+      p_id, persona.id, tipo, COALESCE(persona.tipo_documento, CASE WHEN tipo = 2 THEN 6 ELSE 1 END),
+      COALESCE(NULLIF(p_datos->>'documento', ''), persona.num_documento),
+      COALESCE(NULLIF(btrim(persona.razon_social), ''),
+        NULLIF(btrim(concat_ws(' ', persona.nombres, persona.apellido_paterno, persona.apellido_materno)), '')),
+      correlativo.serie, lpad(correlativo.ultimo_numero::TEXT, correlativo.longitud, '0'),
+      CASE WHEN v.tasa_igv = 0 THEN 0 ELSE v.monto_subtotal END,
+      CASE WHEN v.tasa_igv = 0 THEN v.monto_subtotal ELSE 0 END,
+      v.monto_igv, v.monto_total,
+      CASE WHEN tipo IN (1, 2) THEN 1 ELSE 0 END,
+      ven_sunat_fecha_limite(tipo, CURRENT_TIMESTAMP, v.id_sucursal),
+      p_usuario, p_usuario
+    )
+    RETURNING id INTO comprobante;
+    PERFORM ven_comprobante_insertar_detalle(comprobante, p_id);
   END IF;
   -- Sin crédito disponible no se registra pago de crédito: su INSERT chocaría con el
   -- CHECK (monto > 0) de ven_pago. El excedente en efectivo se cobra igual, más abajo.

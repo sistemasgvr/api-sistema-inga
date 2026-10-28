@@ -1,10 +1,26 @@
+import QRCode from 'qrcode';
 import { COLUMNAS, type AnchoPapel } from './ticket-formato';
 
 /** Logo ya convertido a JPEG (sharp); el PDF lo incrusta tal cual (DCTDecode). */
 export type ImagenTicket = { jpeg: Uint8Array; ancho: number; alto: number };
 
 type Tramo = { texto: string; negrita: boolean; ancho: number; alto: number };
-type Linea = { tramos: Tramo[]; alineacion: number };
+/** `qr`: renglón con el QR que imprimió GS ( k (datos y puntos por módulo). */
+type Linea = {
+  tramos: Tramo[];
+  alineacion: number;
+  qr?: { datos: string; modulo: number };
+};
+
+/** Matriz del QR (corrección M, como la ticketera) con 4 módulos de margen. */
+function matrizQr(datos: string) {
+  const { modules } = QRCode.create(datos, { errorCorrectionLevel: 'M' });
+  return {
+    tamano: modules.size,
+    oscuro: (f: number, c: number) => Boolean(modules.get(f, c)),
+  };
+}
+const MARGEN_QR = 4;
 
 const MM = 72 / 25.4;
 const MARGEN = 3 * MM;
@@ -24,6 +40,7 @@ const PUNTO = 72 / 203;
 export function lineasEscPos(data: string): Linea[] {
   const inicial = { negrita: false, ancho: 1, alto: 1, alineacion: 0 };
   let estado = { ...inicial };
+  let qr = { datos: '', modulo: 3 };
   const lineas: Linea[] = [];
   let actual: Linea = { tramos: [], alineacion: 0 };
   const cerrar = () => {
@@ -49,6 +66,20 @@ export function lineasEscPos(data: string): Linea[] {
       } else i += 1;
     } else if (c === '\x1d') {
       if (data[i + 1] === 'V') break; // Corte de papel: fin del ticket.
+      if (data[i + 1] === '(' && data[i + 2] === 'k') {
+        // GS ( k pL pH cn fn …: tamaño del módulo (67), datos (80) e impresión (81) del QR.
+        const largo = data.charCodeAt(i + 3) + data.charCodeAt(i + 4) * 256;
+        const fn = data.charCodeAt(i + 6);
+        if (fn === 67) qr.modulo = data.charCodeAt(i + 7) || qr.modulo;
+        else if (fn === 80) qr.datos = data.substr(i + 8, largo - 3);
+        else if (fn === 81 && qr.datos) {
+          if (actual.tramos.length) cerrar();
+          lineas.push({ tramos: [], alineacion: estado.alineacion, qr });
+          qr = { datos: '', modulo: qr.modulo };
+        }
+        i += 4 + largo;
+        continue;
+      }
       if (data[i + 1] === '!') {
         estado.ancho = (n >> 4) + 1;
         estado.alto = (n & 15) + 1;
@@ -79,6 +110,7 @@ export function lineasEscPos(data: string): Linea[] {
   if (actual.tramos.length) cerrar();
   while (
     lineas.length &&
+    !lineas[lineas.length - 1].qr &&
     !lineas[lineas.length - 1].tramos.some((t) => t.texto.trim())
   )
     lineas.pop();
@@ -102,9 +134,26 @@ export function ticketPdf(
     interlinea: INTERLINEA,
   } = medidas(papel);
   const lineas = lineasEscPos(data);
-  const altoLinea = (linea: Linea) =>
-    INTERLINEA * Math.max(1, ...linea.tramos.map((t) => t.alto));
   const util = PAPEL - 2 * MARGEN;
+  // QR: cada módulo mide lo mismo que en la térmica (puntos a 203 ppp), sin pasarse del rollo.
+  const qrs = new Map(
+    lineas
+      .filter((l) => l.qr)
+      .map((l) => {
+        const matriz = matrizQr(l.qr!.datos);
+        const modulo = Math.min(
+          l.qr!.modulo * PUNTO,
+          util / (matriz.tamano + 2 * MARGEN_QR),
+        );
+        return [l, { ...matriz, modulo }] as const;
+      }),
+  );
+  const altoLinea = (linea: Linea) => {
+    const qr = qrs.get(linea);
+    return qr
+      ? (qr.tamano + 2 * MARGEN_QR) * qr.modulo
+      : INTERLINEA * Math.max(1, ...linea.tramos.map((t) => t.alto));
+  };
   const escalaLogo = logo ? Math.min(PUNTO, util / logo.ancho) : 0;
   const logoAncho = logo ? logo.ancho * escalaLogo : 0;
   const logoAlto = logo ? logo.alto * escalaLogo : 0;
@@ -123,6 +172,33 @@ export function ticketPdf(
   }
   for (const linea of lineas) {
     const h = altoLinea(linea);
+    const qr = qrs.get(linea);
+    if (qr) {
+      // Un rectángulo por cada tramo de módulos oscuros seguidos de la fila.
+      const lado = qr.tamano * qr.modulo;
+      const x0 =
+        MARGEN +
+        (linea.alineacion === 1
+          ? (util - lado) / 2
+          : linea.alineacion === 2
+            ? util - lado
+            : 0);
+      const y0 = y - MARGEN_QR * qr.modulo;
+      const rects: string[] = [];
+      for (let f = 0; f < qr.tamano; f++)
+        for (let c = 0; c < qr.tamano; c++) {
+          if (!qr.oscuro(f, c)) continue;
+          let fin = c;
+          while (fin + 1 < qr.tamano && qr.oscuro(f, fin + 1)) fin++;
+          rects.push(
+            `${num(x0 + c * qr.modulo)} ${num(y0 - (f + 1) * qr.modulo)} ${num((fin - c + 1) * qr.modulo)} ${num(qr.modulo)} re`,
+          );
+          c = fin;
+        }
+      dibujo.push(`0 g\n${rects.join('\n')}\nf`);
+      y -= h;
+      continue;
+    }
     // Línea base centrada en el renglón; Courier desciende ~0,22 em bajo ella.
     const k = h / INTERLINEA;
     const base = y - h + k * ((INTERLINEA - FUENTE) / 2 + FUENTE * 0.22);

@@ -4,6 +4,8 @@
  * debe verse igual que el papel, así que cualquier cambio se hace en ambos.
  */
 
+import { textoQr } from '../../sunat/helpers/documentos';
+
 /** Ancho del rollo de la impresora térmica, en milímetros. */
 export type AnchoPapel = 58 | 80;
 
@@ -20,13 +22,21 @@ export interface ComandaImpresion {
   tipo?: 'PRECUENTA' | 'COMPROBANTE';
   reimpresion?: boolean;
   comprobante?: {
+    /** 1 boleta, 2 factura (electrónicas: llevan QR), 3 nota de venta. */
+    tipo_comprobante?: number;
     nombre_tipo: string;
     numero: string;
+    receptor_tipo_doc?: number | null;
     receptor_num_doc?: string | null;
     receptor_razon_social?: string | null;
     monto_gravado: number;
+    monto_exonerado?: number;
     monto_igv: number;
     monto_total: number;
+    /** AAAA-MM-DD (Lima), para el QR. */
+    fecha_emision?: string;
+    /** Resumen de la firma; solo existe después de enviarlo a SUNAT. */
+    hash?: string | null;
   };
   pagos?: { nombre_medio: string; monto: number }[];
   total?: number;
@@ -73,6 +83,27 @@ const NORMAL = tamano(1, 1);
 // 4 renglones en blanco y corte parcial GS V 66 (la impresora avanza hasta la
 // cuchilla antes de cortar). En el PDF el avance y el corte no se dibujan.
 const FINAL = '\x1bd\x04\x1dVB\x00';
+
+/** Puntos por módulo del QR: ~2 cm en el rollo de 58 mm y algo más en el de 80 mm. */
+export const PUNTOS_MODULO_QR: Record<AnchoPapel, number> = { 58: 4, 80: 5 };
+
+/**
+ * QR nativo de la ticketera (GS ( k, modelo 2, corrección M): guardar datos e
+ * imprimir. El PDF interpreta estos mismos comandos y dibuja el QR.
+ */
+export function qrEscPos(datos: string, papel: AnchoPapel = 80): string {
+  const comando = (fn: number, parametros: string) => {
+    const largo = parametros.length + 2;
+    return `\x1d(k${String.fromCharCode(largo % 256, Math.floor(largo / 256))}1${String.fromCharCode(fn)}${parametros}`;
+  };
+  return (
+    comando(65, '2\x00') +
+    comando(67, String.fromCharCode(PUNTOS_MODULO_QR[papel] ?? 5)) +
+    comando(69, '1') +
+    comando(80, `0${datos}`) +
+    comando(81, '0')
+  );
+}
 
 const fecha = (valor: string) =>
   new Date(valor)
@@ -257,7 +288,11 @@ function formatearPrecuenta(
   return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;
 }
 
-/** Ticket del comprobante emitido (Ventas → Imprimir). Todavía no hay envío a SUNAT, por eso no lleva QR. */
+/**
+ * Ticket del comprobante (cobro y Ventas → Imprimir). La boleta y la factura son
+ * electrónicas: se imprimen al cobrar como representación impresa, con el QR de
+ * SUNAT, aunque su envío ocurra después (dentro del plazo configurado).
+ */
 function formatearComprobante(
   comanda: ComandaImpresion,
   empresa: EmpresaTicket | null | undefined,
@@ -267,8 +302,28 @@ function formatearComprobante(
   const c = comanda.comprobante;
   const numero = texto(c?.numero);
   const documento = texto(c?.receptor_num_doc);
+  const electronico =
+    (c?.tipo_comprobante === 1 || c?.tipo_comprobante === 2) &&
+    Boolean(empresa?.ruc);
+  const nombreTipo =
+    texto(c?.nombre_tipo).toUpperCase() + (electronico ? ' ELECTRONICA' : '');
+  const qr =
+    electronico && c
+      ? textoQr({
+          ruc: empresa!.ruc!,
+          tipoComprobante: c.tipo_comprobante!,
+          serie: c.numero.split('-')[0],
+          correlativo: c.numero.split('-')[1] ?? '0',
+          igv: c.monto_igv,
+          total: c.monto_total,
+          fecha: c.fecha_emision ?? comanda.fecha.slice(0, 10),
+          receptorTipoDoc: c.receptor_tipo_doc ?? null,
+          receptorNumDoc: c.receptor_num_doc ?? null,
+          hash: c.hash,
+        })
+      : null;
   const lineas = [
-    NEGRITA + texto(c?.nombre_tipo).toUpperCase(),
+    ...envolver(nombreTipo).map((l) => NEGRITA + l),
     grande(numero, 2) + NORMAL_PESO,
     ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
     '',
@@ -300,6 +355,9 @@ function formatearComprobante(
     ...tabla(comanda.items, true, () => []),
     separador,
     importe('OP. GRAVADA', c?.monto_gravado),
+    ...(Number(c?.monto_exonerado ?? 0) > 0
+      ? [importe('OP. EXONERADA', c?.monto_exonerado)]
+      : []),
     importe('IGV', c?.monto_igv),
     NEGRITA +
       tamano(1, 2) +
@@ -315,6 +373,15 @@ function formatearComprobante(
         ]
       : []),
     separador,
+    ...(qr
+      ? [
+          CENTRO + qrEscPos(qr, papel),
+          ...envolver(`Representacion impresa de la ${nombreTipo}`),
+          ...(c?.hash ? envolver(`Resumen: ${texto(c.hash)}`) : []),
+          'Consulte en www.sunat.gob.pe',
+          separador,
+        ]
+      : []),
     CENTRO + 'Gracias por su preferencia',
   ];
   return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;

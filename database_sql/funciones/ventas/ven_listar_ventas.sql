@@ -9,12 +9,12 @@ RETURNS JSON LANGUAGE sql STABLE AS $$
     WHERE l.codigo = 'MEDIO_PAGO'
   ), vigente AS (
     SELECT DISTINCT ON (c.id_pedido) c.id_pedido, c.id, c.tipo_comprobante, c.serie, c.correlativo,
-      c.receptor_num_doc, c.receptor_razon_social
+      c.receptor_num_doc, c.receptor_razon_social, c.estado_sunat, c.fecha_limite_envio
     FROM ven_comprobante c WHERE c.estado = 1
     ORDER BY c.id_pedido, c.id DESC
   ), filtrados AS (
     SELECT p.*, v.id AS id_comprobante, v.tipo_comprobante, v.serie, v.correlativo,
-      v.receptor_num_doc, v.receptor_razon_social
+      v.receptor_num_doc, v.receptor_razon_social, v.estado_sunat, v.fecha_limite_envio
     FROM ven_pedido p
     LEFT JOIN vigente v ON v.id_pedido = p.id
     WHERE p.estado = 1 AND p.estado_pedido = 4
@@ -24,6 +24,7 @@ RETURNS JSON LANGUAGE sql STABLE AS $$
         OR (p.fecha_cierre AT TIME ZONE 'America/Lima')::DATE <= (p_f->>'fecha_hasta')::DATE)
       AND (NULLIF(p_f->>'tipo_comprobante', '') IS NULL
         OR COALESCE(v.tipo_comprobante, 0) = (p_f->>'tipo_comprobante')::INTEGER)
+      AND (NULLIF(p_f->>'estado_sunat', '') IS NULL OR v.estado_sunat = (p_f->>'estado_sunat')::INTEGER)
       AND (NULLIF(p_f->>'medio_pago', '') IS NULL OR EXISTS(
         SELECT 1 FROM ven_pago g WHERE g.id_pedido = p.id AND g.estado = 1
           AND g.medio_pago = (p_f->>'medio_pago')::INTEGER))
@@ -46,7 +47,7 @@ RETURNS JSON LANGUAGE sql STABLE AS $$
         FROM cli_persona c WHERE c.id = f.id_persona) AS nombre_cliente,
       f.id_comprobante, f.tipo_comprobante,
       CASE WHEN f.id_comprobante IS NOT NULL THEN f.serie || '-' || f.correlativo END AS numero_comprobante,
-      f.receptor_num_doc, f.receptor_razon_social,
+      f.receptor_num_doc, f.receptor_razon_social, f.estado_sunat, f.fecha_limite_envio,
       (SELECT count(*) > 1 FROM ven_comprobante c WHERE c.id_pedido = f.id) AS reemitido,
       COALESCE((SELECT json_agg(json_build_object('id', g.id, 'medio_pago', g.medio_pago,
           'nombre_medio', COALESCE(m.nombre, g.medio_pago::TEXT), 'monto', g.monto) ORDER BY g.id)

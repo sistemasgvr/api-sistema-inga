@@ -5,6 +5,7 @@ import {
   Get,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -13,7 +14,7 @@ import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
-import { GuardarEmpresaDto } from '../dto/empresa.dto';
+import { BuscarDistritoDto, GuardarEmpresaDto } from '../dto/empresa.dto';
 import { EmpresaLogic } from '../logic/empresa.logic';
 
 @ApiTags('General - Empresa')
@@ -24,15 +25,29 @@ export class EmpresaController {
   @Get()
   @Permisos(PermisoBanderas.EMPRESA_VER)
   @ApiOperation({
-    summary: 'Datos de la empresa (RUC, razón social, dirección y logo)',
+    summary:
+      'Datos de la empresa (RUC, razón social, dirección, distrito, tasa de IGV y logo)',
   })
   obtener() {
     return this.empresaLogic.obtener();
   }
 
+  @Get('distritos')
+  @Permisos(PermisoBanderas.EMPRESA_VER)
+  @ApiOperation({
+    summary:
+      'Buscar distritos (con su ubigeo) para el domicilio fiscal de la empresa',
+  })
+  distritos(@Query() filtro: BuscarDistritoDto) {
+    return this.empresaLogic.buscarDistritos(filtro.buscar);
+  }
+
   @Put()
   @Permisos(PermisoBanderas.EMPRESA_EDITAR)
-  @ApiOperation({ summary: 'Guardar los datos de la empresa' })
+  @ApiOperation({
+    summary:
+      'Guardar los datos de la empresa (incluye nombre comercial, distrito y tasa de IGV)',
+  })
   guardar(
     @Body() dto: GuardarEmpresaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,

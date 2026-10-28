@@ -160,12 +160,14 @@ CREATE TABLE IF NOT EXISTS gen_empresa (
     email                   VARCHAR(100),
     logo_url                TEXT,
     logo_ticket             TEXT,
+    tasa_igv                NUMERIC(5, 2) NOT NULL DEFAULT 18,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_empresa_ruc UNIQUE (ruc),
+    CONSTRAINT ck_gen_empresa_tasa_igv CHECK (tasa_igv BETWEEN 0 AND 100),
     CONSTRAINT fk_empresa_distrito FOREIGN KEY (id_distrito) REFERENCES gen_distrito (id)
 );
 
@@ -390,7 +392,8 @@ CREATE TABLE IF NOT EXISTS gen_cuenta_bancaria (
 );
 
 -- Credenciales SUNAT / PSE: guardar cifradas en el API, no en texto plano.
--- Utilidad: conexión futura a facturación electrónica (credenciales cifradas).
+-- Utilidad: facturación electrónica vía APIsPERU (token de emisión, SOL y certificado cifrados).
+-- id_ambiente: 1 beta, 2 producción. Plazos: días desde la emisión para enviar a SUNAT.
 CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_empresa              BIGINT       NOT NULL,
@@ -398,6 +401,12 @@ CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
     usuario_sol_cifrado     TEXT,
     clave_sol_cifrada       TEXT,
     certificado_cifrado     TEXT,
+    token_emision_cifrado   TEXT,
+    clave_certificado_cifrada TEXT,
+    certificado_titular     VARCHAR(255),
+    certificado_vence       TIMESTAMPTZ,
+    dias_limite_envio_boleta  SMALLINT   NOT NULL DEFAULT 3,
+    dias_limite_envio_factura SMALLINT   NOT NULL DEFAULT 7,
     id_ambiente             SMALLINT     NOT NULL DEFAULT 1,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
@@ -405,6 +414,7 @@ CREATE TABLE IF NOT EXISTS gen_configuracion_sunat (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_config_sunat_empresa UNIQUE (id_empresa),
+    CONSTRAINT ck_gen_config_sunat_dias CHECK (dias_limite_envio_boleta BETWEEN 0 AND 30 AND dias_limite_envio_factura BETWEEN 0 AND 30),
     CONSTRAINT fk_config_sunat_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
     CONSTRAINT fk_gen_configuracion_sunat_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_gen_configuracion_sunat_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -1260,6 +1270,14 @@ CREATE TABLE IF NOT EXISTS ven_comprobante (
     ruta_xml                VARCHAR(255),
     estado_sunat            SMALLINT     NOT NULL DEFAULT 1,
     sunat_mensaje           TEXT,
+    fecha_limite_envio      DATE,
+    forma_envio             SMALLINT,
+    codigo_respuesta_sunat  VARCHAR(10),
+    observaciones_sunat     TEXT,
+    ruta_cdr                TEXT,
+    ruta_pdf_a4             TEXT,
+    intentos_envio          INTEGER      NOT NULL DEFAULT 0,
+    fecha_envio_sunat       TIMESTAMPTZ,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
@@ -1283,10 +1301,75 @@ CREATE TABLE IF NOT EXISTS ven_comprobante_detalle (
     unidad                  VARCHAR(20),
     precio_unitario         NUMERIC(12, 2) NOT NULL,
     monto_total             NUMERIC(12, 2) NOT NULL,
+    id_producto             BIGINT,
+    unidad_sunat            VARCHAR(5)     NOT NULL DEFAULT 'NIU',
+    tipo_afectacion_igv     VARCHAR(2)     NOT NULL DEFAULT '10',
+    tasa_igv                NUMERIC(5, 2)  NOT NULL DEFAULT 18,
+    valor_unitario          NUMERIC(22, 10),
+    precio_unitario_igv     NUMERIC(22, 10),
+    monto_base_igv          NUMERIC(12, 2),
+    monto_igv               NUMERIC(12, 2),
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_comp_det_comp FOREIGN KEY (id_comprobante) REFERENCES ven_comprobante (id),
     CONSTRAINT fk_comp_det_pdet FOREIGN KEY (id_pedido_detalle) REFERENCES ven_pedido_detalle (id)
+);
+
+-- Utilidad: resúmenes diarios (RC, tipo_lote 1) y comunicaciones de baja (RA, tipo_lote 2) enviados a SUNAT.
+CREATE TABLE IF NOT EXISTS ven_sunat_lote (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo_lote               SMALLINT     NOT NULL,
+    fecha_documentos        DATE         NOT NULL,
+    fecha_envio             DATE         NOT NULL,
+    correlativo             INTEGER      NOT NULL,
+    identificador           VARCHAR(30)  NOT NULL,
+    ticket                  VARCHAR(60),
+    estado_sunat            SMALLINT     NOT NULL DEFAULT 1,
+    codigo_respuesta_sunat  VARCHAR(10),
+    sunat_mensaje           TEXT,
+    ruta_xml                TEXT,
+    ruta_cdr                TEXT,
+    intentos_consulta       INTEGER      NOT NULL DEFAULT 0,
+    fecha_consulta          TIMESTAMPTZ,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_ven_sunat_lote_tipo CHECK (tipo_lote IN (1, 2)),
+    CONSTRAINT uq_ven_sunat_lote UNIQUE (tipo_lote, fecha_envio, correlativo),
+    CONSTRAINT fk_ven_sunat_lote_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_ven_sunat_lote_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+
+-- Utilidad: comprobantes de cada resumen o baja. estado_item: 1 adicionar, 3 anular (catálogo 19).
+CREATE TABLE IF NOT EXISTS ven_sunat_lote_detalle (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_lote                 BIGINT       NOT NULL,
+    id_comprobante          BIGINT       NOT NULL,
+    estado_item             SMALLINT     NOT NULL DEFAULT 1,
+    motivo                  VARCHAR(100),
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_ven_sunat_lote_detalle UNIQUE (id_lote, id_comprobante),
+    CONSTRAINT fk_ven_sunat_lote_det_lote FOREIGN KEY (id_lote) REFERENCES ven_sunat_lote (id),
+    CONSTRAINT fk_ven_sunat_lote_det_comp FOREIGN KEY (id_comprobante) REFERENCES ven_comprobante (id)
+);
+
+-- Utilidad: bitácora de llamadas a APIsPERU (sin archivos en base64).
+CREATE TABLE IF NOT EXISTS ven_comprobante_sunat_log (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_comprobante          BIGINT,
+    id_lote                 BIGINT,
+    operacion               VARCHAR(30)  NOT NULL,
+    exito                   BOOLEAN      NOT NULL,
+    codigo                  VARCHAR(20),
+    mensaje                 TEXT,
+    respuesta               JSONB,
+    id_usuario              BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ven_comp_sunat_log_comp FOREIGN KEY (id_comprobante) REFERENCES ven_comprobante (id),
+    CONSTRAINT fk_ven_comp_sunat_log_lote FOREIGN KEY (id_lote) REFERENCES ven_sunat_lote (id),
+    CONSTRAINT fk_ven_comp_sunat_log_usr FOREIGN KEY (id_usuario) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
 
 -- Pago cuelga del PEDIDO (no del comprobante). Permite mixto y crédito sin boleta aún.
@@ -1949,6 +2032,10 @@ CREATE INDEX IF NOT EXISTS ix_ven_pedido_det_pedido ON ven_pedido_detalle (id_pe
 CREATE INDEX IF NOT EXISTS ix_ven_pago_pedido ON ven_pago (id_pedido);
 CREATE INDEX IF NOT EXISTS ix_ven_pago_medio_fecha ON ven_pago (medio_pago, fecha_creacion);
 CREATE INDEX IF NOT EXISTS ix_ven_comp_emision ON ven_comprobante (fecha_emision DESC);
+CREATE INDEX IF NOT EXISTS ix_ven_comp_sunat_pendiente ON ven_comprobante (estado_sunat, fecha_limite_envio)
+  WHERE estado = 1 AND tipo_comprobante IN (1, 2);
+CREATE INDEX IF NOT EXISTS ix_ven_sunat_lote_det_comp ON ven_sunat_lote_detalle (id_comprobante);
+CREATE INDEX IF NOT EXISTS ix_ven_comp_sunat_log_comp ON ven_comprobante_sunat_log (id_comprobante, id DESC);
 CREATE INDEX IF NOT EXISTS ix_cxc_persona_periodo ON cxc_movimiento (id_persona, anio, mes, quincena);
 CREATE INDEX IF NOT EXISTS ix_cxc_convenio_periodo ON cxc_movimiento (id_convenio, anio, mes, quincena);
 CREATE INDEX IF NOT EXISTS ix_cxc_movimiento_turno ON cxc_movimiento (id_turno) WHERE id_turno IS NOT NULL;
@@ -2138,6 +2225,8 @@ INSERT INTO gen_lista (codigo, nombre, descripcion) VALUES
     ('LINEA_TIPO', 'Tipo línea de pedido', NULL),
     ('PREP_ESTADO', 'Estado preparación', NULL),
     ('SUNAT_ESTADO', 'Estado SUNAT', NULL),
+    ('SUNAT_AMBIENTE', 'Ambiente SUNAT', 'Beta (pruebas) o producción'),
+    ('SUNAT_FORMA_ENVIO', 'Forma de envío SUNAT', 'Individual o resumen diario'),
     ('PERSONA_TIPO', 'Tipo persona', NULL),
     ('DOCUMENTO_TIPO', 'Tipo documento identidad', NULL),
     ('SALIDA_DESTINO', 'Destino salida almacén', NULL),
@@ -2207,6 +2296,12 @@ JOIN (
     ('SUNAT_ESTADO', 'ACEPTADO', 'Aceptado', 2, 2),
     ('SUNAT_ESTADO', 'RECHAZADO', 'Rechazado', 3, 3),
     ('SUNAT_ESTADO', 'ANULADO', 'Anulado', 4, 4),
+    ('SUNAT_ESTADO', 'NO_APLICA', 'No se envía', 0, 0),
+    ('SUNAT_ESTADO', 'EN_PROCESO', 'En proceso', 5, 5),
+    ('SUNAT_AMBIENTE', 'BETA', 'Beta (pruebas)', 1, 1),
+    ('SUNAT_AMBIENTE', 'PRODUCCION', 'Producción', 2, 2),
+    ('SUNAT_FORMA_ENVIO', 'INDIVIDUAL', 'Individual', 1, 1),
+    ('SUNAT_FORMA_ENVIO', 'RESUMEN', 'Resumen diario', 2, 2),
     ('PERSONA_TIPO', 'NATURAL', 'Persona natural', 1, 1),
     ('PERSONA_TIPO', 'JURIDICA', 'Persona jurídica', 2, 2),
     ('DOCUMENTO_TIPO', 'DNI', 'DNI', 1, 1),

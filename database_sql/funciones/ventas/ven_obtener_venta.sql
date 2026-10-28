@@ -30,6 +30,10 @@ BEGIN
         'receptor_num_doc', c.receptor_num_doc, 'receptor_razon_social', c.receptor_razon_social,
         'monto_gravado', c.monto_gravado, 'monto_igv', c.monto_igv, 'monto_total', c.monto_total,
         'fecha_emision', c.fecha_emision, 'estado', c.estado, 'id_comprobante_origen', c.id_comprobante_origen,
+        'estado_sunat', c.estado_sunat, 'sunat_mensaje', c.sunat_mensaje, 'codigo_respuesta_sunat', c.codigo_respuesta_sunat,
+        'observaciones_sunat', c.observaciones_sunat, 'fecha_limite_envio', c.fecha_limite_envio,
+        'fecha_envio_sunat', c.fecha_envio_sunat, 'forma_envio', c.forma_envio,
+        'tiene_xml', c.ruta_xml IS NOT NULL, 'tiene_cdr', c.ruta_cdr IS NOT NULL,
         'items', COALESCE((SELECT jsonb_agg(jsonb_build_object('descripcion', d.descripcion, 'cantidad', d.cantidad,
             'unidad', d.unidad, 'precio_unitario', d.precio_unitario, 'monto_total', d.monto_total) ORDER BY d.id)
           FROM ven_comprobante_detalle d WHERE d.id_comprobante = c.id AND d.estado = 1), '[]'::JSONB))
