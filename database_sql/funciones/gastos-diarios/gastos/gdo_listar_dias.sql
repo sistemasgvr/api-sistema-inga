@@ -1,11 +1,11 @@
--- Listo el historial de días con gasto, usando los totales guardados en la cabecera.
 DROP FUNCTION IF EXISTS gdo_listar_dias(
     p_limite INTEGER,
     p_offset INTEGER,
     p_anio INTEGER,
     p_mes INTEGER,
     p_fecha_desde DATE,
-    p_fecha_hasta DATE
+    p_fecha_hasta DATE,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION gdo_listar_dias(
     p_limite INTEGER DEFAULT 10,
@@ -13,7 +13,8 @@ CREATE OR REPLACE FUNCTION gdo_listar_dias(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -37,6 +38,7 @@ BEGIN
     INTO v_total, v_efectivo, v_yape, v_credito, v_general
     FROM gdo_gasto_dia d
     WHERE d.estado = 1
+      AND (p_id_empresa IS NULL OR d.id_empresa = p_id_empresa)
       AND (p_anio IS NULL OR d.anio = p_anio)
       AND (p_mes IS NULL OR d.mes = p_mes)
       AND (p_fecha_desde IS NULL OR d.fecha_gasto >= p_fecha_desde)
@@ -60,12 +62,14 @@ BEGIN
                 SELECT COUNT(*)
                 FROM gdo_gasto_detalle det
                 WHERE det.id_gasto_dia = d.id AND det.estado = 1
+                  AND (p_id_empresa IS NULL OR det.id_empresa = p_id_empresa)
             ) AS cantidad_items,
             d.observacion,
             d.estado
         FROM gdo_gasto_dia d
-        LEFT JOIN gen_sucursal s ON d.id_sucursal = s.id
+        LEFT JOIN gen_sucursal s ON d.id_sucursal = s.id AND (p_id_empresa IS NULL OR s.id_empresa = p_id_empresa)
         WHERE d.estado = 1
+          AND (p_id_empresa IS NULL OR d.id_empresa = p_id_empresa)
           AND (p_anio IS NULL OR d.anio = p_anio)
           AND (p_mes IS NULL OR d.mes = p_mes)
           AND (p_fecha_desde IS NULL OR d.fecha_gasto >= p_fecha_desde)

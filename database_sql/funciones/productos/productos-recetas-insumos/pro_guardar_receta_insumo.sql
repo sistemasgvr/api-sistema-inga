@@ -7,7 +7,8 @@ DROP FUNCTION IF EXISTS pro_guardar_receta_insumo(
     p_es_opcional BOOLEAN,
     p_grupo_sustitucion INTEGER,
     p_orden INTEGER,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_guardar_receta_insumo(
     p_id_receta BIGINT,
@@ -18,7 +19,8 @@ CREATE OR REPLACE FUNCTION pro_guardar_receta_insumo(
     p_es_opcional BOOLEAN DEFAULT FALSE,
     p_grupo_sustitucion INTEGER DEFAULT NULL,
     p_orden INTEGER DEFAULT 0,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -46,13 +48,14 @@ BEGIN
         LIMIT 1;
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pro_receta WHERE id = p_id_receta AND estado = 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM pro_receta WHERE id = p_id_receta AND estado = 1 AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)) THEN
         RETURN json_build_object('error', 'La receta indicada no existe', 'registro', NULL);
     END IF;
 
     SELECT tipo_producto INTO v_tipo_insumo
     FROM pro_producto
-    WHERE id = p_id_producto_insumo AND estado = 1;
+    WHERE id = p_id_producto_insumo AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF v_tipo_insumo IS NULL THEN
         RETURN json_build_object('error', 'El producto insumo seleccionado no existe o está inactivo', 'registro', NULL);
@@ -131,6 +134,7 @@ BEGIN
           AND estado = 1;
     ELSE
         INSERT INTO pro_receta_insumo (
+            id_empresa,
             id_receta,
             id_producto_insumo,
             cantidad,
@@ -143,6 +147,7 @@ BEGIN
             id_usuario_modificacion
         )
         VALUES (
+            COALESCE(p_id_empresa, (SELECT r.id_empresa FROM pro_receta r WHERE r.id = p_id_receta)),
             p_id_receta,
             p_id_producto_insumo,
             p_cantidad,
@@ -158,6 +163,6 @@ BEGIN
 
     PERFORM pro_recalcular_costo_receta(p_id_receta);
 
-    RETURN pro_obtener_receta(p_id_receta);
+    RETURN pro_obtener_receta(p_id_receta, p_id_empresa);
 END;
 $function$;

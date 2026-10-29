@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
-import { Permisos, PermisosAlguno } from '../../../common/decorators/permisos.decorator';
+import {
+  Permisos,
+  PermisosAlguno,
+} from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import {
   CreateSubCategoriaProductoDto,
@@ -20,25 +23,37 @@ import {
 } from '../dto/subcategorias-producto.dto';
 import { SubCategoriasProductoLogic } from '../logic/subcategorias-producto.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Productos - Subcategorías')
 @Controller('productos/subcategorias')
 export class SubCategoriasProductoController {
-  constructor(private readonly subCategoriasLogic: SubCategoriasProductoLogic) {}
+  constructor(
+    private readonly subCategoriasLogic: SubCategoriasProductoLogic,
+  ) {}
 
   @Get()
-  @PermisosAlguno(PermisoBanderas.CATEGORIAS_LISTAR, PermisoBanderas.SUBCATEGORIAS_LISTAR)
+  @PermisosAlguno(
+    PermisoBanderas.CATEGORIAS_LISTAR,
+    PermisoBanderas.SUBCATEGORIAS_LISTAR,
+  )
   @ApiOperation({ summary: 'Listar subcategorías de producto' })
-  listar(@Query() filtros: FiltroSubCategoriasProductoDto) {
-    return this.subCategoriasLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroSubCategoriasProductoDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.subCategoriasLogic.listar(filtros, idEmpresa);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.SUBCATEGORIAS_VER)
   @ApiOperation({ summary: 'Obtener subcategoría por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.subCategoriasLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.subCategoriasLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -47,8 +62,12 @@ export class SubCategoriasProductoController {
   crear(
     @Body() dto: CreateSubCategoriaProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.subCategoriasLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.subCategoriasLogic.crear(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch(':id')
@@ -59,11 +78,16 @@ export class SubCategoriasProductoController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSubCategoriaProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.subCategoriasLogic.actualizar(id, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.subCategoriasLogic.actualizar(
+      id,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Patch(':id/activar')
@@ -73,8 +97,9 @@ export class SubCategoriasProductoController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.subCategoriasLogic.activar(id, idUsuarioAuditoria);
+    return this.subCategoriasLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete(':id')
@@ -84,7 +109,8 @@ export class SubCategoriasProductoController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.subCategoriasLogic.eliminar(id, idUsuarioAuditoria);
+    return this.subCategoriasLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

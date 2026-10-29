@@ -1,6 +1,5 @@
--- Traigo el gasto de un día con todas sus líneas.
-DROP FUNCTION IF EXISTS gdo_obtener_dia(p_id BIGINT);
-CREATE OR REPLACE FUNCTION gdo_obtener_dia(p_id BIGINT)
+DROP FUNCTION IF EXISTS gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -31,11 +30,12 @@ BEGIN
             d.fecha_creacion,
             TRIM(COALESCE(uc.nombres, '') || ' ' || COALESCE(uc.apellidos, '')) AS nombre_usuario_creacion
         FROM gdo_gasto_dia d
-        LEFT JOIN gen_sucursal s ON d.id_sucursal = s.id
+        LEFT JOIN gen_sucursal s ON d.id_sucursal = s.id AND (p_id_empresa IS NULL OR s.id_empresa = p_id_empresa)
         LEFT JOIN caj_turno t ON d.id_turno = t.id
         LEFT JOIN caj_caja c ON t.id_caja = c.id
         LEFT JOIN auth_usuario_datos uc ON d.id_usuario_creacion = uc.id
         WHERE d.id = p_id
+          AND (p_id_empresa IS NULL OR d.id_empresa = p_id_empresa)
     ) x;
 
     IF v_dia IS NULL THEN
@@ -57,8 +57,8 @@ BEGIN
             det.id_alm_movimiento,
             (det.id_producto IS NOT NULL) AS es_inventario,
             det.id_unidad_medida,
-            um.nombre AS nombre_unidad,
-            um.simbolo AS simbolo_unidad,
+            um.simbolo AS simbolo,
+            um.simbolo AS simbolo,
             det.cantidad,
             det.precio_unitario,
             det.subtotal,
@@ -78,13 +78,14 @@ BEGIN
             det.estado,
             det.fecha_creacion
         FROM gdo_gasto_detalle det
-        LEFT JOIN gdo_insumo i ON det.id_insumo = i.id
-        LEFT JOIN gdo_categoria cat ON i.id_categoria = cat.id
-        LEFT JOIN pro_producto pr ON det.id_producto = pr.id
+        LEFT JOIN gdo_insumo i ON det.id_insumo = i.id AND (p_id_empresa IS NULL OR i.id_empresa = p_id_empresa)
+        LEFT JOIN gdo_categoria cat ON i.id_categoria = cat.id AND (p_id_empresa IS NULL OR cat.id_empresa = p_id_empresa)
+        LEFT JOIN pro_producto pr ON det.id_producto = pr.id AND (p_id_empresa IS NULL OR pr.id_empresa = p_id_empresa)
         LEFT JOIN gen_almacen alm ON det.id_almacen = alm.id
         LEFT JOIN pro_unidad_medida um ON det.id_unidad_medida = um.id
-        LEFT JOIN cli_persona p ON det.id_proveedor = p.id
+        LEFT JOIN cli_persona p ON det.id_proveedor = p.id AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
         WHERE det.id_gasto_dia = p_id AND det.estado = 1
+          AND (p_id_empresa IS NULL OR det.id_empresa = p_id_empresa)
     ) y;
 
     RETURN json_build_object(

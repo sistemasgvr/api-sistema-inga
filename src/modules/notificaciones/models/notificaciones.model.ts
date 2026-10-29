@@ -26,6 +26,7 @@ export class NotificacionesModel {
     ruta: string;
     idReferencia: number | null;
     idsUsuario?: number[] | null;
+    idEmpresa?: number | null;
   }) {
     return this.db.callFunctionJson<{ id: string | null; creada_en: string }>(
       'not_crear',
@@ -40,6 +41,7 @@ export class NotificacionesModel {
         null,
         null,
         true,
+        dto.idEmpresa ?? null,
       ],
     );
   }
@@ -53,6 +55,7 @@ export class NotificacionesModel {
       limite?: number;
       offset?: number;
     },
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<{
       registros: NotificacionRow[];
@@ -64,6 +67,7 @@ export class NotificacionesModel {
       filtros.canal ?? null,
       filtros.limite ?? 30,
       filtros.offset ?? 0,
+      idEmpresa ?? null,
     ]);
   }
 

@@ -3,13 +3,15 @@ DROP FUNCTION IF EXISTS cxp_listar_saldos(
     p_busqueda VARCHAR,
     p_limite INTEGER,
     p_offset INTEGER,
-    p_solo_con_deuda BOOLEAN
+    p_solo_con_deuda BOOLEAN,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cxp_listar_saldos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
-    p_solo_con_deuda BOOLEAN DEFAULT FALSE
+    p_solo_con_deuda BOOLEAN DEFAULT FALSE,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,11 +31,12 @@ BEGIN
         COUNT(*) FILTER (WHERE v.saldo > 0),
         COUNT(*)
     INTO v_deuda_total, v_proveedores_con_deuda, v_proveedores_total
-    FROM vw_cxp_saldo_proveedor v;
-
+    FROM vw_cxp_saldo_proveedor v
+    WHERE (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa);
     SELECT COUNT(*) INTO v_total
     FROM vw_cxp_saldo_proveedor v
     WHERE (p_solo_con_deuda = FALSE OR v.saldo > 0)
+      AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(COALESCE(v.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -57,6 +60,7 @@ BEGIN
             END AS dias_sin_abonar
         FROM vw_cxp_saldo_proveedor v
         WHERE (p_solo_con_deuda = FALSE OR v.saldo > 0)
+          AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(COALESCE(v.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')

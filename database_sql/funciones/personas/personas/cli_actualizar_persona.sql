@@ -17,7 +17,8 @@ DROP FUNCTION IF EXISTS cli_actualizar_persona(
     p_es_proveedor BOOLEAN,
     p_id_convenio BIGINT,
     p_quitar_convenio BOOLEAN,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_actualizar_persona(
     p_id BIGINT,
@@ -35,9 +36,9 @@ CREATE OR REPLACE FUNCTION cli_actualizar_persona(
     p_es_cliente BOOLEAN DEFAULT NULL,
     p_es_proveedor BOOLEAN DEFAULT NULL,
     p_id_convenio BIGINT DEFAULT NULL,
-    -- Bandera para quitar el convenio: NULL en p_id_convenio solo significa "sin cambio".
     p_quitar_convenio BOOLEAN DEFAULT FALSE,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -56,10 +57,14 @@ DECLARE
     v_id_convenio BIGINT;
     v_id_distrito BIGINT;
     v_email VARCHAR;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    SELECT * INTO v_actual FROM cli_persona WHERE id = p_id AND estado = 1;
+    v_empresa := COALESCE(p_id_empresa, (SELECT id_empresa FROM cli_persona WHERE id = p_id));
+
+    SELECT * INTO v_actual FROM cli_persona WHERE id = p_id AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La persona no existe o está inactiva', 'registro', NULL);
@@ -85,7 +90,8 @@ BEGIN
     v_error := cli_validar_datos_persona(
         v_tipo_persona, v_tipo_documento, v_num_documento, v_razon_social,
         v_nombres, v_apellido_paterno, v_email,
-        v_es_cliente, v_es_proveedor, v_id_convenio, v_id_distrito
+        v_es_cliente, v_es_proveedor, v_id_convenio, v_id_distrito,
+        v_empresa
     );
 
     IF v_error IS NOT NULL THEN
@@ -97,6 +103,7 @@ BEGIN
         WHERE tipo_documento = v_tipo_documento
           AND num_documento = v_num_documento
           AND id <> p_id
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'Ya existe otra persona registrada con el documento ' || v_num_documento,
@@ -112,7 +119,6 @@ BEGIN
         razon_social = v_razon_social,
         nombres = v_nombres,
         apellido_paterno = v_apellido_paterno,
-        -- Apellido materno y dirección sí pueden quedar vacíos: se usa el valor tal cual llega.
         apellido_materno = COALESCE(NULLIF(TRIM(p_apellido_materno), ''), apellido_materno),
         direccion = COALESCE(NULLIF(TRIM(p_direccion), ''), direccion),
         id_distrito = v_id_distrito,
@@ -122,8 +128,9 @@ BEGIN
         es_proveedor = v_es_proveedor,
         id_convenio = v_id_convenio,
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
 
-    RETURN cli_obtener_persona(p_id);
+    RETURN cli_obtener_persona(p_id, v_empresa);
 END;
 $function$;

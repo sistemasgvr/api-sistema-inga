@@ -1,5 +1,5 @@
-DROP FUNCTION IF EXISTS pro_obtener_producto(p_id BIGINT);
-CREATE OR REPLACE FUNCTION pro_obtener_producto(p_id BIGINT)
+DROP FUNCTION IF EXISTS pro_obtener_producto(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION pro_obtener_producto(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -17,8 +17,8 @@ BEGIN
             sc.id_categoria,
             c.nombre AS nombre_categoria,
             p.id_unidad_medida,
-            um.nombre AS nombre_unidad_medida,
-            um.simbolo AS simbolo_unidad,
+            um.simbolo AS simbolo,
+            um.simbolo AS simbolo,
             p.id_estacion,
             e.nombre AS nombre_estacion,
             p.id_almacen_stock,
@@ -56,6 +56,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON p.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos umod ON p.id_usuario_modificacion = umod.id
         WHERE p.id = p_id
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

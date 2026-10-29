@@ -90,17 +90,21 @@ const SQL_DETALLE_MOVIMIENTOS = `
 export class CuentasPorCobrarModel {
   constructor(private readonly db: DatabaseService) {}
 
-  listarSaldos(filtros: FiltroSaldosCxcDto) {
+  listarSaldos(filtros: FiltroSaldosCxcDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('cxc_listar_saldos', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
       filtros.offset ?? 0,
       filtros.solo_con_deuda ?? false,
       filtros.id_convenio ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  listarMovimientos(filtros: FiltroMovimientosCxcDto) {
+  listarMovimientos(
+    filtros: FiltroMovimientosCxcDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthListResult>('cxc_listar_movimientos', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
@@ -112,6 +116,7 @@ export class CuentasPorCobrarModel {
       filtros.mes ?? null,
       filtros.quincena ?? null,
       filtros.incluir_anulados ?? false,
+      idEmpresa ?? null,
     ]);
   }
 

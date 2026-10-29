@@ -4,14 +4,16 @@ DROP FUNCTION IF EXISTS cxc_listar_saldos(
     p_limite INTEGER,
     p_offset INTEGER,
     p_solo_con_deuda BOOLEAN,
-    p_id_convenio BIGINT
+    p_id_convenio BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cxc_listar_saldos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
     p_solo_con_deuda BOOLEAN DEFAULT FALSE,
-    p_id_convenio BIGINT DEFAULT NULL
+    p_id_convenio BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -37,12 +39,13 @@ BEGIN
         COUNT(*) FILTER (WHERE COALESCE(v.limite_credito, 0) > 0 AND v.saldo > v.limite_credito)
     INTO v_deuda_total, v_clientes_con_deuda, v_clientes_total, v_sobre_limite
     FROM vw_cxc_saldo_persona v
-    WHERE (p_id_convenio IS NULL OR v.id_convenio = p_id_convenio);
-
+    WHERE (p_id_convenio IS NULL OR v.id_convenio = p_id_convenio)
+      AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa);
     SELECT COUNT(*) INTO v_total
     FROM vw_cxc_saldo_persona v
     WHERE (p_solo_con_deuda = FALSE OR v.saldo > 0)
       AND (p_id_convenio IS NULL OR v.id_convenio = p_id_convenio)
+      AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(COALESCE(v.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -78,6 +81,7 @@ BEGIN
         FROM vw_cxc_saldo_persona v
         WHERE (p_solo_con_deuda = FALSE OR v.saldo > 0)
           AND (p_id_convenio IS NULL OR v.id_convenio = p_id_convenio)
+          AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(COALESCE(v.nombre, '')) LIKE LOWER('%' || p_busqueda || '%')

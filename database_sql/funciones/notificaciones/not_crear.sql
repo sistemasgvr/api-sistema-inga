@@ -31,13 +31,14 @@ CREATE OR REPLACE FUNCTION public.not_crear(
   p_ids_usuario_destino BIGINT[] DEFAULT NULL,
   p_clave_unica VARCHAR DEFAULT NULL,
   p_datos JSONB DEFAULT NULL,
-  p_emitida BOOLEAN DEFAULT TRUE
+  p_emitida BOOLEAN DEFAULT TRUE,
+  p_id_empresa BIGINT DEFAULT NULL
 ) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v_id UUID; v_creada TIMESTAMPTZ;
 BEGIN
-  INSERT INTO notificaciones (canal, titulo, mensaje, severidad, ruta, id_referencia,
+  INSERT INTO notificaciones (id_empresa, canal, titulo, mensaje, severidad, ruta, id_referencia,
                               ids_usuario_destino, clave_unica, datos, emitida_en)
-  VALUES (p_canal, left(p_titulo, 120), p_mensaje, COALESCE(p_severidad, 'info'), left(p_ruta, 255),
+  VALUES (p_id_empresa, p_canal, left(p_titulo, 120), p_mensaje, COALESCE(p_severidad, 'info'), left(p_ruta, 255),
           p_id_referencia, NULLIF(p_ids_usuario_destino, '{}'), p_clave_unica, p_datos,
           CASE WHEN p_emitida THEN now() END)
   ON CONFLICT (clave_unica) WHERE clave_unica IS NOT NULL DO NOTHING

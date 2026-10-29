@@ -3,14 +3,16 @@ DROP FUNCTION IF EXISTS pro_actualizar_sub_categoria(
     p_id_categoria BIGINT,
     p_nombre VARCHAR,
     p_orden INTEGER,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_actualizar_sub_categoria(
     p_id BIGINT,
     p_id_categoria BIGINT DEFAULT NULL,
     p_nombre VARCHAR DEFAULT NULL,
     p_orden INTEGER DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -18,14 +20,18 @@ AS $function$
 DECLARE
     v_nombre VARCHAR;
     v_id_categoria BIGINT;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
+
+    v_empresa := COALESCE(p_id_empresa, (SELECT s.id_empresa FROM pro_subcategoria s WHERE s.id = p_id));
 
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
     SELECT COALESCE(p_id_categoria, id_categoria) INTO v_id_categoria
     FROM pro_subcategoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF v_id_categoria IS NULL THEN
         RETURN json_build_object('error', 'La subcategoría no existe o está inactiva', 'registro', NULL);
@@ -33,6 +39,7 @@ BEGIN
 
     IF p_id_categoria IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM pro_categoria WHERE id = p_id_categoria AND estado = 1
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object('error', 'La categoría indicada no existe o está inactiva', 'registro', NULL);
     END IF;
@@ -43,6 +50,7 @@ BEGIN
           AND id_categoria = v_id_categoria
           AND LOWER(TRIM(nombre)) = LOWER(v_nombre)
           AND id <> p_id
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object('error', 'Ya existe otra subcategoría activa con el nombre ' || v_nombre || ' en esta categoría', 'registro', NULL);
     END IF;
@@ -53,8 +61,9 @@ BEGIN
         nombre = COALESCE(v_nombre, nombre),
         orden = COALESCE(p_orden, orden),
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
-    RETURN pro_obtener_sub_categoria(p_id);
+    RETURN pro_obtener_sub_categoria(p_id, v_empresa);
 END;
 $function$;

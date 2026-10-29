@@ -1,11 +1,11 @@
--- Actualizo un convenio. Lo que llega en NULL se queda como está.
 DROP FUNCTION IF EXISTS cli_actualizar_convenio(
     p_id BIGINT,
     p_nombre VARCHAR,
     p_id_condicion_pago BIGINT,
     p_limite_credito NUMERIC,
     p_corte_quincenal BOOLEAN,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_actualizar_convenio(
     p_id BIGINT,
@@ -13,19 +13,23 @@ CREATE OR REPLACE FUNCTION cli_actualizar_convenio(
     p_id_condicion_pago BIGINT DEFAULT NULL,
     p_limite_credito NUMERIC DEFAULT NULL,
     p_corte_quincenal BOOLEAN DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_nombre VARCHAR;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
+    v_empresa := COALESCE(p_id_empresa, (SELECT id_empresa FROM cli_convenio WHERE id = p_id));
+
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
-    IF NOT EXISTS (SELECT 1 FROM cli_convenio WHERE id = p_id AND estado = 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM cli_convenio WHERE id = p_id AND estado = 1 AND (v_empresa IS NULL OR id_empresa = v_empresa)) THEN
         RETURN json_build_object('error', 'El convenio no existe o está inactivo', 'registro', NULL);
     END IF;
 
@@ -46,8 +50,9 @@ BEGIN
         limite_credito = COALESCE(p_limite_credito, limite_credito),
         corte_quincenal = COALESCE(p_corte_quincenal, corte_quincenal),
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
 
-    RETURN cli_obtener_convenio(p_id);
+    RETURN cli_obtener_convenio(p_id, v_empresa);
 END;
 $function$;

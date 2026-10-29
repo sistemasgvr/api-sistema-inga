@@ -1,10 +1,12 @@
 DROP FUNCTION IF EXISTS pro_activar_categoria(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_activar_categoria(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -16,7 +18,8 @@ BEGIN
 
     SELECT estado INTO v_estado
     FROM pro_categoria
-    WHERE id = p_id;
+    WHERE id = p_id
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'La categoría con ID % no existe', p_id;
@@ -30,7 +33,8 @@ BEGIN
     SET estado = 1,
         id_usuario_modificacion = COALESCE(p_id_usuario_auditoria, id_usuario_modificacion),
         fecha_modificacion = NOW()
-    WHERE id = p_id;
+    WHERE id = p_id
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     RETURN json_build_object('exito', TRUE, 'id', p_id);
 END;

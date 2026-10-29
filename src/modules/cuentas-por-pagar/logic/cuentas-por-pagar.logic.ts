@@ -33,8 +33,8 @@ export class CuentasPorPagarLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  async listarSaldos(filtros: FiltroSaldosDto) {
-    const result = await this.model.listarSaldos(filtros);
+  async listarSaldos(filtros: FiltroSaldosDto, idEmpresa?: number | null) {
+    const result = await this.model.listarSaldos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 

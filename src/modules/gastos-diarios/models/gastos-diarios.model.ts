@@ -17,11 +17,7 @@ import {
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
 
-/**
- * Capa que habla con la base. No decide nada: traduce los datos a los
- * parámetros que espera cada función SQL, en el orden correcto.
- * Toda la regla de negocio vive en las funciones `gdo_*`.
- */
+
 @Injectable()
 export class GastosDiariosModel {
   constructor(private readonly db: DatabaseService) {}
@@ -34,48 +30,51 @@ export class GastosDiariosModel {
 
   /* -------------------------------- Insumos -------------------------------- */
 
-  listarInsumos(filtros: FiltroInsumosDto) {
+  listarInsumos(filtros: FiltroInsumosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<{ registros: unknown[]; resumen: unknown }>(
       'gdo_listar_insumos',
       [
         filtros.buscar ?? '',
         filtros.id_categoria ?? null,
         this.resolveEstadoFiltro(filtros.estado),
+        idEmpresa ?? null,
       ],
     );
   }
 
-  obtenerInsumo(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_insumo', [id]);
+  obtenerInsumo(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_insumo', [id, idEmpresa ?? null]);
   }
 
-  crearInsumo(dto: CreateInsumoDto) {
+  crearInsumo(dto: CreateInsumoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_crear_insumo', [
       dto.id_categoria,
       dto.nombre,
       dto.precio_referencial ?? 0,
       dto.id_proveedor_habitual ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  actualizarInsumo(id: number, dto: UpdateInsumoDto) {
+  actualizarInsumo(id: number, dto: UpdateInsumoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_actualizar_insumo', [
       id,
       dto.id_categoria ?? null,
       dto.nombre ?? null,
-      // `?? null` y no `|| null`: un precio de 0 es válido.
       dto.precio_referencial ?? null,
       dto.id_proveedor_habitual ?? null,
       dto.quitar_proveedor ?? false,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  toggleInsumo(id: number, idUsuarioAuditoria?: number) {
+  toggleInsumo(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('gdo_toggle_insumo', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -90,11 +89,11 @@ export class GastosDiariosModel {
     ]);
   }
 
-  obtenerDia(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_dia', [id]);
+  obtenerDia(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_dia', [id, idEmpresa ?? null]);
   }
 
-  listarDias(filtros: FiltroDiasDto) {
+  listarDias(filtros: FiltroDiasDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('gdo_listar_dias', [
       filtros.limite ?? 10,
       filtros.offset ?? 0,
@@ -102,6 +101,7 @@ export class GastosDiariosModel {
       filtros.mes ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
+      idEmpresa ?? null,
     ]);
   }
 

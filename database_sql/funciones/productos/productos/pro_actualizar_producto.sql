@@ -13,7 +13,8 @@ DROP FUNCTION IF EXISTS pro_actualizar_producto(
     p_disponible_venta BOOLEAN,
     p_tiempo_prep_min INTEGER,
     p_imagen_url VARCHAR,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_actualizar_producto(
     p_id BIGINT,
@@ -30,7 +31,8 @@ CREATE OR REPLACE FUNCTION pro_actualizar_producto(
     p_disponible_venta BOOLEAN DEFAULT NULL,
     p_tiempo_prep_min INTEGER DEFAULT NULL,
     p_imagen_url VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -42,15 +44,19 @@ DECLARE
     v_tipo pro_tipo_producto%ROWTYPE;
     v_producto pro_producto%ROWTYPE;
     v_estacion BIGINT;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id AND estado = 1) THEN
+    v_empresa := COALESCE(p_id_empresa, (SELECT p.id_empresa FROM pro_producto p WHERE p.id = p_id));
+
+    IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id AND estado = 1 AND (v_empresa IS NULL OR id_empresa = v_empresa)) THEN
         RETURN json_build_object('error', 'El producto no existe o está inactivo', 'registro', NULL);
     END IF;
 
-    SELECT * INTO v_producto FROM pro_producto WHERE id = p_id;
-    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = COALESCE(p_tipo_producto, v_producto.tipo_producto) AND estado = 1;
+    SELECT * INTO v_producto FROM pro_producto WHERE id = p_id AND (v_empresa IS NULL OR id_empresa = v_empresa);
+    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = COALESCE(p_tipo_producto, v_producto.tipo_producto) AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'Tipo de producto inexistente o inactivo', 'registro', NULL);
     END IF;
@@ -64,6 +70,7 @@ BEGIN
 
     IF p_id_subcategoria IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM pro_subcategoria WHERE id = p_id_subcategoria AND estado = 1
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object('error', 'La subcategoría indicada no existe o está inactiva', 'registro', NULL);
     END IF;
@@ -88,7 +95,7 @@ BEGIN
 
     SELECT COALESCE(p_controla_stock, controla_stock), COALESCE(p_id_almacen_stock, id_almacen_stock)
     INTO v_controla_stock, v_id_almacen
-    FROM pro_producto WHERE id = p_id;
+    FROM pro_producto WHERE id = p_id AND (v_empresa IS NULL OR id_empresa = v_empresa);
 
     IF v_controla_stock = TRUE AND v_id_almacen IS NULL THEN
         RETURN json_build_object('error', 'El producto controla stock pero no tiene un almacén asignado', 'registro', NULL);
@@ -111,8 +118,9 @@ BEGIN
         imagen_url = CASE WHEN p_imagen_url = '' THEN NULL ELSE COALESCE(p_imagen_url, imagen_url) END,
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = NOW()
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
 
-    RETURN pro_obtener_producto(p_id);
+    RETURN pro_obtener_producto(p_id, v_empresa);
 END;
 $function$;

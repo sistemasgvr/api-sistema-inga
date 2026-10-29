@@ -38,13 +38,13 @@ export class CuentasPorCobrarLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  async listarSaldos(filtros: FiltroSaldosCxcDto) {
-    const result = await this.model.listarSaldos(filtros);
+  async listarSaldos(filtros: FiltroSaldosCxcDto, idEmpresa?: number | null) {
+    const result = await this.model.listarSaldos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async listarMovimientos(filtros: FiltroMovimientosCxcDto) {
-    const result = await this.model.listarMovimientos(filtros);
+  async listarMovimientos(filtros: FiltroMovimientosCxcDto, idEmpresa?: number | null) {
+    const result = await this.model.listarMovimientos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 

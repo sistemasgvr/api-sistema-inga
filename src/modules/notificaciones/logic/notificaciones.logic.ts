@@ -164,6 +164,7 @@ export class NotificacionesLogic
       user.id,
       canalesPermitidos(user),
       filtros,
+      user.id_empresa ?? null,
     );
     return {
       registros: (result?.registros ?? []).map(aNotificacion),

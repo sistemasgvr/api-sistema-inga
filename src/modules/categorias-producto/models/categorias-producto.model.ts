@@ -18,18 +18,19 @@ export class CategoriasProductoModel {
     return 1;
   }
 
-  listar(filtros: FiltroCategoriasProductoDto) {
+  listar(filtros: FiltroCategoriasProductoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('pro_listar_categorias', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
       filtros.offset ?? 0,
       this.resolveEstadoFiltro(filtros.estado),
       filtros.es_carta ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_obtener_categoria', [id]);
+  obtenerPorId(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('pro_obtener_categoria', [id, idEmpresa ?? null]);
   }
 
   crear(
@@ -38,6 +39,7 @@ export class CategoriasProductoModel {
     es_carta: boolean,
     orden: number,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('pro_crear_categoria', [
       nombre,
@@ -45,6 +47,7 @@ export class CategoriasProductoModel {
       es_carta,
       orden,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -55,6 +58,7 @@ export class CategoriasProductoModel {
     es_carta: boolean | null,
     orden: number | null,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('pro_actualizar_categoria', [
       id,
@@ -63,20 +67,23 @@ export class CategoriasProductoModel {
       es_carta,
       orden,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('pro_eliminar_categoria', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthActivateResult>('pro_activar_categoria', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

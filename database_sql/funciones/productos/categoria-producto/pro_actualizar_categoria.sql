@@ -4,7 +4,8 @@ DROP FUNCTION IF EXISTS pro_actualizar_categoria(
     p_descripcion VARCHAR,
     p_es_carta BOOLEAN,
     p_orden INTEGER,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_actualizar_categoria(
     p_id BIGINT,
@@ -12,15 +13,19 @@ CREATE OR REPLACE FUNCTION pro_actualizar_categoria(
     p_descripcion VARCHAR DEFAULT NULL,
     p_es_carta BOOLEAN DEFAULT NULL,
     p_orden INTEGER DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_nombre VARCHAR;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
+
+    v_empresa := COALESCE(p_id_empresa, (SELECT c.id_empresa FROM pro_categoria c WHERE c.id = p_id));
 
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
@@ -29,6 +34,7 @@ BEGIN
         WHERE estado = 1
           AND LOWER(TRIM(nombre)) = LOWER(v_nombre)
           AND id <> p_id
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object('error', 'Ya existe otra categoría con el nombre ' || v_nombre, 'registro', NULL);
     END IF;
@@ -44,12 +50,13 @@ BEGIN
         orden = COALESCE(p_orden, orden),
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = NOW()
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'Categoría no encontrada o inactiva', 'registro', NULL);
     END IF;
 
-    RETURN pro_obtener_categoria(p_id);
+    RETURN pro_obtener_categoria(p_id, v_empresa);
 END;
 $function$;

@@ -5,7 +5,8 @@ DROP FUNCTION IF EXISTS pro_listar_productos(
     p_tipo_producto SMALLINT,
     p_id_subcategoria BIGINT,
     p_id_categoria BIGINT,
-    p_estado INT
+    p_estado INT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_listar_productos(
     p_busqueda VARCHAR DEFAULT '',
@@ -14,7 +15,8 @@ CREATE OR REPLACE FUNCTION pro_listar_productos(
     p_tipo_producto SMALLINT DEFAULT NULL,
     p_id_subcategoria BIGINT DEFAULT NULL,
     p_id_categoria BIGINT DEFAULT NULL,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -39,6 +41,7 @@ BEGIN
     WHERE (p_tipo_producto IS NULL OR p.tipo_producto = p_tipo_producto)
       AND (p_id_subcategoria IS NULL OR p.id_subcategoria = p_id_subcategoria)
       AND (p_id_categoria IS NULL OR sc.id_categoria = p_id_categoria)
+      AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
@@ -55,6 +58,7 @@ BEGIN
       AND (p_tipo_producto IS NULL OR p.tipo_producto = p_tipo_producto)
       AND (p_id_subcategoria IS NULL OR p.id_subcategoria = p_id_subcategoria)
       AND (p_id_categoria IS NULL OR sc.id_categoria = p_id_categoria)
+      AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
@@ -72,8 +76,8 @@ BEGIN
             sc.id_categoria,
             c.nombre AS nombre_categoria,
             p.id_unidad_medida,
-            um.nombre AS nombre_unidad_medida,
-            um.simbolo AS simbolo_unidad,
+            um.simbolo AS simbolo,
+            um.simbolo AS simbolo,
             p.id_estacion,
             e.nombre AS nombre_estacion,
             p.id_almacen_stock,
@@ -91,7 +95,6 @@ BEGIN
             pro_costo_unitario_insumo(p.id) AS costo_unitario,
             p.controla_stock,
             CASE WHEN p.controla_stock THEN stock.stock_actual ELSE NULL END AS stock_actual,
-            -- Lo que se puede entregar ya: lo mismo que ven_reservar_item aparta al comandar.
             CASE WHEN p.controla_stock THEN GREATEST(stock.stock_actual - stock.stock_reservado, 0) ELSE NULL END AS stock_disponible,
             p.disponible_venta,
             p.afecto_igv,
@@ -112,6 +115,7 @@ BEGIN
           AND (p_tipo_producto IS NULL OR p.tipo_producto = p_tipo_producto)
           AND (p_id_subcategoria IS NULL OR p.id_subcategoria = p_id_subcategoria)
           AND (p_id_categoria IS NULL OR sc.id_categoria = p_id_categoria)
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(p.nombre) LIKE LOWER('%' || p_busqueda || '%')
@@ -135,3 +139,4 @@ BEGIN
     );
 END;
 $function$;
+

@@ -1,10 +1,12 @@
 DROP FUNCTION IF EXISTS pro_activar_sub_categoria(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_activar_sub_categoria(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -15,7 +17,8 @@ BEGIN
     UPDATE pro_subcategoria
     SET estado = 1,
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 0;
+    WHERE id = p_id AND estado = 0
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('activado', FALSE, 'id', p_id);

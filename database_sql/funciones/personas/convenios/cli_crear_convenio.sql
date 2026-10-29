@@ -1,17 +1,18 @@
--- Creo un convenio de crédito.
 DROP FUNCTION IF EXISTS cli_crear_convenio(
     p_nombre VARCHAR,
     p_id_condicion_pago BIGINT,
     p_limite_credito NUMERIC,
     p_corte_quincenal BOOLEAN,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_crear_convenio(
     p_nombre VARCHAR,
     p_id_condicion_pago BIGINT,
     p_limite_credito NUMERIC DEFAULT 0,
     p_corte_quincenal BOOLEAN DEFAULT TRUE,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -40,6 +41,7 @@ BEGIN
     END IF;
 
     INSERT INTO cli_convenio (
+        id_empresa,
         nombre,
         id_condicion_pago,
         limite_credito,
@@ -48,6 +50,7 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
+        p_id_empresa,
         v_nombre,
         p_id_condicion_pago,
         COALESCE(p_limite_credito, 0),
@@ -57,6 +60,6 @@ BEGIN
     )
     RETURNING id INTO v_id;
 
-    RETURN cli_obtener_convenio(v_id);
+    RETURN cli_obtener_convenio(v_id, p_id_empresa);
 END;
 $function$;

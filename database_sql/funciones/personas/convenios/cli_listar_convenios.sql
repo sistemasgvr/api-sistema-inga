@@ -3,13 +3,15 @@ DROP FUNCTION IF EXISTS cli_listar_convenios(
     p_busqueda VARCHAR,
     p_limite INTEGER,
     p_offset INTEGER,
-    p_estado INT
+    p_estado INT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_listar_convenios(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -23,22 +25,22 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- El resumen cuenta el universo completo, ignorando el filtro de estado.
     SELECT
         COUNT(*),
         COUNT(*) FILTER (WHERE c.estado = 1),
         COUNT(*) FILTER (WHERE c.estado = 0)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos
     FROM cli_convenio c
-    WHERE (
-        p_busqueda = ''
-        OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
-    );
+    WHERE (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
+      AND (
+          p_busqueda = ''
+          OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
+      );
 
-    -- Este total sí respeta el filtro de estado: es el de la paginación.
     SELECT COUNT(*) INTO v_total
     FROM cli_convenio c
     WHERE (p_estado IS NULL OR c.estado = p_estado)
+      AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
@@ -59,6 +61,7 @@ BEGIN
                 SELECT COUNT(*)
                 FROM cli_persona p
                 WHERE p.id_convenio = c.id AND p.estado = 1
+                  AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
             ) AS personas_asignadas,
             c.fecha_creacion,
             c.fecha_modificacion,
@@ -71,6 +74,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON c.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON c.id_usuario_modificacion = um.id
         WHERE (p_estado IS NULL OR c.estado = p_estado)
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')

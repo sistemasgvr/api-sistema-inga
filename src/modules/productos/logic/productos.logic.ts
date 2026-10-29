@@ -6,7 +6,11 @@ import {
   mapSingleResult,
 } from '../../../common/helpers/auth-response.helper';
 import { SupabaseStorageService } from '../../../integrations/supabase-storage/supabase-storage.service';
-import { CreateProductoDto, FiltroProductosDto, UpdateProductoDto } from '../dto/productos.dto';
+import {
+  CreateProductoDto,
+  FiltroProductosDto,
+  UpdateProductoDto,
+} from '../dto/productos.dto';
 import { ProductosModel } from '../models/productos.model';
 
 // Prefijo bajo el que este módulo escribe. Nada fuera de él se borra jamás.
@@ -21,13 +25,13 @@ export class ProductosLogic {
     private readonly storage: SupabaseStorageService,
   ) {}
 
-  async listar(filtros: FiltroProductosDto) {
-    const result = await this.productosModel.listar(filtros);
+  async listar(filtros: FiltroProductosDto, idEmpresa?: number | null) {
+    const result = await this.productosModel.listar(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.productosModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idEmpresa?: number | null) {
+    const result = await this.productosModel.obtenerPorId(id, idEmpresa);
     return mapSingleResult(result, `Producto con ID ${id} no encontrado`);
   }
 
@@ -35,28 +39,37 @@ export class ProductosLogic {
     return await this.productosModel.listarUnidadesMedida();
   }
 
-  async crear(dto: CreateProductoDto) {
+  async crear(dto: CreateProductoDto, idEmpresa?: number | null) {
     try {
-      const result = await this.productosModel.crear(dto);
+      const result = await this.productosModel.crear(dto, idEmpresa);
       return mapSingleResult(result, 'No se pudo crear el producto');
     } catch (error) {
-      if ((error as {code?:string}).code === 'P0001') throw new BadRequestException((error as Error).message);
+      if ((error as { code?: string }).code === 'P0001')
+        throw new BadRequestException((error as Error).message);
       throw error;
     }
   }
 
-  async actualizar(id: number, dto: UpdateProductoDto) {
+  async actualizar(
+    id: number,
+    dto: UpdateProductoDto,
+    idEmpresa?: number | null,
+  ) {
     // Se lee la imagen previa porque, tras guardar, es la única forma de saber
     // cuál objeto quedó huérfano. Una consulta extra a cambio de no llenar el
     // bucket en cada reemplazo.
     const previa = await this.imagenActual(id);
 
-    const result = await this.productosModel.actualizar(id, dto);
-    const actualizado = mapSingleResult(result, `Producto con ID ${id} no encontrado`);
+    const result = await this.productosModel.actualizar(id, dto, idEmpresa);
+    const actualizado = mapSingleResult(
+      result,
+      `Producto con ID ${id} no encontrado`,
+    );
 
     // La base ya apunta a la nueva imagen: en este punto el objeto anterior solo
     // es basura y nunca debe bloquear un guardado correcto.
-    const nueva = (actualizado as { imagen_url?: string | null })?.imagen_url ?? null;
+    const nueva =
+      (actualizado as { imagen_url?: string | null })?.imagen_url ?? null;
     if (previa && previa !== nueva) {
       void this.retirarImagen(previa);
     }
@@ -68,7 +81,9 @@ export class ProductosLogic {
   private async imagenActual(id: number): Promise<string | null> {
     try {
       const resultado = await this.productosModel.obtenerPorId(id);
-      const registro = resultado?.registro as { imagen_url?: string | null } | null;
+      const registro = resultado?.registro as {
+        imagen_url?: string | null;
+      } | null;
       return registro?.imagen_url?.trim() || null;
     } catch (error) {
       // Si no se puede leer el estado previo se sigue guardando: es preferible
@@ -109,18 +124,48 @@ export class ProductosLogic {
     }
   }
 
-  async toggleDisponibilidad(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.productosModel.toggleDisponibilidad(id, idUsuarioAuditoria);
+  async toggleDisponibilidad(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.productosModel.toggleDisponibilidad(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapSingleResult(result, `Producto con ID ${id} no encontrado`);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.productosModel.eliminar(id, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Producto con ID ${id} no encontrado o tiene stock activo`);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.productosModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
+    return mapDeleteResult(
+      result,
+      `Producto con ID ${id} no encontrado o tiene stock activo`,
+    );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.productosModel.activar(id, idUsuarioAuditoria);
-    return mapActivateResult(result, `Producto con ID ${id} no encontrado o ya activo`);
+  async activar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.productosModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
+    return mapActivateResult(
+      result,
+      `Producto con ID ${id} no encontrado o ya activo`,
+    );
   }
 }

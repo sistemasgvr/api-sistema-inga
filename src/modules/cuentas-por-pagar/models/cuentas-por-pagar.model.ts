@@ -23,12 +23,13 @@ import {
 export class CuentasPorPagarModel {
   constructor(private readonly db: DatabaseService) {}
 
-  listarSaldos(filtros: FiltroSaldosDto) {
+  listarSaldos(filtros: FiltroSaldosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('cxp_listar_saldos', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
       filtros.offset ?? 0,
       filtros.solo_con_deuda ?? false,
+      idEmpresa ?? null,
     ]);
   }
 

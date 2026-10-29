@@ -12,7 +12,8 @@ DROP FUNCTION IF EXISTS pro_crear_producto(
     p_disponible_venta BOOLEAN,
     p_tiempo_prep_min INTEGER,
     p_imagen_url VARCHAR,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_crear_producto(
     p_id_subcategoria BIGINT,
@@ -28,7 +29,8 @@ CREATE OR REPLACE FUNCTION pro_crear_producto(
     p_disponible_venta BOOLEAN DEFAULT TRUE,
     p_tiempo_prep_min INTEGER DEFAULT NULL,
     p_imagen_url VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -37,9 +39,11 @@ DECLARE
     v_id BIGINT;
     v_controla_stock BOOLEAN;
     v_tipo pro_tipo_producto%ROWTYPE;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
+    v_empresa := COALESCE(p_id_empresa, (SELECT t.id_empresa FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador WHERE u.id = p_id_usuario_auditoria), (SELECT sc.id_empresa FROM pro_subcategoria sc WHERE sc.id = p_id_subcategoria));
 
     IF p_nombre IS NULL OR TRIM(p_nombre) = '' THEN
         RETURN json_build_object('error', 'El nombre del producto es obligatorio', 'registro', NULL);
@@ -49,7 +53,8 @@ BEGIN
         RETURN json_build_object('error', 'El tipo de producto es obligatorio', 'registro', NULL);
     END IF;
 
-    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = p_tipo_producto AND estado = 1;
+    SELECT * INTO v_tipo FROM pro_tipo_producto WHERE id = p_tipo_producto AND estado = 1
+      AND (v_empresa IS NULL OR id_empresa = v_empresa);
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'Tipo de producto inexistente o inactivo', 'registro', NULL);
     END IF;
@@ -65,6 +70,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM pro_subcategoria WHERE id = p_id_subcategoria AND estado = 1
+          AND (v_empresa IS NULL OR id_empresa = v_empresa)
     ) THEN
         RETURN json_build_object('error', 'La subcategoría indicada no existe o está inactiva', 'registro', NULL);
     END IF;
@@ -96,6 +102,7 @@ BEGIN
     END IF;
 
     INSERT INTO pro_producto (
+        id_empresa,
         id_subcategoria,
         id_unidad_medida,
         id_estacion,
@@ -113,6 +120,7 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
+        v_empresa,
         p_id_subcategoria,
         p_id_unidad_medida,
         p_id_estacion,
@@ -156,6 +164,6 @@ BEGIN
         ON CONFLICT (id_almacen, id_producto) DO NOTHING;
     END IF;
 
-    RETURN pro_obtener_producto(v_id);
+    RETURN pro_obtener_producto(v_id, v_empresa);
 END;
 $function$;

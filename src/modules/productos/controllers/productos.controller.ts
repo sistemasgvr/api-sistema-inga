@@ -31,6 +31,7 @@ import {
 import { ProductosLogic } from '../logic/productos.logic';
 import { ProductoImagenLogic } from '../logic/producto-imagen.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Productos - Catálogo Principal')
 @Controller('productos')
@@ -43,8 +44,11 @@ export class ProductosController {
   @Get()
   @Permisos(PermisoBanderas.PRODUCTOS_LISTAR)
   @ApiOperation({ summary: 'Listar productos con filtros y paginación' })
-  listar(@Query() filtros: FiltroProductosDto) {
-    return this.productosLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroProductosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.productosLogic.listar(filtros, idEmpresa);
   }
 
   @Get('unidades')
@@ -58,8 +62,11 @@ export class ProductosController {
   @Permisos(PermisoBanderas.PRODUCTOS_VER)
   @ApiOperation({ summary: 'Obtener producto por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.productosLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.productosLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -68,13 +75,16 @@ export class ProductosController {
   crear(
     @Body() dto: CreateProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.productosLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.productosLogic.crear({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Post('upload-imagen')
   @Permisos(PermisoBanderas.PRODUCTOS_CREAR)
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
   @ApiOperation({ summary: 'Subir imagen de producto a Supabase Storage' })
   @ApiConsumes('multipart/form-data')
   async uploadImagen(@UploadedFile() file: Express.Multer.File) {
@@ -89,8 +99,13 @@ export class ProductosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.productosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.productosLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Put(':id/disponibilidad')
@@ -100,8 +115,13 @@ export class ProductosController {
   toggleDisponibilidad(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.productosLogic.toggleDisponibilidad(id, idUsuarioAuditoria);
+    return this.productosLogic.toggleDisponibilidad(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 
   @Patch(':id/activar')
@@ -111,8 +131,9 @@ export class ProductosController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.productosLogic.activar(id, idUsuarioAuditoria);
+    return this.productosLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete(':id')
@@ -122,7 +143,8 @@ export class ProductosController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.productosLogic.eliminar(id, idUsuarioAuditoria);
+    return this.productosLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

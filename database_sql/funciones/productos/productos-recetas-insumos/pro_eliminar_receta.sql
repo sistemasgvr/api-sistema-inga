@@ -1,10 +1,12 @@
 DROP FUNCTION IF EXISTS pro_eliminar_receta(
     p_id_receta BIGINT,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_eliminar_receta(
     p_id_receta BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -17,7 +19,8 @@ BEGIN
         vigente = FALSE,
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = NOW()
-    WHERE id = p_id_receta AND estado = 1;
+    WHERE id = p_id_receta AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('eliminado', FALSE, 'error', 'La receta no existe o ya está inactiva');

@@ -13,7 +13,8 @@ DROP FUNCTION IF EXISTS cli_crear_persona(
     p_es_cliente BOOLEAN,
     p_es_proveedor BOOLEAN,
     p_id_convenio BIGINT,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_crear_persona(
     p_tipo_persona SMALLINT,
@@ -30,7 +31,8 @@ CREATE OR REPLACE FUNCTION cli_crear_persona(
     p_es_cliente BOOLEAN DEFAULT FALSE,
     p_es_proveedor BOOLEAN DEFAULT FALSE,
     p_id_convenio BIGINT DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -48,18 +50,18 @@ BEGIN
     v_error := cli_validar_datos_persona(
         p_tipo_persona, p_tipo_documento, v_doc, p_razon_social,
         p_nombres, p_apellido_paterno, p_email,
-        p_es_cliente, p_es_proveedor, p_id_convenio, p_id_distrito
+        p_es_cliente, p_es_proveedor, p_id_convenio, p_id_distrito,
+        p_id_empresa
     );
 
     IF v_error IS NOT NULL THEN
         RETURN json_build_object('error', v_error, 'registro', NULL);
     END IF;
 
-    -- Busco el duplicado para avisar si existe pero está inactiva. Sin documento no hay
-    -- duplicado que buscar (el UNIQUE admite varios NULL).
     SELECT id, estado INTO v_existente
     FROM cli_persona
-    WHERE v_doc IS NOT NULL AND tipo_documento = p_tipo_documento AND num_documento = v_doc;
+    WHERE v_doc IS NOT NULL AND tipo_documento = p_tipo_documento AND num_documento = v_doc
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF FOUND THEN
         IF v_existente.estado = 0 THEN
@@ -76,6 +78,7 @@ BEGIN
     END IF;
 
     INSERT INTO cli_persona (
+        id_empresa,
         tipo_persona,
         tipo_documento,
         num_documento,
@@ -94,6 +97,7 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
+        p_id_empresa,
         p_tipo_persona,
         CASE WHEN v_doc IS NULL THEN NULL ELSE p_tipo_documento END,
         v_doc,
@@ -113,6 +117,6 @@ BEGIN
     )
     RETURNING id INTO v_id;
 
-    RETURN cli_obtener_persona(v_id);
+    RETURN cli_obtener_persona(v_id, p_id_empresa);
 END;
 $function$;

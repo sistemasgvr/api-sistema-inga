@@ -25,6 +25,7 @@ import {
 } from '../dto/cuentas-por-cobrar.dto';
 import { CuentasPorCobrarLogic } from '../logic/cuentas-por-cobrar.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Cuentas por Cobrar - Consorcio')
 @Controller('cuentas-por-cobrar')
@@ -37,15 +38,15 @@ export class CuentasPorCobrarController {
     summary:
       'Saldo de cada cliente del consorcio, ordenado de mayor a menor deuda',
   })
-  listarSaldos(@Query() filtros: FiltroSaldosCxcDto) {
-    return this.logic.listarSaldos(filtros);
+  listarSaldos(@Query() filtros: FiltroSaldosCxcDto, @EmpresaSesion() idEmpresa: number | null) {
+    return this.logic.listarSaldos(filtros, idEmpresa);
   }
 
   @Get('movimientos')
   @Permisos(PermisoBanderas.CXC_LISTAR)
   @ApiOperation({ summary: 'Historial de consumos y abonos con filtros' })
-  listarMovimientos(@Query() filtros: FiltroMovimientosCxcDto) {
-    return this.logic.listarMovimientos(filtros);
+  listarMovimientos(@Query() filtros: FiltroMovimientosCxcDto, @EmpresaSesion() idEmpresa: number | null) {
+    return this.logic.listarMovimientos(filtros, idEmpresa);
   }
 
   // Las rutas literales van ANTES de las que tienen :id. Nest resuelve en orden

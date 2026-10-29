@@ -26,6 +26,7 @@ import {
 } from '../dto/gastos-diarios.dto';
 import { GastosDiariosLogic } from '../logic/gastos-diarios.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Gastos Diarios Operativos')
 @Controller('gastos-diarios')
@@ -39,8 +40,11 @@ export class GastosDiariosController {
   @ApiOperation({
     summary: 'Lista maestra de insumos, agrupada por categoría y sin paginar',
   })
-  listarInsumos(@Query() filtros: FiltroInsumosDto) {
-    return this.logic.listarInsumos(filtros);
+  listarInsumos(
+    @Query() filtros: FiltroInsumosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarInsumos(filtros, idEmpresa);
   }
 
   @Get('productos-inventario')
@@ -58,8 +62,11 @@ export class GastosDiariosController {
   @Permisos(PermisoBanderas.GDO_LISTAR)
   @ApiOperation({ summary: 'Obtener insumo por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerInsumo(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerInsumo(id);
+  obtenerInsumo(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerInsumo(id, idEmpresa);
   }
 
   @Post('insumos')
@@ -71,8 +78,9 @@ export class GastosDiariosController {
   crearInsumo(
     @Body() dto: CreateInsumoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.crearInsumo({ ...dto, idUsuarioAuditoria });
+    return this.logic.crearInsumo({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch('insumos/:id')
@@ -83,28 +91,41 @@ export class GastosDiariosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInsumoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.actualizarInsumo(id, { ...dto, idUsuarioAuditoria });
+    return this.logic.actualizarInsumo(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete('insumos/:id')
   @Permisos(PermisoBanderas.GDO_INSUMOS_GESTIONAR)
-  @ApiOperation({ summary: 'Dar de baja o reactivar un insumo (alterna el estado)' })
+  @ApiOperation({
+    summary: 'Dar de baja o reactivar un insumo (alterna el estado)',
+  })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   toggleInsumo(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.toggleInsumo(id, idUsuarioAuditoria);
+    return this.logic.toggleInsumo(id, idUsuarioAuditoria, idEmpresa);
   }
 
   /* ------------------------------ Gasto del día ---------------------------- */
 
   @Get('dias')
   @Permisos(PermisoBanderas.GDO_LISTAR)
-  @ApiOperation({ summary: 'Historial de días con gasto, con totales por forma de pago' })
-  listarDias(@Query() filtros: FiltroDiasDto) {
-    return this.logic.listarDias(filtros);
+  @ApiOperation({
+    summary: 'Historial de días con gasto, con totales por forma de pago',
+  })
+  listarDias(
+    @Query() filtros: FiltroDiasDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarDias(filtros, idEmpresa);
   }
 
   // Va antes de 'dias/:id' porque Nest resuelve las rutas en orden de
@@ -123,8 +144,11 @@ export class GastosDiariosController {
   @Permisos(PermisoBanderas.GDO_LISTAR)
   @ApiOperation({ summary: 'Obtener el gasto de un día con todas sus líneas' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerDia(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerDia(id);
+  obtenerDia(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerDia(id, idEmpresa);
   }
 
   @Post('dias/abrir')
@@ -156,7 +180,8 @@ export class GastosDiariosController {
   @Delete('lineas/:id')
   @Permisos(PermisoBanderas.GDO_ANULAR)
   @ApiOperation({
-    summary: 'Anular una compra. Si era a crédito, revierte la deuda generada en CxP.',
+    summary:
+      'Anular una compra. Si era a crédito, revierte la deuda generada en CxP.',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   anularLinea(

@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 import { CreateTipoProductoDto } from '../dto/tipos-producto.dto';
 import { TiposProductoLogic } from '../logic/tipos-producto.logic';
 
@@ -11,8 +12,8 @@ import { TiposProductoLogic } from '../logic/tipos-producto.logic';
 export class TiposProductoController {
   constructor(private readonly logic: TiposProductoLogic) {}
   @Get()
-  listar() {
-    return this.logic.listar();
+  listar(@EmpresaSesion() idEmpresa: number | null) {
+    return this.logic.listar(idEmpresa);
   }
 
   @Post()
@@ -20,7 +21,8 @@ export class TiposProductoController {
   crear(
     @Body() dto: CreateTipoProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.crear({ ...dto, idUsuarioAuditoria });
+    return this.logic.crear({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 }

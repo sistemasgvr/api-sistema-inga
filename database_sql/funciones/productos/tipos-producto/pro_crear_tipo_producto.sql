@@ -4,23 +4,27 @@ DROP FUNCTION IF EXISTS pro_crear_tipo_producto(
     p_requiere_receta BOOLEAN,
     p_requiere_estacion BOOLEAN,
     p_permite_stock_inicial BOOLEAN,
-    p_usuario BIGINT
+    p_usuario BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_crear_tipo_producto(
   p_nombre VARCHAR, p_permite_venta BOOLEAN, p_requiere_receta BOOLEAN,
-  p_requiere_estacion BOOLEAN, p_permite_stock_inicial BOOLEAN, p_usuario BIGINT DEFAULT NULL
+  p_requiere_estacion BOOLEAN, p_permite_stock_inicial BOOLEAN, p_usuario BIGINT DEFAULT NULL,
+  p_id_empresa BIGINT DEFAULT NULL
 ) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v_tipo pro_tipo_producto%ROWTYPE;
+  v_empresa BIGINT;
 BEGIN
+  v_empresa := COALESCE(p_id_empresa, (SELECT t.id_empresa FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador WHERE u.id = p_usuario));
   IF NULLIF(trim(p_nombre), '') IS NULL THEN
     RETURN json_build_object('error', 'El nombre es obligatorio', 'registro', NULL);
   END IF;
   IF p_permite_venta IS NULL OR p_requiere_receta IS NULL OR p_requiere_estacion IS NULL OR p_permite_stock_inicial IS NULL THEN
     RETURN json_build_object('error', 'Los cuatro indicadores son obligatorios', 'registro', NULL);
   END IF;
-  INSERT INTO pro_tipo_producto(nombre, permite_venta, requiere_receta, requiere_estacion,
+  INSERT INTO pro_tipo_producto(id_empresa, nombre, permite_venta, requiere_receta, requiere_estacion,
     permite_stock_inicial, id_usuario_creacion, id_usuario_modificacion)
-  VALUES(trim(p_nombre), p_permite_venta, p_requiere_receta, p_requiere_estacion,
+  VALUES(v_empresa, trim(p_nombre), p_permite_venta, p_requiere_receta, p_requiere_estacion,
     p_permite_stock_inicial AND NOT p_requiere_receta, p_usuario, p_usuario) RETURNING * INTO v_tipo;
   RETURN json_build_object('registro', to_json(v_tipo));
 EXCEPTION WHEN unique_violation THEN

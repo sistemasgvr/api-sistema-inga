@@ -11,7 +11,7 @@ BEGIN
   (p->>'nombre')::VARCHAR,(p->>'tipo_producto')::SMALLINT,(p->>'id_estacion')::BIGINT,(p->>'id_almacen_stock')::BIGINT,
   (p->>'descripcion')::VARCHAR,COALESCE((p->>'precio_venta')::NUMERIC,0),COALESCE((p->>'afecto_igv')::BOOLEAN,TRUE),
   COALESCE((p->>'controla_stock')::BOOLEAN,FALSE),COALESCE((p->>'disponible_venta')::BOOLEAN,TRUE),
-  (p->>'tiempo_prep_min')::INTEGER,(p->>'imagen_url')::VARCHAR,p_usuario);
+  (p->>'tiempo_prep_min')::INTEGER,(p->>'imagen_url')::VARCHAR,p_usuario,(p->>'id_empresa')::BIGINT);
  IF r->>'error' IS NOT NULL THEN RETURN r; END IF;
  SELECT * INTO STRICT pr FROM pro_producto WHERE id=(r->'registro'->>'id')::BIGINT;
  IF (n>0 OR minimo>0 OR costo>0) AND (NOT pr.controla_stock OR pr.id_almacen_stock IS NULL) THEN RAISE EXCEPTION 'Configure control de stock y almacén'; END IF;
@@ -31,5 +31,6 @@ BEGIN
    jsonb_build_array(jsonb_build_object('id_producto',pr.id,'id_almacen',pr.id_almacen_stock,'id_unidad_medida',pr.id_unidad_medida,
     'cantidad',n,'signo',1,'costo_unitario',costo)),p_usuario);
  END IF;
- RETURN pro_obtener_producto(pr.id);
+ RETURN pro_obtener_producto(pr.id,(p->>'id_empresa')::BIGINT);
 END $$;
+

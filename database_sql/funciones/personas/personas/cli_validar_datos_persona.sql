@@ -9,7 +9,8 @@ DROP FUNCTION IF EXISTS cli_validar_datos_persona(
     p_es_cliente BOOLEAN,
     p_es_proveedor BOOLEAN,
     p_id_convenio BIGINT,
-    p_id_distrito BIGINT
+    p_id_distrito BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_validar_datos_persona(
     p_tipo_persona SMALLINT,
@@ -22,7 +23,8 @@ CREATE OR REPLACE FUNCTION cli_validar_datos_persona(
     p_es_cliente BOOLEAN,
     p_es_proveedor BOOLEAN,
     p_id_convenio BIGINT,
-    p_id_distrito BIGINT
+    p_id_distrito BIGINT,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -87,6 +89,7 @@ BEGIN
 
     IF p_id_convenio IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM cli_convenio WHERE id = p_id_convenio AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN 'El convenio indicado no existe o está inactivo';
     END IF;

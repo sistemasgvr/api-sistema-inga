@@ -6,7 +6,12 @@ import {
   AuthActivateResult,
 } from '../../../common/interfaces/auth-db.interface';
 import { DatabaseService } from '../../../database/database.service';
-import { CreateProductoDto, FiltroProductosDto, ProductoEstadoFiltro, UpdateProductoDto } from '../dto/productos.dto';
+import {
+  CreateProductoDto,
+  FiltroProductosDto,
+  ProductoEstadoFiltro,
+  UpdateProductoDto,
+} from '../dto/productos.dto';
 
 @Injectable()
 export class ProductosModel {
@@ -18,7 +23,7 @@ export class ProductosModel {
     return 1;
   }
 
-  listar(filtros: FiltroProductosDto) {
+  listar(filtros: FiltroProductosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('pro_listar_productos', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
@@ -27,59 +32,79 @@ export class ProductosModel {
       filtros.id_subcategoria ?? null,
       filtros.id_categoria ?? null,
       this.resolveEstadoFiltro(filtros.estado),
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_obtener_producto', [id]);
+  obtenerPorId(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('pro_obtener_producto', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
   listarUnidadesMedida() {
     return this.db.callFunctionJson<any>('pro_listar_unidades_medida', []);
   }
 
-  crear(dto: CreateProductoDto) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_crear_producto_stock', [JSON.stringify(dto), dto.idUsuarioAuditoria]);
+  crear(dto: CreateProductoDto, idEmpresa?: number | null) {
+    const payload = {
+      ...dto,
+      id_empresa: idEmpresa ?? (dto as any).id_empresa ?? null,
+    };
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'pro_crear_producto_stock',
+      [JSON.stringify(payload), dto.idUsuarioAuditoria],
+    );
   }
 
-  actualizar(id: number, dto: UpdateProductoDto) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_actualizar_producto', [
-      id,
-      dto.id_subcategoria ?? null,
-      dto.id_unidad_medida ?? null,
-      dto.id_estacion ?? null,
-      dto.id_almacen_stock ?? null,
-      dto.nombre ?? null,
-      dto.descripcion ?? null,
-      dto.tipo_producto ?? null,
-      dto.precio_venta ?? null,
-      dto.afecto_igv ?? null,
-      dto.controla_stock ?? null,
-      dto.disponible_venta ?? null,
-      dto.tiempo_prep_min ?? null,
-      dto.imagen_url ?? null,
-      dto.idUsuarioAuditoria ?? null,
-    ]);
+  actualizar(id: number, dto: UpdateProductoDto, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'pro_actualizar_producto',
+      [
+        id,
+        dto.id_subcategoria ?? null,
+        dto.id_unidad_medida ?? null,
+        dto.id_estacion ?? null,
+        dto.id_almacen_stock ?? null,
+        dto.nombre ?? null,
+        dto.descripcion ?? null,
+        dto.tipo_producto ?? null,
+        dto.precio_venta ?? null,
+        dto.afecto_igv ?? null,
+        dto.controla_stock ?? null,
+        dto.disponible_venta ?? null,
+        dto.tiempo_prep_min ?? null,
+        dto.imagen_url ?? null,
+        dto.idUsuarioAuditoria ?? null,
+        idEmpresa ?? null,
+      ],
+    );
   }
 
-  toggleDisponibilidad(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('pro_toggle_disponibilidad_producto', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+  toggleDisponibilidad(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'pro_toggle_disponibilidad_producto',
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('pro_eliminar_producto', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('pro_activar_producto', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'pro_activar_producto',
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 }

@@ -8,7 +8,8 @@ DROP FUNCTION IF EXISTS cxc_listar_movimientos(
     p_anio SMALLINT,
     p_mes SMALLINT,
     p_quincena SMALLINT,
-    p_incluir_anulados BOOLEAN
+    p_incluir_anulados BOOLEAN,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cxc_listar_movimientos(
     p_busqueda VARCHAR DEFAULT '',
@@ -20,7 +21,8 @@ CREATE OR REPLACE FUNCTION cxc_listar_movimientos(
     p_anio SMALLINT DEFAULT NULL,
     p_mes SMALLINT DEFAULT NULL,
     p_quincena SMALLINT DEFAULT NULL,
-    p_incluir_anulados BOOLEAN DEFAULT FALSE
+    p_incluir_anulados BOOLEAN DEFAULT FALSE,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -46,6 +48,7 @@ BEGIN
       AND (p_anio IS NULL OR m.anio = p_anio)
       AND (p_mes IS NULL OR m.mes = p_mes)
       AND (p_quincena IS NULL OR m.quincena = p_quincena)
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(COALESCE(p.nombres || ' ' || p.apellido_paterno, p.razon_social, '')) LIKE LOWER('%' || p_busqueda || '%')
@@ -89,7 +92,7 @@ BEGIN
             TRIM(COALESCE(uc.nombres, '') || ' ' || COALESCE(uc.apellidos, '')) AS nombre_usuario_creacion
         FROM cxc_movimiento m
         INNER JOIN cli_persona p ON m.id_persona = p.id
-        LEFT JOIN cli_convenio c ON m.id_convenio = c.id
+        LEFT JOIN cli_convenio c ON m.id_convenio = c.id AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
         LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         LEFT JOIN LATERAL (
             SELECT string_agg(
@@ -116,6 +119,7 @@ BEGIN
           AND (p_anio IS NULL OR m.anio = p_anio)
           AND (p_mes IS NULL OR m.mes = p_mes)
           AND (p_quincena IS NULL OR m.quincena = p_quincena)
+          AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(COALESCE(p.nombres || ' ' || p.apellido_paterno, p.razon_social, '')) LIKE LOWER('%' || p_busqueda || '%')

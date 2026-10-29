@@ -12,9 +12,13 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { CreateAdicionalDto, UpdateAdicionalDto } from '../dto/adicionales-producto.dto';
+import {
+  CreateAdicionalDto,
+  UpdateAdicionalDto,
+} from '../dto/adicionales-producto.dto';
 import { AdicionalesProductoLogic } from '../logic/adicionales-producto.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Productos - Adicionales')
 @Controller('productos')
@@ -24,16 +28,22 @@ export class AdicionalesProductoController {
   @Get(':idProducto/adicionales')
   @Permisos(PermisoBanderas.PRODUCTOS_VER)
   @ApiOperation({ summary: 'Listar adicionales asociados a un producto' })
-  listarPorProducto(@Param('idProducto', ParseIntPipe) idProducto: number) {
-    return this.adicionalesLogic.listarPorProducto(idProducto);
+  listarPorProducto(
+    @Param('idProducto', ParseIntPipe) idProducto: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.adicionalesLogic.listarPorProducto(idProducto, idEmpresa);
   }
 
   @Get('adicionales/:id')
   @Permisos(PermisoBanderas.PRODUCTOS_VER)
   @ApiOperation({ summary: 'Obtener adicional por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.adicionalesLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.adicionalesLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post(':idProducto/adicionales')
@@ -43,11 +53,16 @@ export class AdicionalesProductoController {
     @Param('idProducto', ParseIntPipe) idProducto: number,
     @Body() dto: CreateAdicionalDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.adicionalesLogic.crear(idProducto, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.adicionalesLogic.crear(
+      idProducto,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Patch('adicionales/:id')
@@ -58,8 +73,13 @@ export class AdicionalesProductoController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAdicionalDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.adicionalesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.adicionalesLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete('adicionales/:id')
@@ -68,7 +88,8 @@ export class AdicionalesProductoController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.adicionalesLogic.eliminar(id, idUsuarioAuditoria);
+    return this.adicionalesLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

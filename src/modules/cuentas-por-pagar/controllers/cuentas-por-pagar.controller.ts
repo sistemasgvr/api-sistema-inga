@@ -23,6 +23,7 @@ import {
 } from '../dto/cuentas-por-pagar.dto';
 import { CuentasPorPagarLogic } from '../logic/cuentas-por-pagar.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Cuentas por Pagar - Proveedores')
 @Controller('cuentas-por-pagar')
@@ -34,8 +35,11 @@ export class CuentasPorPagarController {
   @ApiOperation({
     summary: 'Saldo deudor por proveedor, ordenado de mayor a menor deuda',
   })
-  listarSaldos(@Query() filtros: FiltroSaldosDto) {
-    return this.logic.listarSaldos(filtros);
+  listarSaldos(
+    @Query() filtros: FiltroSaldosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarSaldos(filtros, idEmpresa);
   }
 
   @Get('movimientos')
@@ -45,13 +49,11 @@ export class CuentasPorPagarController {
     return this.logic.listarMovimientos(filtros);
   }
 
-  // Va antes de 'movimientos/:id' porque Nest resuelve las rutas en orden de
-  // declaración: si ':id' fuera primero, no habría problema acá por ser rutas
-  // distintas, pero mantengo el criterio para que no sorprenda al agregar más.
   @Get('reporte')
   @Permisos(PermisoBanderas.CXP_LISTAR)
   @ApiOperation({
-    summary: 'Reporte del período: cargos, abonos, desglose por proveedor y por semana',
+    summary:
+      'Reporte del período: cargos, abonos, desglose por proveedor y por semana',
   })
   reportePeriodo(@Query() filtros: FiltroReporteCxpDto) {
     return this.logic.reportePeriodo(filtros);
@@ -68,7 +70,8 @@ export class CuentasPorPagarController {
   @Get('proveedores/:idPersona')
   @Permisos(PermisoBanderas.CXP_LISTAR)
   @ApiOperation({
-    summary: 'Estado de cuenta del proveedor: saldo, totales y últimos movimientos',
+    summary:
+      'Estado de cuenta del proveedor: saldo, totales y últimos movimientos',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   obtenerEstadoCuenta(@Param('idPersona', ParseIntPipe) idPersona: number) {

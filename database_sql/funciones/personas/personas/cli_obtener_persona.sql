@@ -1,7 +1,7 @@
 -- Traigo una persona por ID con su saldo_credito actual. No filtra por estado:
 -- la ficha y la reactivación necesitan leer personas inactivas.
-DROP FUNCTION IF EXISTS cli_obtener_persona(p_id BIGINT);
-CREATE OR REPLACE FUNCTION cli_obtener_persona(p_id BIGINT)
+DROP FUNCTION IF EXISTS cli_obtener_persona(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION cli_obtener_persona(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -39,7 +39,6 @@ BEGIN
             p.id_convenio,
             c.nombre AS nombre_convenio,
             c.limite_credito,
-            -- Tipo 1 cargo suma, 2 abono resta; el ELSE cubre el ajuste (3), que ya trae su signo.
             COALESCE((
                 SELECT SUM(
                     CASE
@@ -50,6 +49,7 @@ BEGIN
                 )
                 FROM cxc_movimiento m
                 WHERE m.id_persona = p.id AND m.estado = 1
+                  AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
             ), 0) AS saldo_credito,
             p.estado,
             p.fecha_creacion,
@@ -59,7 +59,7 @@ BEGIN
             p.id_usuario_modificacion,
             um.nombres AS nombre_usuario_modificacion
         FROM cli_persona p
-        LEFT JOIN cli_convenio c ON p.id_convenio = c.id
+        LEFT JOIN cli_convenio c ON p.id_convenio = c.id AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
         LEFT JOIN gen_distrito d ON p.id_distrito = d.id
         LEFT JOIN gen_lista_opcion lp ON lp.valor_entero = p.tipo_persona
             AND lp.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'PERSONA_TIPO')
@@ -68,6 +68,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON p.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON p.id_usuario_modificacion = um.id
         WHERE p.id = p_id
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

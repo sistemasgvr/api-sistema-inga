@@ -1,15 +1,11 @@
--- Historial visible para el usuario: avisos de sus canales y los dirigidos a él.
-DROP FUNCTION IF EXISTS public.not_listar(
-    p_id_usuario BIGINT,
-    p_canales TEXT[]
-);
 DROP FUNCTION IF EXISTS public.not_listar(
     p_id_usuario BIGINT,
     p_canales TEXT[],
     p_solo_no_leidas BOOLEAN,
     p_canal VARCHAR,
     p_limite INTEGER,
-    p_offset INTEGER
+    p_offset INTEGER,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION public.not_listar(
   p_id_usuario BIGINT,
@@ -17,7 +13,8 @@ CREATE OR REPLACE FUNCTION public.not_listar(
   p_solo_no_leidas BOOLEAN DEFAULT FALSE,
   p_canal VARCHAR DEFAULT NULL,
   p_limite INTEGER DEFAULT 30,
-  p_offset INTEGER DEFAULT 0
+  p_offset INTEGER DEFAULT 0,
+  p_id_empresa BIGINT DEFAULT NULL
 ) RETURNS JSON LANGUAGE sql STABLE AS $$
   WITH visibles AS (
     SELECT n.id, n.canal, n.titulo, n.mensaje, n.severidad, n.ruta, n.id_referencia, n.creada_en,
@@ -27,6 +24,7 @@ CREATE OR REPLACE FUNCTION public.not_listar(
     WHERE ((n.ids_usuario_destino IS NULL AND n.canal = ANY(p_canales))
            OR p_id_usuario = ANY(n.ids_usuario_destino))
       AND (p_canal IS NULL OR n.canal = p_canal)
+      AND (p_id_empresa IS NULL OR n.id_empresa IS NULL OR n.id_empresa = p_id_empresa)
   ), filtradas AS (
     SELECT * FROM visibles WHERE NOT (COALESCE(p_solo_no_leidas, FALSE) AND leida)
   )

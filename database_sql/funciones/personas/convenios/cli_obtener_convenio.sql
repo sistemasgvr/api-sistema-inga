@@ -1,7 +1,5 @@
--- Traigo un convenio por ID con los mismos campos que el listado.
--- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
-DROP FUNCTION IF EXISTS cli_obtener_convenio(p_id BIGINT);
-CREATE OR REPLACE FUNCTION cli_obtener_convenio(p_id BIGINT)
+DROP FUNCTION IF EXISTS cli_obtener_convenio(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION cli_obtener_convenio(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -25,6 +23,7 @@ BEGIN
                 SELECT COUNT(*)
                 FROM cli_persona p
                 WHERE p.id_convenio = c.id AND p.estado = 1
+                  AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
             ) AS personas_asignadas,
             c.fecha_creacion,
             c.fecha_modificacion,
@@ -37,6 +36,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON c.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON c.id_usuario_modificacion = um.id
         WHERE c.id = p_id
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

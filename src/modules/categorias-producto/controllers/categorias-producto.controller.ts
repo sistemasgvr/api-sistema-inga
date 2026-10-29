@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
-import { Permisos, PermisosAlguno } from '../../../common/decorators/permisos.decorator';
+import {
+  Permisos,
+  PermisosAlguno,
+} from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import {
   CreateCategoriaProductoDto,
@@ -20,25 +23,37 @@ import {
 } from '../dto/categorias-producto.dto';
 import { CategoriasProductoLogic } from '../logic/categorias-producto.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Productos - Categorías')
 @Controller('productos/categorias')
 export class CategoriasProductoController {
-  constructor(private readonly categoriasProductoLogic: CategoriasProductoLogic) {}
+  constructor(
+    private readonly categoriasProductoLogic: CategoriasProductoLogic,
+  ) {}
 
   @Get()
-  @PermisosAlguno(PermisoBanderas.CATEGORIAS_LISTAR, PermisoBanderas.SUBCATEGORIAS_LISTAR)
+  @PermisosAlguno(
+    PermisoBanderas.CATEGORIAS_LISTAR,
+    PermisoBanderas.SUBCATEGORIAS_LISTAR,
+  )
   @ApiOperation({ summary: 'Listar categorías de producto' })
-  listar(@Query() filtros: FiltroCategoriasProductoDto) {
-    return this.categoriasProductoLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroCategoriasProductoDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.categoriasProductoLogic.listar(filtros, idEmpresa);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.CATEGORIAS_VER)
   @ApiOperation({ summary: 'Obtener categoría por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.categoriasProductoLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.categoriasProductoLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -47,8 +62,12 @@ export class CategoriasProductoController {
   crear(
     @Body() dto: CreateCategoriaProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.categoriasProductoLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.categoriasProductoLogic.crear(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch(':id')
@@ -59,11 +78,16 @@ export class CategoriasProductoController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoriaProductoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.categoriasProductoLogic.actualizar(id, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.categoriasProductoLogic.actualizar(
+      id,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Patch(':id/activar')
@@ -73,8 +97,13 @@ export class CategoriasProductoController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.categoriasProductoLogic.activar(id, idUsuarioAuditoria);
+    return this.categoriasProductoLogic.activar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 
   @Delete(':id')
@@ -84,7 +113,12 @@ export class CategoriasProductoController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.categoriasProductoLogic.eliminar(id, idUsuarioAuditoria);
+    return this.categoriasProductoLogic.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 }

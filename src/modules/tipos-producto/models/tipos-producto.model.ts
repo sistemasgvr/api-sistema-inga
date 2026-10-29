@@ -6,13 +6,13 @@ import { CreateTipoProductoDto, TipoProducto } from '../dto/tipos-producto.dto';
 @Injectable()
 export class TiposProductoModel {
   constructor(private readonly db: DatabaseService) {}
-  listar() {
+  listar(idEmpresa?: number | null) {
     return this.db.callFunctionJson<TipoProducto[]>(
       'pro_listar_tipos_producto',
-      [],
+      [idEmpresa ?? null],
     );
   }
-  crear(dto: CreateTipoProductoDto) {
+  crear(dto: CreateTipoProductoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult<TipoProducto>>(
       'pro_crear_tipo_producto',
       [
@@ -22,6 +22,7 @@ export class TiposProductoModel {
         dto.requiere_estacion,
         dto.permite_stock_inicial,
         dto.idUsuarioAuditoria ?? null,
+        idEmpresa ?? null,
       ],
     );
   }

@@ -1,12 +1,14 @@
 DROP FUNCTION IF EXISTS cli_buscar_personas(
     p_busqueda VARCHAR,
     p_rol VARCHAR,
-    p_limite INTEGER
+    p_limite INTEGER,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_buscar_personas(
     p_busqueda VARCHAR DEFAULT '',
     p_rol VARCHAR DEFAULT NULL,
-    p_limite INTEGER DEFAULT 15
+    p_limite INTEGER DEFAULT 15,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -37,7 +39,6 @@ BEGIN
             p.id_convenio,
             c.nombre AS nombre_convenio,
             c.limite_credito,
-            -- Saldo para avisar en el cobro si el cliente ya pasó su límite de crédito.
             COALESCE((
                 SELECT SUM(
                     CASE
@@ -48,12 +49,14 @@ BEGIN
                 )
                 FROM cxc_movimiento m
                 WHERE m.id_persona = p.id AND m.estado = 1
+                  AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
             ), 0) AS saldo_credito
         FROM cli_persona p
-        LEFT JOIN cli_convenio c ON p.id_convenio = c.id
+        LEFT JOIN cli_convenio c ON p.id_convenio = c.id AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
         LEFT JOIN gen_lista_opcion ld ON ld.valor_entero = p.tipo_documento
             AND ld.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'DOCUMENTO_TIPO')
         WHERE p.estado = 1
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
           AND (
               p_rol IS NULL
               OR (p_rol = 'clientes' AND p.es_cliente = TRUE)
@@ -70,7 +73,6 @@ BEGIN
               ) LIKE LOWER('%' || p_busqueda || '%')
           )
         ORDER BY
-            -- Primero lo que empieza igual a lo tecleado.
             CASE WHEN COALESCE(p.num_documento, '') LIKE p_busqueda || '%' THEN 0 ELSE 1 END,
             COALESCE(
                 NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),

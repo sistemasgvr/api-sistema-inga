@@ -5,7 +5,8 @@ DROP FUNCTION IF EXISTS cli_listar_personas(
     p_offset INTEGER,
     p_rol VARCHAR,
     p_id_convenio BIGINT,
-    p_estado INT
+    p_estado INT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION cli_listar_personas(
     p_busqueda VARCHAR DEFAULT '',
@@ -13,7 +14,8 @@ CREATE OR REPLACE FUNCTION cli_listar_personas(
     p_offset INTEGER DEFAULT 0,
     p_rol VARCHAR DEFAULT NULL,
     p_id_convenio BIGINT DEFAULT NULL,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,7 +31,6 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    -- El resumen cuenta el universo completo, sin filtro de estado ni de rol.
     SELECT
         COUNT(*),
         COUNT(*) FILTER (WHERE p.estado = 1),
@@ -37,12 +38,14 @@ BEGIN
         COUNT(*) FILTER (WHERE p.es_cliente = TRUE AND p.estado = 1),
         COUNT(*) FILTER (WHERE p.es_proveedor = TRUE AND p.estado = 1)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos, v_cant_clientes, v_cant_proveedores
-    FROM cli_persona p;
+    FROM cli_persona p
+    WHERE (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa);
 
     SELECT COUNT(*) INTO v_total
     FROM cli_persona p
     WHERE (p_estado IS NULL OR p.estado = p_estado)
       AND (p_id_convenio IS NULL OR p.id_convenio = p_id_convenio)
+      AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
       AND (
           p_rol IS NULL
           OR (p_rol = 'clientes' AND p.es_cliente = TRUE)
@@ -96,7 +99,7 @@ BEGIN
             p.id_usuario_modificacion,
             um.nombres AS nombre_usuario_modificacion
         FROM cli_persona p
-        LEFT JOIN cli_convenio c ON p.id_convenio = c.id
+        LEFT JOIN cli_convenio c ON p.id_convenio = c.id AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
         LEFT JOIN gen_distrito d ON p.id_distrito = d.id
         LEFT JOIN gen_lista_opcion lp ON lp.valor_entero = p.tipo_persona
             AND lp.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'PERSONA_TIPO')
@@ -106,6 +109,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos um ON p.id_usuario_modificacion = um.id
         WHERE (p_estado IS NULL OR p.estado = p_estado)
           AND (p_id_convenio IS NULL OR p.id_convenio = p_id_convenio)
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
           AND (
               p_rol IS NULL
               OR (p_rol = 'clientes' AND p.es_cliente = TRUE)

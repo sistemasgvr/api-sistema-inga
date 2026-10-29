@@ -1,5 +1,5 @@
-DROP FUNCTION IF EXISTS pro_obtener_receta(p_id BIGINT);
-CREATE OR REPLACE FUNCTION pro_obtener_receta(p_id BIGINT)
+DROP FUNCTION IF EXISTS pro_obtener_receta(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION pro_obtener_receta(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -22,7 +22,6 @@ BEGIN
             r.estado,
             r.fecha_creacion,
             r.fecha_modificacion,
-            -- Mismo cálculo que el costo guardado (pro_costo_unitario_insumo), así el detalle suma este valor.
             p.costo_receta_calculado AS costo_total_calculado,
             (
                 SELECT COALESCE(json_agg(row_to_json(ri_t)), '[]'::JSON)
@@ -35,7 +34,7 @@ BEGIN
                         pi.tipo_producto,
                         ri.cantidad,
                         ri.id_unidad_medida,
-                        um.simbolo AS simbolo_unidad,
+                        um.simbolo AS simbolo,
                         ri.porcentaje_merma,
                         ri.es_opcional,
                         ri.grupo_sustitucion,
@@ -50,12 +49,14 @@ BEGIN
                     INNER JOIN pro_producto pi ON ri.id_producto_insumo = pi.id
                     INNER JOIN pro_unidad_medida um ON ri.id_unidad_medida = um.id
                     WHERE ri.id_receta = r.id AND ri.estado = 1
+                      AND (p_id_empresa IS NULL OR ri.id_empresa = p_id_empresa)
                     ORDER BY ri.orden ASC, ri.id ASC
                 ) ri_t
             ) AS insumos
         FROM pro_receta r
         INNER JOIN pro_producto p ON r.id_producto = p.id
         WHERE r.id = p_id
+          AND (p_id_empresa IS NULL OR r.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

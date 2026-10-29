@@ -1,5 +1,5 @@
-DROP FUNCTION IF EXISTS pro_obtener_sub_categoria(p_id BIGINT);
-CREATE OR REPLACE FUNCTION pro_obtener_sub_categoria(p_id BIGINT)
+DROP FUNCTION IF EXISTS pro_obtener_sub_categoria(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION pro_obtener_sub_categoria(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -27,12 +27,14 @@ BEGIN
                 SELECT COUNT(*)::INTEGER
                 FROM pro_producto p
                 WHERE p.id_subcategoria = sc.id AND p.estado = 1
+                  AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
             ) AS total_productos
         FROM pro_subcategoria sc
         INNER JOIN pro_categoria c ON sc.id_categoria = c.id
         LEFT JOIN auth_usuario_datos uc ON sc.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON sc.id_usuario_modificacion = um.id
-        WHERE sc.id = p_id AND sc.estado = 1
+        WHERE sc.id = p_id
+          AND (p_id_empresa IS NULL OR sc.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

@@ -4,14 +4,16 @@ DROP FUNCTION IF EXISTS pro_listar_categorias(
     p_limite INTEGER,
     p_offset INTEGER,
     p_solo_activos INTEGER,
-    p_es_carta BOOLEAN
+    p_es_carta BOOLEAN,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_listar_categorias(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
     p_solo_activos INTEGER DEFAULT 1,
-    p_es_carta BOOLEAN DEFAULT NULL
+    p_es_carta BOOLEAN DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -30,12 +32,14 @@ BEGIN
         COUNT(*) FILTER (WHERE c.estado = 1),
         COUNT(*) FILTER (WHERE c.estado = 0)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos
-    FROM pro_categoria c;
+    FROM pro_categoria c
+    WHERE (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa);
 
     SELECT COUNT(*) INTO v_total
     FROM pro_categoria c
     WHERE (p_solo_activos IS NULL OR c.estado = p_solo_activos)
       AND (p_es_carta IS NULL OR c.es_carta = p_es_carta)
+      AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')
@@ -55,6 +59,7 @@ BEGIN
                 SELECT COUNT(*)
                 FROM pro_subcategoria sc
                 WHERE sc.id_categoria = c.id AND sc.estado = 1
+                      AND (p_id_empresa IS NULL OR sc.id_empresa = p_id_empresa)
             ) AS total_subcategorias,
             c.fecha_creacion,
             c.fecha_modificacion,
@@ -67,6 +72,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos um2 ON c.id_usuario_modificacion = um2.id
         WHERE (p_solo_activos IS NULL OR c.estado = p_solo_activos)
           AND (p_es_carta IS NULL OR c.es_carta = p_es_carta)
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(c.nombre) LIKE LOWER('%' || p_busqueda || '%')

@@ -5,7 +5,8 @@ DROP FUNCTION IF EXISTS pro_crear_adicional(
     p_id_producto_insumo BIGINT,
     p_cantidad_insumo NUMERIC,
     p_id_unidad_medida BIGINT,
-    p_id_usuario_auditoria BIGINT
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION pro_crear_adicional(
     p_id_producto BIGINT,
@@ -14,17 +15,21 @@ CREATE OR REPLACE FUNCTION pro_crear_adicional(
     p_id_producto_insumo BIGINT DEFAULT NULL,
     p_cantidad_insumo NUMERIC DEFAULT 0,
     p_id_unidad_medida BIGINT DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_id BIGINT;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id_producto AND estado = 1) THEN
+    v_empresa := COALESCE(p_id_empresa, (SELECT p.id_empresa FROM pro_producto p WHERE p.id = p_id_producto));
+
+    IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id_producto AND estado = 1 AND (v_empresa IS NULL OR id_empresa = v_empresa)) THEN
         RETURN json_build_object('error', 'El producto principal no existe o está inactivo', 'registro', NULL);
     END IF;
 
@@ -37,7 +42,7 @@ BEGIN
     END IF;
 
     IF p_id_producto_insumo IS NOT NULL THEN
-        IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id_producto_insumo AND estado = 1) THEN
+        IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id = p_id_producto_insumo AND estado = 1 AND (v_empresa IS NULL OR id_empresa = v_empresa)) THEN
             RETURN json_build_object('error', 'El insumo asociado al adicional no existe', 'registro', NULL);
         END IF;
         IF p_cantidad_insumo <= 0 OR p_id_unidad_medida IS NULL THEN
@@ -46,6 +51,7 @@ BEGIN
     END IF;
 
     INSERT INTO pro_adicional (
+        id_empresa,
         id_producto,
         nombre,
         precio_adicional,
@@ -56,6 +62,7 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
+        v_empresa,
         p_id_producto,
         TRIM(p_nombre),
         COALESCE(p_precio_adicional, 0),
@@ -67,6 +74,6 @@ BEGIN
     )
     RETURNING id INTO v_id;
 
-    RETURN pro_obtener_adicional(v_id);
+    RETURN pro_obtener_adicional(v_id, v_empresa);
 END;
 $function$;

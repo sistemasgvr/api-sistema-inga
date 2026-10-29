@@ -2,13 +2,15 @@ DROP FUNCTION IF EXISTS public.auth_listar_roles(
     p_busqueda VARCHAR,
     p_limite INTEGER,
     p_offset INTEGER,
-    p_estado INT
+    p_estado INT,
+    p_id_empresa BIGINT
 );
 CREATE OR REPLACE FUNCTION public.auth_listar_roles(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -35,11 +37,13 @@ BEGIN
         v_total_global,
         v_activos,
         v_inactivos
-    FROM public.auth_rol r;
+    FROM public.auth_rol r
+    WHERE (p_id_empresa IS NULL OR r.id_empresa IS NULL OR r.id_empresa = p_id_empresa);
 
     SELECT COUNT(*) INTO v_total
     FROM public.auth_rol r
     WHERE (p_estado IS NULL OR r.estado = p_estado)
+      AND (p_id_empresa IS NULL OR r.id_empresa IS NULL OR r.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(r.codigo) LIKE LOWER('%' || p_busqueda || '%')
@@ -70,6 +74,7 @@ BEGIN
             ) AS total_usuarios
         FROM public.auth_rol r
         WHERE (p_estado IS NULL OR r.estado = p_estado)
+          AND (p_id_empresa IS NULL OR r.id_empresa IS NULL OR r.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(r.codigo) LIKE LOWER('%' || p_busqueda || '%')

@@ -12,9 +12,14 @@ import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
-import { CreateRecetaDto, FiltroInsumosRecetaDto, GuardarRecetaInsumoDto } from '../dto/recetas-producto.dto';
+import {
+  CreateRecetaDto,
+  FiltroInsumosRecetaDto,
+  GuardarRecetaInsumoDto,
+} from '../dto/recetas-producto.dto';
 import { RecetasProductoLogic } from '../logic/recetas-producto.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Productos - Recetas y Recetario')
 @Controller('productos')
@@ -33,17 +38,27 @@ export class RecetasProductoController {
 
   @Get(':idProducto/recetas')
   @Permisos(PermisoBanderas.PRODUCTOS_VER)
-  @ApiOperation({ summary: 'Listar historial de versiones de receta de un producto' })
-  listarPorProducto(@Param('idProducto', ParseIntPipe) idProducto: number) {
-    return this.recetasLogic.listarPorProducto(idProducto);
+  @ApiOperation({
+    summary: 'Listar historial de versiones de receta de un producto',
+  })
+  listarPorProducto(
+    @Param('idProducto', ParseIntPipe) idProducto: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.recetasLogic.listarPorProducto(idProducto, idEmpresa);
   }
 
   @Get('recetas/:id')
   @Permisos(PermisoBanderas.PRODUCTOS_VER)
-  @ApiOperation({ summary: 'Obtener detalle completo de una receta con sus insumos' })
+  @ApiOperation({
+    summary: 'Obtener detalle completo de una receta con sus insumos',
+  })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.recetasLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.recetasLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post(':idProducto/recetas')
@@ -53,25 +68,37 @@ export class RecetasProductoController {
     @Param('idProducto', ParseIntPipe) idProducto: number,
     @Body() dto: CreateRecetaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.recetasLogic.crearReceta(idProducto, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.recetasLogic.crearReceta(
+      idProducto,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Post('recetas/:idReceta/insumos')
   @Permisos(PermisoBanderas.PRODUCTOS_EDITAR)
-  @ApiOperation({ summary: 'Agregar o actualizar un insumo dentro de una receta' })
+  @ApiOperation({
+    summary: 'Agregar o actualizar un insumo dentro de una receta',
+  })
   guardarInsumo(
     @Param('idReceta', ParseIntPipe) idReceta: number,
     @Body() dto: GuardarRecetaInsumoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.recetasLogic.guardarInsumo(idReceta, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.recetasLogic.guardarInsumo(
+      idReceta,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Delete('recetas/insumos/:idInsumoReceta')
@@ -79,9 +106,14 @@ export class RecetasProductoController {
   @ApiOperation({ summary: 'Dar de baja un insumo de la receta' })
   eliminarInsumo(
     @Param('idInsumoReceta', ParseIntPipe) idInsumoReceta: number,
-    @UsuarioAuditoria() idUsuarioAuditoria: number, 
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.recetasLogic.eliminarInsumo(idInsumoReceta, idUsuarioAuditoria);
+    return this.recetasLogic.eliminarInsumo(
+      idInsumoReceta,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 
   @Delete('recetas/:id')
@@ -90,7 +122,8 @@ export class RecetasProductoController {
   eliminarReceta(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.recetasLogic.eliminarReceta(id, idUsuarioAuditoria);
+    return this.recetasLogic.eliminarReceta(id, idUsuarioAuditoria, idEmpresa);
   }
 }
