@@ -27,7 +27,9 @@ export interface TrabajadorDisponible {
   apellidos: string;
   email: string;
   telefono: string | null;
+  id_sucursal: number | null;
   nombre_sucursal: string | null;
+  id_empresa: number | null;
 }
 
 @Injectable()
@@ -65,6 +67,8 @@ export class UsuariosModel {
     pinHash?: string | null,
     rolesIds?: number[],
     idUsuarioAuditoria?: number,
+    sucursalesIds?: number[] | null,
+    idSucursalPredeterminada?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_crear_usuario', [
       username,
@@ -73,6 +77,8 @@ export class UsuariosModel {
       pinHash ?? null,
       JSON.stringify(rolesIds ?? []),
       idUsuarioAuditoria ?? null,
+      sucursalesIds?.length ? JSON.stringify(sucursalesIds) : null,
+      idSucursalPredeterminada ?? null,
     ]);
   }
 
@@ -83,6 +89,8 @@ export class UsuariosModel {
     pinHash: string | null,
     rolesIds: number[] | null,
     idUsuarioAuditoria?: number,
+    sucursalesIds?: number[] | null,
+    idSucursalPredeterminada?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'auth_actualizar_usuario',
@@ -93,6 +101,8 @@ export class UsuariosModel {
         pinHash,
         rolesIds ? JSON.stringify(rolesIds) : null,
         idUsuarioAuditoria ?? null,
+        sucursalesIds ? JSON.stringify(sucursalesIds) : null,
+        idSucursalPredeterminada ?? null,
       ],
     );
   }
@@ -115,10 +125,11 @@ export class UsuariosModel {
     return bcrypt.hash(password, 10);
   }
 
-  async trabajadoresDisponibles(id?: number) {
+  /** Trabajadores sin usuario; con idEmpresa, solo los de esa empresa (la de la sesión). */
+  async trabajadoresDisponibles(id?: number, idEmpresa?: number | null) {
     const result = await this.db.callFunctionJson<{
       registros: TrabajadorDisponible[];
-    }>('auth_listar_trabajadores_disponibles', [id ?? null]);
+    }>('auth_listar_trabajadores_disponibles', [id ?? null, idEmpresa ?? null]);
     return result.registros;
   }
 

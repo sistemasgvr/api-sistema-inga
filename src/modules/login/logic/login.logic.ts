@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { AuthCloseResult } from '../../../common/interfaces/auth-db.interface';
+import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
+import { mapSingleResult } from '../../../common/helpers/auth-response.helper';
 import { LoginDto } from '../dto/login.dto';
 import { LoginModel } from '../models/login.model';
 
@@ -21,7 +23,10 @@ export class LoginLogic {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const passwordValida = await bcrypt.compare(dto.password, usuario.password_hash);
+    const passwordValida = await bcrypt.compare(
+      dto.password,
+      usuario.password_hash,
+    );
 
     if (!passwordValida) {
       throw new UnauthorizedException('Credenciales inválidas');
@@ -52,9 +57,32 @@ export class LoginLogic {
       sesionId: sesionResult.id_sesion,
       usuario: {
         ...usuarioSinClaves,
+        // Empresa y sucursales permitidas vienen en usuarioSinClaves; la activa, de la sesión.
+        id_sucursal_activa: sesionResult.id_sucursal_activa ?? null,
         permisos: permisosResult.permisos ?? [],
       },
     };
+  }
+
+  /** Usuario de la sesión con sus sucursales permitidas (para refrescar el front). */
+  async sesion(user: AuthenticatedUser) {
+    return {
+      ...user,
+      sucursales: (await this.loginModel.sucursalesUsuario(user.id)) ?? [],
+    };
+  }
+
+  /** Cambia la sucursal en la que trabaja la sesión actual. */
+  async cambiarSucursal(user: AuthenticatedUser, idSucursal: number) {
+    const sucursal = mapSingleResult(
+      await this.loginModel.cambiarSucursal(
+        user.sesion.id,
+        user.id,
+        idSucursal,
+      ),
+      'La sucursal no existe',
+    );
+    return { id_sucursal_activa: sucursal.id, sucursal };
   }
 
   async logout(idSesion: number, idUsuario: number): Promise<AuthCloseResult> {

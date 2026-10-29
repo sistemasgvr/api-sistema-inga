@@ -67,6 +67,6 @@ BEGIN
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = CURRENT_TIMESTAMP;
 
-    RETURN gen_obtener_configuracion_sunat();
+    RETURN gen_obtener_configuracion_sunat(p_id_empresa);
 END;
 $function$;

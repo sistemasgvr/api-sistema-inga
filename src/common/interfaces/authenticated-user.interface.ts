@@ -4,8 +4,10 @@ export interface AuthenticatedUser {
   username: string;
   nombres: string;
   apellidos: string;
-  es_super_admin: boolean; 
+  es_super_admin: boolean;
   permisos: string[];
+  id_empresa: number | null;
+  id_sucursal: number | null;
   sesion: {
     id: number;
     id_usuario: number;

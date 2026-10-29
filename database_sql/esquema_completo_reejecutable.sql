@@ -117,6 +117,10 @@ CREATE TABLE IF NOT EXISTS gen_pais (
     nombre                  VARCHAR(100) NOT NULL,
     codigo_iso              VARCHAR(10)  NOT NULL,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_pais_iso UNIQUE (codigo_iso)
 );
 
@@ -126,6 +130,10 @@ CREATE TABLE IF NOT EXISTS gen_departamento (
     id_pais                 BIGINT       NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_departamento_pais FOREIGN KEY (id_pais) REFERENCES gen_pais (id)
 );
 
@@ -135,6 +143,10 @@ CREATE TABLE IF NOT EXISTS gen_provincia (
     id_departamento         BIGINT       NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_provincia_departamento FOREIGN KEY (id_departamento) REFERENCES gen_departamento (id)
 );
 
@@ -145,6 +157,10 @@ CREATE TABLE IF NOT EXISTS gen_distrito (
     codigo_ubigeo           VARCHAR(6),
     nombre                  VARCHAR(100) NOT NULL,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_distrito_provincia FOREIGN KEY (id_provincia) REFERENCES gen_provincia (id)
 );
 
@@ -256,6 +272,38 @@ DO $mig$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $mig$;
 DO $mig$ BEGIN
+    ALTER TABLE gen_pais ADD CONSTRAINT fk_gen_pais_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_pais ADD CONSTRAINT fk_gen_pais_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_departamento ADD CONSTRAINT fk_gen_departamento_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_departamento ADD CONSTRAINT fk_gen_departamento_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_provincia ADD CONSTRAINT fk_gen_provincia_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_provincia ADD CONSTRAINT fk_gen_provincia_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_distrito ADD CONSTRAINT fk_gen_distrito_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    ALTER TABLE gen_distrito ADD CONSTRAINT fk_gen_distrito_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
     ALTER TABLE gen_empresa ADD CONSTRAINT fk_gen_empresa_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $mig$;
@@ -299,10 +347,12 @@ CREATE TABLE IF NOT EXISTS auth_sesion (
     fecha_inicio            TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_expiracion        TIMESTAMPTZ  NOT NULL,
     fecha_fin               TIMESTAMPTZ,
+    id_sucursal_activa      BIGINT,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_sesion_usuario FOREIGN KEY (id_usuario) REFERENCES auth_usuario (id)
+    CONSTRAINT fk_sesion_usuario FOREIGN KEY (id_usuario) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_auth_sesion_sucursal FOREIGN KEY (id_sucursal_activa) REFERENCES gen_sucursal (id)
 );
 
 -- tipo_almacen (gen_lista ALMACEN_TIPO):
@@ -352,9 +402,12 @@ CREATE TABLE IF NOT EXISTS gen_estacion (
 );
 
 -- Utilidad: series y correlativos de pedidos, salidas, comprobantes, etc.
+-- La numeración de comprobantes es por empresa (RUC), compartida entre sus
+-- sucursales. id_sucursal queda solo como dato histórico.
 CREATE TABLE IF NOT EXISTS gen_correlativo (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_sucursal             BIGINT       NOT NULL,
+    id_sucursal             BIGINT,
+    id_empresa              BIGINT       NOT NULL,
     tipo_documento          SMALLINT     NOT NULL,
     serie                   VARCHAR(10)  NOT NULL,
     ultimo_numero           BIGINT       NOT NULL DEFAULT 0,
@@ -364,8 +417,9 @@ CREATE TABLE IF NOT EXISTS gen_correlativo (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_gen_correlativo UNIQUE (id_sucursal, tipo_documento, serie),
+    CONSTRAINT uq_gen_correlativo_empresa UNIQUE (id_empresa, tipo_documento, serie),
     CONSTRAINT fk_correlativo_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_gen_correlativo_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
     CONSTRAINT fk_gen_correlativo_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_gen_correlativo_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
@@ -1250,6 +1304,7 @@ CREATE TABLE IF NOT EXISTS ven_pedido_detalle_adicional (
 -- Utilidad: boleta/factura (detallado o por consumo) e impresión en caja.
 CREATE TABLE IF NOT EXISTS ven_comprobante (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_empresa              BIGINT       NOT NULL,
     id_pedido               BIGINT       NOT NULL,
     id_persona              BIGINT,
     id_comprobante_origen   BIGINT,
@@ -1283,7 +1338,8 @@ CREATE TABLE IF NOT EXISTS ven_comprobante (
     id_usuario_modificacion BIGINT,
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_ven_comprobante UNIQUE (serie, correlativo, tipo_comprobante),
+    CONSTRAINT uq_ven_comprobante_empresa UNIQUE (id_empresa, serie, correlativo, tipo_comprobante),
+    CONSTRAINT fk_ven_comprobante_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
     CONSTRAINT fk_comp_pedido FOREIGN KEY (id_pedido) REFERENCES ven_pedido (id),
     CONSTRAINT fk_comp_persona FOREIGN KEY (id_persona) REFERENCES cli_persona (id),
     CONSTRAINT fk_comp_origen FOREIGN KEY (id_comprobante_origen) REFERENCES ven_comprobante (id),
@@ -1318,6 +1374,7 @@ CREATE TABLE IF NOT EXISTS ven_comprobante_detalle (
 -- Utilidad: resúmenes diarios (RC, tipo_lote 1) y comunicaciones de baja (RA, tipo_lote 2) enviados a SUNAT.
 CREATE TABLE IF NOT EXISTS ven_sunat_lote (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_empresa              BIGINT       NOT NULL,
     tipo_lote               SMALLINT     NOT NULL,
     fecha_documentos        DATE         NOT NULL,
     fecha_envio             DATE         NOT NULL,
@@ -1337,7 +1394,8 @@ CREATE TABLE IF NOT EXISTS ven_sunat_lote (
     fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_ven_sunat_lote_tipo CHECK (tipo_lote IN (1, 2)),
-    CONSTRAINT uq_ven_sunat_lote UNIQUE (tipo_lote, fecha_envio, correlativo),
+    CONSTRAINT uq_ven_sunat_lote_empresa UNIQUE (id_empresa, tipo_lote, fecha_envio, correlativo),
+    CONSTRAINT fk_ven_sunat_lote_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
     CONSTRAINT fk_ven_sunat_lote_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_ven_sunat_lote_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
 );
@@ -1582,6 +1640,7 @@ COMMENT ON COLUMN cxc_movimiento.id_turno IS
 -- Utilidad: personal que cobra planilla. Mínimo por diseño.
 CREATE TABLE IF NOT EXISTS pla_trabajador (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_empresa              BIGINT       NOT NULL,
     id_sucursal             BIGINT,
     nombres                 VARCHAR(100) NOT NULL,
     apellidos               VARCHAR(100) NOT NULL,
@@ -1597,6 +1656,7 @@ CREATE TABLE IF NOT EXISTS pla_trabajador (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_pla_trabajador_doc UNIQUE (num_documento),
     CONSTRAINT ck_pla_trabajador_sueldo CHECK (sueldo_referencial >= 0),
+    CONSTRAINT fk_pla_trabajador_empresa FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id),
     CONSTRAINT fk_pla_trabajador_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
     CONSTRAINT fk_pla_trabajador_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
     CONSTRAINT fk_pla_trabajador_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
@@ -1607,13 +1667,40 @@ DO $mig$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $mig$;
 
+-- Bases creadas antes de multiempresa: la vista necesita estas columnas.
+ALTER TABLE pla_trabajador ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+ALTER TABLE auth_sesion ADD COLUMN IF NOT EXISTS id_sucursal_activa BIGINT;
+
 CREATE OR REPLACE VIEW auth_usuario_datos AS
 SELECT u.id, u.username, u.password_hash, u.pin_hash, u.es_super_admin,
        u.estado, u.fecha_creacion, u.fecha_modificacion, u.id_trabajador,
        t.nombres, t.apellidos, t.email, t.telefono,
-       t.id_sucursal AS id_sucursal_default, t.estado AS estado_trabajador
+       t.id_sucursal AS id_sucursal_default, t.estado AS estado_trabajador,
+       t.id_empresa
 FROM auth_usuario u
 JOIN pla_trabajador t ON t.id = u.id_trabajador;
+
+-- Utilidad: sucursales en las que puede trabajar cada usuario (todas de su empresa).
+CREATE TABLE IF NOT EXISTS auth_usuario_sucursal (
+    id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_usuario              BIGINT       NOT NULL,
+    id_sucursal             BIGINT       NOT NULL,
+    es_predeterminada       BOOLEAN      NOT NULL DEFAULT FALSE,
+    estado                  SMALLINT     NOT NULL DEFAULT 1,
+    id_usuario_creacion     BIGINT,
+    id_usuario_modificacion BIGINT,
+    fecha_creacion          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_auth_usuario_sucursal UNIQUE (id_usuario, id_sucursal),
+    CONSTRAINT fk_auth_usuario_sucursal_usuario FOREIGN KEY (id_usuario) REFERENCES auth_usuario (id),
+    CONSTRAINT fk_auth_usuario_sucursal_sucursal FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id),
+    CONSTRAINT fk_auth_usuario_sucursal_usr_creacion FOREIGN KEY (id_usuario_creacion) REFERENCES auth_usuario (id) ON DELETE SET NULL,
+    CONSTRAINT fk_auth_usuario_sucursal_usr_modificacion FOREIGN KEY (id_usuario_modificacion) REFERENCES auth_usuario (id) ON DELETE SET NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auth_usuario_sucursal_predeterminada
+    ON auth_usuario_sucursal (id_usuario)
+    WHERE es_predeterminada AND estado = 1;
+CREATE INDEX IF NOT EXISTS ix_pla_trabajador_empresa ON pla_trabajador (id_empresa);
 
 
 COMMENT ON COLUMN pla_trabajador.sueldo_referencial IS
@@ -2211,6 +2298,12 @@ $$;
 -- =============================================================================
 -- SEMILLA MÍNIMA (catálogos para arrancar el API)
 -- =============================================================================
+
+-- Cliente genérico para boletas sin DNI y notas de venta (lo exigen
+-- ven_pedido_cobrar y ven_reemitir_comprobante).
+INSERT INTO cli_persona (tipo_persona, tipo_documento, num_documento, razon_social, nombres, es_cliente)
+VALUES (1, 1, '00000000', 'CLIENTES VARIOS', 'CLIENTES VARIOS', TRUE)
+ON CONFLICT ON CONSTRAINT uq_cli_persona_doc DO UPDATE SET es_cliente = TRUE, estado = 1;
 
 INSERT INTO gen_lista (codigo, nombre, descripcion) VALUES
     ('PRODUCTO_TIPO', 'Tipo de producto', 'Clasificación de ítems'),

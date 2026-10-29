@@ -11,6 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 import {
   GuardarConfiguracionSunatDto,
@@ -30,8 +31,8 @@ export class SunatConfiguracionController {
     summary:
       'Configuración SUNAT/APIsPERU: qué credenciales están cargadas (nunca las devuelve), ambiente y plazos de envío',
   })
-  obtener() {
-    return this.logic.obtener();
+  obtener(@EmpresaSesion() idEmpresa: number | null) {
+    return this.logic.obtener(idEmpresa);
   }
 
   @Put()
@@ -43,8 +44,9 @@ export class SunatConfiguracionController {
   guardar(
     @Body() dto: GuardarConfiguracionSunatDto,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.guardar(dto, usuario);
+    return this.logic.guardar(dto, usuario, idEmpresa);
   }
 
   @Post('certificado')
@@ -61,8 +63,9 @@ export class SunatConfiguracionController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: SubirCertificadoDto,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.subirCertificado(file, dto.clave, usuario);
+    return this.logic.subirCertificado(file, dto.clave, usuario, idEmpresa);
   }
 
   @Post('probar')
@@ -71,7 +74,7 @@ export class SunatConfiguracionController {
     summary:
       'Probar el token con APIsPERU (genera el XML de una boleta de prueba sin enviarla a SUNAT)',
   })
-  probar() {
-    return this.logic.probar();
+  probar(@EmpresaSesion() idEmpresa: number | null) {
+    return this.logic.probar(idEmpresa);
   }
 }

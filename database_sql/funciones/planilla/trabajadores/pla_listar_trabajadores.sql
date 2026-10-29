@@ -57,6 +57,8 @@ BEGIN
             t.id,
             t.id_sucursal,
             s.nombre AS nombre_sucursal,
+            t.id_empresa,
+            e.razon_social AS nombre_empresa,
             t.email, t.telefono,
             (SELECT u.id FROM auth_usuario u WHERE u.id_trabajador = t.id) AS id_usuario,
             t.nombres,
@@ -75,6 +77,7 @@ BEGIN
             t.fecha_modificacion
         FROM pla_trabajador t
         LEFT JOIN gen_sucursal s ON t.id_sucursal = s.id
+        LEFT JOIN gen_empresa e ON t.id_empresa = e.id
         LEFT JOIN LATERAL (
             SELECT
                 SUM(p.monto) AS pagado_periodo,

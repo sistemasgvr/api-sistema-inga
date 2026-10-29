@@ -59,7 +59,7 @@ describe('EmpresaLogic · logo', () => {
       .composite([{ input: marca, left: 100, top: 100 }])
       .png()
       .toBuffer();
-    const result = await logic.subirLogo(file(original), 7);
+    const result = await logic.subirLogo(file(original), 7, 1);
 
     const ticket = Buffer.from(model.guardarLogo.mock.calls[0][2]!, 'base64');
     const metadata = await sharp(ticket).metadata();
@@ -80,9 +80,9 @@ describe('EmpresaLogic · logo', () => {
 
   it('rechaza archivos que no son imagen sin subir nada', async () => {
     await expect(
-      logic.subirLogo(file(Buffer.from('no es imagen')), 7),
+      logic.subirLogo(file(Buffer.from('no es imagen')), 7, 1),
     ).rejects.toThrow('No se pudo procesar');
-    await expect(logic.subirLogo(undefined, 7)).rejects.toThrow('adjuntar');
+    await expect(logic.subirLogo(undefined, 7, 1)).rejects.toThrow('adjuntar');
     expect(upload).not.toHaveBeenCalled();
   });
 });

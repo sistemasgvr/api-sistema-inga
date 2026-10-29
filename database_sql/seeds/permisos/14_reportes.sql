@@ -1,16 +1,3 @@
--- Permisos del dashboard gerencial y de la reportería.
---
--- Un permiso por reporte porque cada uno expone datos sensibles distintos:
--- quien revisa la caja no tiene por qué ver la planilla. `dashboard.ver` y
--- `reportes.general` muestran la rentabilidad completa (ventas, costos,
--- gastos y planilla), así que conviene dejarlos en pocas manos.
---
--- Sin `dashboard.ver` la página /dashboard sigue abriendo, pero solo con el
--- saludo: no pide ni muestra indicadores.
---
--- Ejecutar después de 01_auth.sql. Es idempotente. Asigna todo a ADMIN; el
--- resto de roles se ajusta desde la pantalla de Roles.
-
 INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VALUES
 ('dashboard.ver',       'Ver dashboard gerencial',  'Ver ventas, platos más vendidos, gastos, planilla y rentabilidad en el dashboard', 'Reportes', 1),
 ('reportes.ventas',     'Reporte de ventas',        'Platos vendidos, ventas por medio de pago, canal y mozo, y listado de ventas', 'Reportes', 1),

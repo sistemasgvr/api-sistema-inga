@@ -27,6 +27,6 @@ BEGIN
         RETURN json_build_object('error', 'La empresa no existe', 'registro', NULL);
     END IF;
 
-    RETURN gen_obtener_empresa();
+    RETURN gen_obtener_empresa(p_id_empresa);
 END;
 $function$;

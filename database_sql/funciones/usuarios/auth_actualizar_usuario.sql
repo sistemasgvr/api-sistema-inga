@@ -6,13 +6,26 @@ DROP FUNCTION IF EXISTS auth_actualizar_usuario(
     p_roles_ids JSON,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_actualizar_usuario(
+    p_id BIGINT,
+    p_username VARCHAR,
+    p_password_hash VARCHAR,
+    p_pin_hash VARCHAR,
+    p_roles_ids JSON,
+    p_id_usuario_auditoria BIGINT,
+    p_sucursales JSON,
+    p_id_sucursal_predeterminada BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_actualizar_usuario(
     p_id BIGINT,
     p_username VARCHAR DEFAULT NULL,
     p_password_hash VARCHAR DEFAULT NULL,
     p_pin_hash VARCHAR DEFAULT NULL,
     p_roles_ids JSON DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    -- NULL conserva las sucursales actuales.
+    p_sucursales JSON DEFAULT NULL,
+    p_id_sucursal_predeterminada BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -56,6 +69,10 @@ BEGIN
                 END IF;
             END LOOP;
         END IF;
+    END IF;
+
+    IF p_sucursales IS NOT NULL THEN
+        PERFORM auth_asignar_sucursales_usuario(p_id, p_sucursales, p_id_sucursal_predeterminada, p_id_usuario_auditoria);
     END IF;
 
     RETURN auth_obtener_usuario(p_id);

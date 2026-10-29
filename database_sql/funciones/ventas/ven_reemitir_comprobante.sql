@@ -1,8 +1,19 @@
 -- Reemite el comprobante de una venta: anula el vigente y emite uno nuevo enlazado al anterior,
 -- copiando ítems y montos. Los pagos pasan al nuevo comprobante. Si el anterior ya estaba aceptado
--- por SUNAT, el API envía su baja al terminar.
+-- por SUNAT, el API envía su baja al terminar. La numeración es por empresa (RUC).
 DROP FUNCTION IF EXISTS ven_reemitir_comprobante(p_id_pedido BIGINT, p_datos JSONB, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION ven_reemitir_comprobante(p_id_pedido BIGINT, p_datos JSONB, p_usuario BIGINT)
+DROP FUNCTION IF EXISTS ven_reemitir_comprobante(
+  p_id_pedido BIGINT,
+  p_datos JSONB,
+  p_usuario BIGINT,
+  p_id_empresa BIGINT
+);
+CREATE OR REPLACE FUNCTION ven_reemitir_comprobante(
+  p_id_pedido BIGINT,
+  p_datos JSONB,
+  p_usuario BIGINT,
+  p_id_empresa BIGINT DEFAULT NULL
+)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE pedido ven_pedido%ROWTYPE; anterior ven_comprobante%ROWTYPE; persona cli_persona%ROWTYPE;
   correlativo gen_correlativo%ROWTYPE; nuevo BIGINT;
@@ -16,6 +27,9 @@ BEGIN
   SELECT * INTO anterior FROM ven_comprobante WHERE id_pedido = p_id_pedido AND estado = 1
     ORDER BY id DESC LIMIT 1 FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'La venta no tiene comprobante vigente (las ventas a crédito no emiten comprobante)'; END IF;
+  IF p_id_empresa IS NOT NULL AND anterior.id_empresa <> p_id_empresa THEN
+    RAISE EXCEPTION 'La venta no pertenece a la empresa de la sesión' USING ERRCODE = 'P0002';
+  END IF;
   -- SUNAT: un envío o resumen en curso debe terminar antes; uno aceptado se da de baja (el API la
   -- envía después de reemitir) y eso solo se admite hasta 7 días después de emitido.
   IF anterior.estado_sunat = 5 THEN
@@ -43,9 +57,9 @@ BEGIN
     SELECT * INTO persona FROM cli_persona WHERE tipo_documento = 1 AND num_documento = documento AND estado = 1 AND es_cliente;
   END IF;
 
-  SELECT * INTO correlativo FROM gen_correlativo WHERE id_sucursal = pedido.id_sucursal AND tipo_documento = tipo AND estado = 1
+  SELECT * INTO correlativo FROM gen_correlativo WHERE id_empresa = anterior.id_empresa AND tipo_documento = tipo AND estado = 1
     ORDER BY id LIMIT 1 FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante en esta sucursal'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante de la empresa'; END IF;
   UPDATE gen_correlativo SET ultimo_numero = ultimo_numero + 1 WHERE id = correlativo.id RETURNING * INTO correlativo;
 
   -- Si nunca llegó a SUNAT basta anularlo aquí; si fue aceptado conserva su estado hasta que la baja responda.
@@ -55,10 +69,10 @@ BEGIN
     id_usuario_modificacion = p_usuario, fecha_modificacion = CURRENT_TIMESTAMP
     WHERE id = anterior.id;
 
-  INSERT INTO ven_comprobante(id_pedido, id_persona, id_comprobante_origen, tipo_comprobante, receptor_tipo_doc,
+  INSERT INTO ven_comprobante(id_empresa, id_pedido, id_persona, id_comprobante_origen, tipo_comprobante, receptor_tipo_doc,
     receptor_num_doc, receptor_razon_social, serie, correlativo, monto_gravado, monto_exonerado, monto_igv, monto_total,
     estado_sunat, fecha_limite_envio, id_usuario_creacion, id_usuario_modificacion)
-  VALUES(p_id_pedido, persona.id, anterior.id, tipo,
+  VALUES(anterior.id_empresa, p_id_pedido, persona.id, anterior.id, tipo,
     COALESCE(persona.tipo_documento, CASE WHEN tipo = 2 THEN 6 ELSE 1 END),
     COALESCE(NULLIF(documento, ''), persona.num_documento),
     COALESCE(NULLIF(btrim(persona.razon_social), ''),

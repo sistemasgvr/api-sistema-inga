@@ -10,7 +10,10 @@ import {
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 
 export class CreateSucursalDto extends AuditoriaDto {
-  @ApiProperty({ example: 1, description: 'ID de la empresa a la que pertenece' })
+  @ApiProperty({
+    example: 1,
+    description: 'ID de la empresa a la que pertenece',
+  })
   @IsInt()
   @IsNotEmpty()
   idEmpresa!: number;

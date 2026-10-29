@@ -13,17 +13,8 @@ import { SucursalesModel } from '../models/sucursales.model';
 export class SucursalesLogic {
   constructor(private readonly sucursalesModel: SucursalesModel) {}
 
-  // Uso mapListResult como el resto de los módulos.
-  //
-  // Antes esto devolvía un objeto `{ data, meta }` armado a mano. El problema es
-  // que ese objeto no tiene `success` ni `message`, así que el
-  // TransformResponseInterceptor no lo reconocía como una respuesta ya formada
-  // y la envolvía otra vez, dejando la carga anidada dos veces:
-  //   { success, message, data: { data: [...], meta: {...} } }
-  // El front esperaba `data` como arreglo y recibía un objeto, con el error
-  // "sucursales.map is not a function".
-  async listar(filtros: FiltroSucursalDto) {
-    const result = await this.sucursalesModel.listar(filtros);
+  async listar(filtros: FiltroSucursalDto, idEmpresa: number | null) {
+    const result = await this.sucursalesModel.listar(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
@@ -63,11 +54,17 @@ export class SucursalesLogic {
 
   async eliminar(id: number, idUsuarioAuditoria?: number) {
     const result = await this.sucursalesModel.eliminar(id, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Sucursal con ID ${id} no encontrada o ya desactivada`);
+    return mapDeleteResult(
+      result,
+      `Sucursal con ID ${id} no encontrada o ya desactivada`,
+    );
   }
 
   async activar(id: number, idUsuarioAuditoria?: number) {
     const result = await this.sucursalesModel.activar(id, idUsuarioAuditoria);
-    return mapActivateResult(result, `Sucursal con ID ${id} no encontrada o ya activa`);
+    return mapActivateResult(
+      result,
+      `Sucursal con ID ${id} no encontrada o ya activa`,
+    );
   }
 }

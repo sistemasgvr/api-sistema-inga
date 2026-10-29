@@ -19,12 +19,15 @@ import { UsuariosModel } from '../models/usuarios.model';
 export class UsuariosLogic {
   constructor(private readonly usuariosModel: UsuariosModel) {}
 
-  trabajadoresDisponibles() {
-    return this.usuariosModel.trabajadoresDisponibles();
+  trabajadoresDisponibles(idEmpresa: number | null) {
+    return this.usuariosModel.trabajadoresDisponibles(undefined, idEmpresa);
   }
 
-  async trabajadorDisponible(id: number) {
-    const [trabajador] = await this.usuariosModel.trabajadoresDisponibles(id);
+  async trabajadorDisponible(id: number, idEmpresa: number | null) {
+    const [trabajador] = await this.usuariosModel.trabajadoresDisponibles(
+      id,
+      idEmpresa,
+    );
     if (!trabajador)
       throw new NotFoundException(
         'El trabajador ya tiene usuario, está inactivo o no tiene correo.',
@@ -54,6 +57,8 @@ export class UsuariosLogic {
         pinHash,
         dto.rolesIds ?? [],
         dto.idUsuarioAuditoria,
+        dto.sucursalesIds ?? null,
+        dto.idSucursalPredeterminada ?? null,
       );
       return mapSingleResult(result, 'No se pudo crear el usuario');
     } catch (error: any) {
@@ -76,6 +81,8 @@ export class UsuariosLogic {
         pinHash,
         dto.rolesIds ?? null,
         dto.idUsuarioAuditoria,
+        dto.sucursalesIds ?? null,
+        dto.idSucursalPredeterminada ?? null,
       );
       return mapSingleResult(result, `Usuario con ID ${id} no encontrado`);
     } catch (error: any) {

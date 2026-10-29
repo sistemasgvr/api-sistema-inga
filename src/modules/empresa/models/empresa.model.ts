@@ -41,22 +41,27 @@ function registro<T>(result: AuthSingleResult<T>) {
 }
 
 /**
- * Hoy el sistema trabaja con una sola empresa (las sucursales usan id_empresa 1):
- * se toma la primera activa. La configuración SUNAT cuelga de esta misma fila.
+ * La empresa es la del usuario autenticado (la de su trabajador): nunca se toma
+ * «la primera activa». La configuración SUNAT cuelga de esta misma fila.
  */
 @Injectable()
 export class EmpresaModel {
   constructor(private readonly db: DatabaseService) {}
 
-  async obtener() {
+  async obtener(idEmpresa: number | null) {
     return registro(
       await this.db.callFunctionJson<AuthSingleResult<EmpresaRegistro>>(
         'gen_obtener_empresa',
+        [idEmpresa],
       ),
     );
   }
 
-  async guardar(datos: DatosEmpresa, usuario: number) {
+  async guardar(
+    datos: DatosEmpresa,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     return registro(
       await this.db.callFunctionJson<AuthSingleResult<EmpresaRegistro>>(
         'gen_guardar_empresa',
@@ -70,6 +75,7 @@ export class EmpresaModel {
             tasa_igv: datos.tasaIgv,
           }),
           usuario,
+          idEmpresa,
         ],
       ),
     );

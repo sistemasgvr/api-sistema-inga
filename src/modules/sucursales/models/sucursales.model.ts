@@ -5,7 +5,10 @@ import {
   AuthDeleteResult,
   AuthSingleResult,
 } from '../../../common/interfaces/auth-db.interface';
-import { FiltroSucursalDto, SucursalEstadoFiltro } from '../dto/filtros-sucursal.dto';
+import {
+  FiltroSucursalDto,
+  SucursalEstadoFiltro,
+} from '../dto/filtros-sucursal.dto';
 
 export interface SucursalListResult {
   registros: any[];
@@ -27,17 +30,23 @@ export class SucursalesModel {
     return 1;
   }
 
-  listar(filtros: FiltroSucursalDto) {
-    return this.db.callFunctionJson<SucursalListResult>('gen_listar_sucursales', [
-      filtros.buscar ?? '',
-      filtros.limite ?? 10,
-      filtros.offset ?? 0,
-      this.resolveEstadoFiltro(filtros.estado),
-    ]);
+  listar(filtros: FiltroSucursalDto, idEmpresa: number | null) {
+    return this.db.callFunctionJson<SucursalListResult>(
+      'gen_listar_sucursales',
+      [
+        filtros.buscar ?? '',
+        filtros.limite ?? 10,
+        filtros.offset ?? 0,
+        this.resolveEstadoFiltro(filtros.estado),
+        idEmpresa,
+      ],
+    );
   }
 
   obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_sucursal', [id]);
+    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_sucursal', [
+      id,
+    ]);
   }
 
   crear(
@@ -73,17 +82,20 @@ export class SucursalesModel {
     esPrincipal?: boolean,
     idUsuarioAuditoria?: number,
   ) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_actualizar_sucursal', [
-      id,
-      idEmpresa ?? null,
-      codigo ?? null,
-      nombre ?? null,
-      direccion ?? null,
-      telefono ?? null,
-      idDistrito ?? null,
-      esPrincipal ?? null,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gen_actualizar_sucursal',
+      [
+        id,
+        idEmpresa ?? null,
+        codigo ?? null,
+        nombre ?? null,
+        direccion ?? null,
+        telefono ?? null,
+        idDistrito ?? null,
+        esPrincipal ?? null,
+        idUsuarioAuditoria ?? null,
+      ],
+    );
   }
 
   eliminar(id: number, idUsuarioAuditoria?: number) {
@@ -94,9 +106,9 @@ export class SucursalesModel {
   }
 
   activar(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('gen_activar_sucursal', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'gen_activar_sucursal',
+      [id, idUsuarioAuditoria ?? null],
+    );
   }
 }

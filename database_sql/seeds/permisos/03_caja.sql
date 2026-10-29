@@ -1,13 +1,3 @@
--- Permisos del módulo de caja y turnos (M11).
---
--- Un archivo por módulo, igual que personas.sql. Ejecutar después de
--- auth_permisos.sql. Es idempotente: se puede correr las veces que haga falta.
---
--- Nota sobre cómo separé los permisos de turno: no uso el clásico
--- crear/editar/eliminar porque acá las acciones no son esas. Abrir y cerrar un
--- turno son operaciones distintas y con distinto peso, y "ver el histórico" es
--- algo que el administrador necesita aunque nunca vaya a tocar una caja.
-
 INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VALUES
 -- MÓDULO: Cajas físicas
 ('cajas.listar',   'Listar cajas',          'Permite consultar las cajas y ver si tienen turno abierto', 'Caja', 1),

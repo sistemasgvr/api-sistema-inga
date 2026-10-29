@@ -1,6 +1,10 @@
 -- Boletas y facturas emitidas en un día de Lima (resumen del día y envío masivo).
 DROP FUNCTION IF EXISTS ven_sunat_listar_comprobantes_dia(p_fecha DATE);
-CREATE OR REPLACE FUNCTION ven_sunat_listar_comprobantes_dia(p_fecha DATE)
+DROP FUNCTION IF EXISTS ven_sunat_listar_comprobantes_dia(p_fecha DATE, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_sunat_listar_comprobantes_dia(
+    p_fecha DATE,
+    p_id_empresa BIGINT DEFAULT NULL
+)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -27,6 +31,7 @@ BEGIN
             c.fecha_emision
         FROM ven_comprobante c
         WHERE c.tipo_comprobante IN (1, 2)
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
           AND (c.fecha_emision AT TIME ZONE 'America/Lima')::DATE = p_fecha
         ORDER BY c.tipo_comprobante, c.serie, c.correlativo
     ) t;

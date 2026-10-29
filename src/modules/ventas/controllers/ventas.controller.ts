@@ -11,6 +11,7 @@ import {
 import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 import {
   CambiarMedioPagoDto,
@@ -54,8 +55,9 @@ export class VentasController {
     @Param('idPago', ParseIntPipe) idPago: number,
     @Body() dto: CambiarMedioPagoDto,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.cambiarMedioPago(idPago, dto.medio_pago, usuario);
+    return this.logic.cambiarMedioPago(idPago, dto.medio_pago, usuario, idEmpresa);
   }
 
   @Post(':id/reemitir')
@@ -68,8 +70,9 @@ export class VentasController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ReemitirComprobanteDto,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.reemitirComprobante(id, dto, usuario);
+    return this.logic.reemitirComprobante(id, dto, usuario, idEmpresa);
   }
 
   @Get('comandas/:idComanda/pdf')
@@ -92,8 +95,11 @@ export class VentasController {
   })
   async comprobantePdf(
     @Param('idComprobante', ParseIntPipe) idComprobante: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return archivoPdf(await this.logic.comprobantePdf(idComprobante));
+    return archivoPdf(
+      await this.logic.comprobantePdf(idComprobante, idEmpresa),
+    );
   }
 
   @Post('comandas/:idComanda/reimprimir')

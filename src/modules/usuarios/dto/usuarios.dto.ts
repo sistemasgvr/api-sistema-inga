@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
   IsArray,
   IsInt,
   IsNotEmpty,
@@ -45,6 +46,26 @@ export class CreateUsuarioDto extends AuditoriaDto {
   @IsArray()
   @IsInt({ each: true })
   rolesIds?: number[];
+  @ApiPropertyOptional({
+    example: [1, 2],
+    description:
+      'Sucursales en las que trabaja (todas de la empresa del trabajador)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Asigne al menos una sucursal' })
+  @IsInt({ each: true })
+  sucursalesIds?: number[];
+
+  @ApiPropertyOptional({
+    example: 1,
+    description:
+      'Sucursal predeterminada al iniciar sesión (una de sucursalesIds)',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  idSucursalPredeterminada?: number;
 }
 
 export class UpdateUsuarioDto extends AuditoriaDto {
@@ -76,4 +97,24 @@ export class UpdateUsuarioDto extends AuditoriaDto {
   @IsArray()
   @IsInt({ each: true })
   rolesIds?: number[];
+  @ApiPropertyOptional({
+    example: [1, 2],
+    description:
+      'Sucursales en las que trabaja (todas de la empresa del trabajador)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Asigne al menos una sucursal' })
+  @IsInt({ each: true })
+  sucursalesIds?: number[];
+
+  @ApiPropertyOptional({
+    example: 1,
+    description:
+      'Sucursal predeterminada al iniciar sesión (una de sucursalesIds)',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  idSucursalPredeterminada?: number;
 }

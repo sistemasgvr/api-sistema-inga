@@ -13,6 +13,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 import { BuscarDistritoDto, GuardarEmpresaDto } from '../dto/empresa.dto';
 import { EmpresaLogic } from '../logic/empresa.logic';
@@ -28,8 +29,8 @@ export class EmpresaController {
     summary:
       'Datos de la empresa (RUC, razón social, dirección, distrito, tasa de IGV y logo)',
   })
-  obtener() {
-    return this.empresaLogic.obtener();
+  obtener(@EmpresaSesion() idEmpresa: number | null) {
+    return this.empresaLogic.obtener(idEmpresa);
   }
 
   @Get('distritos')
@@ -51,8 +52,9 @@ export class EmpresaController {
   guardar(
     @Body() dto: GuardarEmpresaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.empresaLogic.guardar(dto, idUsuarioAuditoria);
+    return this.empresaLogic.guardar(dto, idUsuarioAuditoria, idEmpresa);
   }
 
   @Post('logo')
@@ -68,14 +70,18 @@ export class EmpresaController {
   subirLogo(
     @UploadedFile() file: Express.Multer.File,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.empresaLogic.subirLogo(file, idUsuarioAuditoria);
+    return this.empresaLogic.subirLogo(file, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete('logo')
   @Permisos(PermisoBanderas.EMPRESA_EDITAR)
   @ApiOperation({ summary: 'Quitar el logo de la empresa' })
-  eliminarLogo(@UsuarioAuditoria() idUsuarioAuditoria: number) {
-    return this.empresaLogic.eliminarLogo(idUsuarioAuditoria);
+  eliminarLogo(
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.empresaLogic.eliminarLogo(idUsuarioAuditoria, idEmpresa);
   }
 }

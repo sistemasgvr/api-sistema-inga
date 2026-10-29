@@ -1,7 +1,8 @@
--- Datos del emisor para los comprobantes electrónicos: empresa activa, ubigeo de su
+-- Datos del emisor para los comprobantes electrónicos de una empresa: ubigeo de su
 -- distrito y el token de APIsPERU (cifrado).
 DROP FUNCTION IF EXISTS gen_obtener_emisor_sunat();
-CREATE OR REPLACE FUNCTION gen_obtener_emisor_sunat()
+DROP FUNCTION IF EXISTS gen_obtener_emisor_sunat(p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gen_obtener_emisor_sunat(p_id_empresa BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -29,9 +30,8 @@ BEGIN
     LEFT JOIN gen_configuracion_sunat c
         ON c.id_empresa = e.id
        AND c.estado = 1
-    WHERE e.estado = 1
-    ORDER BY e.id
-    LIMIT 1;
+    WHERE e.id = p_id_empresa
+      AND e.estado = 1;
 
     RETURN json_build_object('registro', v_registro);
 END;

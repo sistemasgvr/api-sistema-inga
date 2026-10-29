@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '../../../common/decorators/public.decorator';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
-import { LoginDto } from '../dto/login.dto';
+import { CambiarSucursalDto, LoginDto } from '../dto/login.dto';
 import { LoginLogic } from '../logic/login.logic';
 
 @ApiTags('Auth - Login')
@@ -32,10 +32,27 @@ export class LoginController {
   }
 
   @Get('me')
-  @UseGuards(AuthGuard('jwt')) 
+  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Usuario autenticado y banderas de permiso' })
+  @ApiOperation({
+    summary:
+      'Usuario autenticado, banderas de permiso, empresa, sucursal activa y sucursales permitidas',
+  })
   me(@Req() req: Request & { user: AuthenticatedUser }) {
-    return req.user;
+    return this.loginLogic.sesion(req.user);
+  }
+
+  @Post('sucursal')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Cambiar la sucursal en la que trabaja la sesión (solo a una asignada al usuario)',
+  })
+  cambiarSucursal(
+    @Body() dto: CambiarSucursalDto,
+    @Req() req: Request & { user: AuthenticatedUser },
+  ) {
+    return this.loginLogic.cambiarSucursal(req.user, dto.idSucursal);
   }
 }

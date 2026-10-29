@@ -1,9 +1,3 @@
--- Permisos de la pantalla de Ventas (pedidos cobrados).
---
--- Cambiar el medio de pago y reemitir comprobantes van aparte porque pueden
--- tocar cajas ya cerradas: conviene dejarlos en pocas manos.
--- Ejecutar después de 01_auth.sql. Es idempotente.
-
 INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VALUES
 ('ventas.listar',       'Consultar ventas',        'Ver los pedidos cobrados, sus pagos, comprobantes y comandas', 'Ventas', 1),
 ('ventas.reimprimir',   'Reimprimir',              'Reimprimir comandas e imprimir el comprobante vigente', 'Ventas', 1),

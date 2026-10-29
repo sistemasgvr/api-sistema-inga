@@ -38,8 +38,6 @@ export class PlanillaLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  /* ---------------------------- Trabajadores ---------------------------- */
-
   async listarTrabajadores(filtros: FiltroTrabajadoresDto) {
     const result = await this.planillaModel.listarTrabajadores(filtros);
     return mapListResult(result, filtros);
@@ -50,18 +48,26 @@ export class PlanillaLogic {
     return mapSingleResult(result, `Trabajador con ID ${id} no encontrado`);
   }
 
-  async crearTrabajador(dto: CreateTrabajadorDto) {
+  async crearTrabajador(dto: CreateTrabajadorDto, idEmpresa: number | null) {
     try {
-      const result = await this.planillaModel.crearTrabajador(dto);
+      const result = await this.planillaModel.crearTrabajador(dto, idEmpresa);
       return mapSingleResult(result, 'No se pudo crear el trabajador');
     } catch (error) {
       this.errorTrabajador(error);
     }
   }
 
-  async actualizarTrabajador(id: number, dto: UpdateTrabajadorDto) {
+  async actualizarTrabajador(
+    id: number,
+    dto: UpdateTrabajadorDto,
+    idEmpresa: number | null,
+  ) {
     try {
-      const result = await this.planillaModel.actualizarTrabajador(id, dto);
+      const result = await this.planillaModel.actualizarTrabajador(
+        id,
+        dto,
+        idEmpresa,
+      );
       return mapSingleResult(result, `Trabajador con ID ${id} no encontrado`);
     } catch (error) {
       this.errorTrabajador(error);
@@ -108,8 +114,6 @@ export class PlanillaLogic {
       `Trabajador con ID ${id} no encontrado o ya activo`,
     );
   }
-
-  /* -------------------------------- Pagos -------------------------------- */
 
   async listarPagos(filtros: FiltroPagosDto) {
     const result = await this.planillaModel.listarPagos(filtros);

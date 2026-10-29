@@ -1,7 +1,11 @@
 -- Lotes con ticket cuya respuesta falta. Sin p_id_lote devuelve los que no se
 -- consultaron en los últimos 2 minutos; con p_id_lote, solo ese.
 DROP FUNCTION IF EXISTS ven_sunat_listar_lotes_en_proceso(p_id_lote BIGINT);
-CREATE OR REPLACE FUNCTION ven_sunat_listar_lotes_en_proceso(p_id_lote BIGINT DEFAULT NULL)
+DROP FUNCTION IF EXISTS ven_sunat_listar_lotes_en_proceso(p_id_lote BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_sunat_listar_lotes_en_proceso(
+    p_id_lote BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
+)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -14,12 +18,14 @@ BEGIN
     FROM (
         SELECT
             l.id,
+            l.id_empresa,
             l.tipo_lote,
             l.ticket,
             l.identificador,
             l.intentos_consulta
         FROM ven_sunat_lote l
         WHERE l.estado = 1
+          AND (p_id_empresa IS NULL OR l.id_empresa = p_id_empresa)
           AND l.estado_sunat = 5
           AND l.ticket IS NOT NULL
           AND (

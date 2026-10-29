@@ -33,7 +33,12 @@ export class VentasLogic {
     return this.resolver(() => this.model.obtener(id));
   }
 
-  async cambiarMedioPago(idPago: number, medio: number, usuario: number) {
+  async cambiarMedioPago(
+    idPago: number,
+    medio: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     const venta = await this.resolver(() =>
       this.model.cambiarMedioPago(idPago, medio, usuario),
     );
@@ -41,7 +46,7 @@ export class VentasLogic {
     const idPedido = (venta as { id?: number } | null)?.id;
     if (idPedido) {
       try {
-        await this.tickets.regenerarComprobantes(idPedido);
+        await this.tickets.regenerarComprobantes(idPedido, idEmpresa);
       } catch {
         // El cambio de pago ya se guardó; el PDF se regenera en la próxima consulta.
       }
@@ -53,12 +58,13 @@ export class VentasLogic {
     idPedido: number,
     dto: ReemitirComprobanteDto,
     usuario: number,
+    idEmpresa: number | null,
   ) {
     const anterior = await this.sunat.comprobanteVigente(idPedido);
     const venta = await this.resolver(() =>
-      this.model.reemitirComprobante(idPedido, dto, usuario),
+      this.model.reemitirComprobante(idPedido, dto, usuario, idEmpresa),
     );
-    this.tickets.archivarComprobantes(idPedido);
+    this.tickets.archivarComprobantes(idPedido, idEmpresa);
     // Si SUNAT ya había aceptado el comprobante reemplazado, se envía su baja.
     this.sunat.bajaPorReemision(anterior, usuario);
     return venta;
@@ -68,8 +74,8 @@ export class VentasLogic {
     return this.tickets.trabajo(idComanda);
   }
 
-  comprobantePdf(idComprobante: number) {
-    return this.tickets.comprobante(idComprobante);
+  comprobantePdf(idComprobante: number, idEmpresa: number | null) {
+    return this.tickets.comprobante(idComprobante, idEmpresa);
   }
 
   async reimprimirComanda(idComanda: number, usuario: number) {

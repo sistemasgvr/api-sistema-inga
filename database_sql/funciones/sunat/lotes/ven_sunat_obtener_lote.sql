@@ -1,7 +1,11 @@
 -- Detalle de un resumen o baja con sus comprobantes. Incluye las rutas de Storage
 -- (ruta_xml, ruta_cdr) para las descargas; el API no las entrega al front.
 DROP FUNCTION IF EXISTS ven_sunat_obtener_lote(p_id_lote BIGINT);
-CREATE OR REPLACE FUNCTION ven_sunat_obtener_lote(p_id_lote BIGINT)
+DROP FUNCTION IF EXISTS ven_sunat_obtener_lote(p_id_lote BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_sunat_obtener_lote(
+    p_id_lote BIGINT,
+    p_id_empresa BIGINT DEFAULT NULL
+)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -11,6 +15,7 @@ DECLARE
 BEGIN
     SELECT json_build_object(
         'id', l.id,
+        'id_empresa', l.id_empresa,
         'tipo_lote', l.tipo_lote,
         'identificador', l.identificador,
         'fecha_documentos', l.fecha_documentos,
@@ -39,7 +44,8 @@ BEGIN
     )
     INTO v_registro
     FROM ven_sunat_lote l
-    WHERE l.id = p_id_lote;
+    WHERE l.id = p_id_lote
+      AND (p_id_empresa IS NULL OR l.id_empresa = p_id_empresa);
 
     RETURN json_build_object('registro', v_registro);
 END;

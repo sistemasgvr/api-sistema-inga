@@ -31,6 +31,7 @@ const emisor = {
 
 const comprobante = (estadoSunat: number): ComprobanteEstado => ({
   id: 9,
+  idEmpresa: 1,
   idPedido: 4,
   tipoComprobante: 2,
   serie: 'F001',

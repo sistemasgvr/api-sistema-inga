@@ -5,11 +5,19 @@ DROP FUNCTION IF EXISTS ven_sunat_listar_lotes(
     p_limite INTEGER,
     p_offset INTEGER
 );
+DROP FUNCTION IF EXISTS ven_sunat_listar_lotes(
+    p_fecha DATE,
+    p_tipo_lote SMALLINT,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION ven_sunat_listar_lotes(
     p_fecha DATE DEFAULT NULL,
     p_tipo_lote SMALLINT DEFAULT NULL,
     p_limite INTEGER DEFAULT 10,
-    p_offset INTEGER DEFAULT 0
+    p_offset INTEGER DEFAULT 0,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -23,6 +31,7 @@ BEGIN
     INTO v_total
     FROM ven_sunat_lote l
     WHERE l.estado = 1
+      AND (p_id_empresa IS NULL OR l.id_empresa = p_id_empresa)
       AND (p_fecha IS NULL OR l.fecha_documentos = p_fecha OR l.fecha_envio = p_fecha)
       AND (p_tipo_lote IS NULL OR l.tipo_lote = p_tipo_lote);
 
@@ -31,6 +40,7 @@ BEGIN
     FROM (
         SELECT
             l.id,
+            l.id_empresa,
             l.tipo_lote,
             l.identificador,
             l.fecha_documentos,
@@ -50,6 +60,7 @@ BEGIN
             ) AS cantidad
         FROM ven_sunat_lote l
         WHERE l.estado = 1
+          AND (p_id_empresa IS NULL OR l.id_empresa = p_id_empresa)
           AND (p_fecha IS NULL OR l.fecha_documentos = p_fecha OR l.fecha_envio = p_fecha)
           AND (p_tipo_lote IS NULL OR l.tipo_lote = p_tipo_lote)
         ORDER BY l.id DESC

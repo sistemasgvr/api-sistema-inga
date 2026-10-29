@@ -1,5 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { AuthSingleResult } from '../../../common/interfaces/auth-db.interface';
+import type {
+  AuthListResult,
+  AuthSingleResult,
+} from '../../../common/interfaces/auth-db.interface';
 import { DatabaseService } from '../../../database/database.service';
 
 export interface ConfiguracionSunatRegistro {
@@ -43,17 +46,26 @@ function registro(result: Resultado) {
   return result?.registro ?? null;
 }
 
-/** Una fila por empresa (la única activa hoy, igual que EmpresaModel). */
+/** Una fila por empresa; siempre la de la sesión. */
 @Injectable()
 export class SunatConfiguracionModel {
   constructor(private readonly db: DatabaseService) {}
 
-  async obtener() {
+  async obtener(idEmpresa: number | null) {
     return registro(
       await this.db.callFunctionJson<Resultado>(
         'gen_obtener_configuracion_sunat',
+        [idEmpresa],
       ),
     );
+  }
+
+  /** Empresas activas con token de APIsPERU: el programador las recorre todas. */
+  async empresasActivas() {
+    const result = await this.db.callFunctionJson<
+      AuthListResult<{ id: number; ruc: string; razon_social: string }>
+    >('gen_listar_empresas_sunat_activas');
+    return result?.registros ?? [];
   }
 
   async guardar(

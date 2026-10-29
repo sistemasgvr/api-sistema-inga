@@ -23,6 +23,14 @@ BEGIN
             u.id_sucursal_default,
             u.estado,
             u.es_super_admin,
+            u.id_empresa,
+            -- Empresa del usuario (la de su trabajador) y sucursales en las que puede trabajar.
+            (
+                SELECT json_build_object('id', e.id, 'ruc', e.ruc, 'razon_social', e.razon_social)
+                FROM gen_empresa e
+                WHERE e.id = u.id_empresa
+            ) AS empresa,
+            auth_sucursales_usuario(u.id) AS sucursales,
             (
                 SELECT COALESCE(json_agg(json_build_object(
                     'id', r.id,

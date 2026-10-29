@@ -14,6 +14,7 @@ export interface ItemNuevoLote {
 
 export interface LoteCreado {
   id: number;
+  idEmpresa: number;
   tipoLote: TipoLote;
   correlativo: number;
   fechaEnvio: string;
@@ -24,6 +25,7 @@ export interface LoteCreado {
 
 export interface LoteEnProceso {
   id: number;
+  idEmpresa: number;
   tipoLote: TipoLote;
   ticket: string;
   identificador: string;
@@ -55,10 +57,12 @@ export class SunatLotesModel {
     fechaDocumentos: string,
     items: ItemNuevoLote[],
     usuario: number | null,
+    idEmpresa: number | null,
   ): Promise<LoteCreado | null> {
     const result = await this.db.callFunctionJson<
       AuthSingleResult<{
         id: number;
+        id_empresa: number;
         tipo_lote: TipoLote;
         correlativo: number;
         fecha_envio: string;
@@ -81,12 +85,14 @@ export class SunatLotesModel {
         })),
       ),
       usuario,
+      idEmpresa,
     ]);
     if (result.error) throw new BadRequestException(result.error);
     const r = result.registro;
     if (!r) return null;
     return {
       id: r.id,
+      idEmpresa: Number(r.id_empresa),
       tipoLote: r.tipo_lote,
       correlativo: r.correlativo,
       fechaEnvio: r.fecha_envio,
@@ -135,18 +141,23 @@ export class SunatLotesModel {
   }
 
   /** Lotes con ticket cuya respuesta falta (o solo el indicado). */
-  async enProceso(soloId?: number): Promise<LoteEnProceso[]> {
+  async enProceso(
+    soloId?: number,
+    idEmpresa?: number | null,
+  ): Promise<LoteEnProceso[]> {
     const { registros } = await this.db.callFunctionJson<
       AuthListResult<{
         id: number;
+        id_empresa: number;
         tipo_lote: TipoLote;
         ticket: string;
         identificador: string;
         intentos_consulta: number;
       }>
-    >('ven_sunat_listar_lotes_en_proceso', [soloId ?? null]);
+    >('ven_sunat_listar_lotes_en_proceso', [soloId ?? null, idEmpresa ?? null]);
     return registros.map((r) => ({
       id: r.id,
+      idEmpresa: Number(r.id_empresa),
       tipoLote: r.tipo_lote,
       ticket: r.ticket,
       identificador: r.identificador,
@@ -154,25 +165,29 @@ export class SunatLotesModel {
     }));
   }
 
-  listar(filtro: {
-    fecha?: string;
-    tipoLote?: number;
-    limite: number;
-    offset: number;
-  }) {
+  listar(
+    filtro: {
+      fecha?: string;
+      tipoLote?: number;
+      limite: number;
+      offset: number;
+    },
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthListResult>('ven_sunat_listar_lotes', [
       filtro.fecha ?? null,
       filtro.tipoLote ?? null,
       filtro.limite,
       filtro.offset,
+      idEmpresa ?? null,
     ]);
   }
 
   /** Lote con sus comprobantes. Las rutas de Storage van aparte: no se entregan al front. */
-  async obtener(id: number) {
+  async obtener(id: number, idEmpresa?: number | null) {
     const { registro: r } = await this.db.callFunctionJson<
       AuthSingleResult<FilaLote>
-    >('ven_sunat_obtener_lote', [id]);
+    >('ven_sunat_obtener_lote', [id, idEmpresa ?? null]);
     if (!r) return null;
     const { ruta_xml, ruta_cdr, ...publico } = r;
     return {

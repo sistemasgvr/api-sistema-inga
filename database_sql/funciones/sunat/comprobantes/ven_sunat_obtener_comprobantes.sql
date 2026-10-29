@@ -1,7 +1,11 @@
 -- Comprobantes con su estado SUNAT, rutas de archivos y líneas tributarias, para armar
 -- el JSON de APIsPERU (envío individual, resumen diario o baja).
 DROP FUNCTION IF EXISTS ven_sunat_obtener_comprobantes(p_ids BIGINT[]);
-CREATE OR REPLACE FUNCTION ven_sunat_obtener_comprobantes(p_ids BIGINT[])
+DROP FUNCTION IF EXISTS ven_sunat_obtener_comprobantes(p_ids BIGINT[], p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_sunat_obtener_comprobantes(
+    p_ids BIGINT[],
+    p_id_empresa BIGINT DEFAULT NULL
+)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -14,6 +18,7 @@ BEGIN
     FROM (
         SELECT
             c.id,
+            c.id_empresa,
             c.id_pedido,
             c.tipo_comprobante,
             c.serie,
@@ -58,6 +63,7 @@ BEGIN
         FROM ven_comprobante c
         LEFT JOIN cli_persona per ON per.id = c.id_persona
         WHERE c.id = ANY(p_ids)
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registros', v_registros);

@@ -1,7 +1,8 @@
--- Configuración SUNAT/APIsPERU de la empresa activa (una sola empresa por ahora).
+-- Configuración SUNAT/APIsPERU de una empresa (la de la sesión).
 -- Devuelve los valores cifrados: el API decide qué mostrar y nunca los entrega al front.
 DROP FUNCTION IF EXISTS gen_obtener_configuracion_sunat();
-CREATE OR REPLACE FUNCTION gen_obtener_configuracion_sunat()
+DROP FUNCTION IF EXISTS gen_obtener_configuracion_sunat(p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gen_obtener_configuracion_sunat(p_id_empresa BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -30,9 +31,8 @@ BEGIN
     LEFT JOIN gen_configuracion_sunat c
         ON c.id_empresa = e.id
        AND c.estado = 1
-    WHERE e.estado = 1
-    ORDER BY e.id
-    LIMIT 1;
+    WHERE e.id = p_id_empresa
+      AND e.estado = 1;
 
     RETURN json_build_object('registro', v_registro);
 END;

@@ -71,25 +71,28 @@ export class SunatEmisionLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  async estado(id: number) {
-    const c = await this.requerido(id);
+  async estado(id: number, idEmpresa?: number | null) {
+    const c = await this.requerido(id, idEmpresa);
     return this.vista(c);
   }
 
-  async bandeja(filtro: BandejaSunatDto) {
+  async bandeja(filtro: BandejaSunatDto, idEmpresa: number | null) {
     return mapListResult(
-      await this.model.bandeja({
-        estadoSunat: filtro.estado_sunat,
-        tipoComprobante: filtro.tipo_comprobante,
-        limite: filtro.limite ?? 10,
-        offset: filtro.offset,
-      }),
+      await this.model.bandeja(
+        {
+          estadoSunat: filtro.estado_sunat,
+          tipoComprobante: filtro.tipo_comprobante,
+          limite: filtro.limite ?? 10,
+          offset: filtro.offset,
+        },
+        idEmpresa,
+      ),
       filtro,
     );
   }
 
-  async historial(id: number) {
-    await this.requerido(id);
+  async historial(id: number, idEmpresa?: number | null) {
+    await this.requerido(id, idEmpresa);
     return this.model.historial(id);
   }
 
@@ -98,9 +101,9 @@ export class SunatEmisionLogic {
    * (caída, excepción 0100–1999) queda pendiente para reintentar; un rechazo
    * (2000–3999) es definitivo y obliga a reemitir.
    */
-  async enviar(id: number, usuario: number | null) {
-    const c = await this.enviable(id);
-    const { emisor, token } = await this.configuracion.contexto();
+  async enviar(id: number, usuario: number | null, idEmpresa?: number | null) {
+    const c = await this.enviable(id, idEmpresa);
+    const { emisor, token } = await this.configuracion.contexto(c.idEmpresa);
     if (!(await this.model.reservarEnvio(id)))
       throw new ConflictException(MOTIVO_NO_ENVIABLE[EstadoSunat.EN_PROCESO]);
 
@@ -177,13 +180,13 @@ export class SunatEmisionLogic {
   }
 
   /** Consulta el CDR en SUNAT (solo facturas: SUNAT no expone el de boletas). */
-  async consultar(id: number, usuario: number) {
-    const c = await this.requerido(id);
+  async consultar(id: number, usuario: number, idEmpresa?: number | null) {
+    const c = await this.requerido(id, idEmpresa);
     if (c.tipoComprobante !== TipoComprobante.FACTURA)
       throw new BadRequestException(
         'SUNAT solo permite consultar el CDR de facturas; las boletas se confirman con su envío o resumen',
       );
-    const { emisor, token } = await this.configuracion.contexto();
+    const { emisor, token } = await this.configuracion.contexto(c.idEmpresa);
     const resultado = await this.consultarCdr(token, emisor, c);
     if (!resultado)
       throw new NotFoundException('SUNAT no tiene CDR de esta factura');
@@ -201,8 +204,8 @@ export class SunatEmisionLogic {
     return this.estado(id);
   }
 
-  async xml(id: number): Promise<ArchivoSunat> {
-    const c = await this.requerido(id);
+  async xml(id: number, idEmpresa?: number | null): Promise<ArchivoSunat> {
+    const c = await this.requerido(id, idEmpresa);
     const { emisor, token } = await this.archivoContexto(c);
     const nombre = `${nombreArchivo(emisor.ruc, c)}.xml`;
     if (c.rutaXml)
@@ -226,9 +229,9 @@ export class SunatEmisionLogic {
     };
   }
 
-  async cdr(id: number): Promise<ArchivoSunat> {
-    const c = await this.requerido(id);
-    const emisor = await this.model.emisor();
+  async cdr(id: number, idEmpresa?: number | null): Promise<ArchivoSunat> {
+    const c = await this.requerido(id, idEmpresa);
+    const emisor = await this.model.emisor(c.idEmpresa);
     const nombre = `R-${nombreArchivo(emisor?.ruc ?? '', c)}.zip`;
     if (c.rutaCdr)
       return this.archivos.leer(c.rutaCdr, nombre, TIPO_ARCHIVO.zip);
@@ -245,8 +248,8 @@ export class SunatEmisionLogic {
   }
 
   /** PDF A4 generado por APIsPERU; se archiva cuando el comprobante ya fue aceptado. */
-  async pdfA4(id: number): Promise<ArchivoSunat> {
-    const c = await this.requerido(id);
+  async pdfA4(id: number, idEmpresa?: number | null): Promise<ArchivoSunat> {
+    const c = await this.requerido(id, idEmpresa);
     const { emisor, token } = await this.archivoContexto(c);
     const nombre = `${nombreArchivo(emisor.ruc, c)}.pdf`;
     if (c.rutaPdfA4)
@@ -340,8 +343,8 @@ export class SunatEmisionLogic {
     });
   }
 
-  private async enviable(id: number) {
-    const c = await this.requerido(id);
+  private async enviable(id: number, idEmpresa?: number | null) {
+    const c = await this.requerido(id, idEmpresa);
     if (
       c.tipoComprobante !== TipoComprobante.BOLETA &&
       c.tipoComprobante !== TipoComprobante.FACTURA
@@ -365,11 +368,11 @@ export class SunatEmisionLogic {
       c.tipoComprobante !== TipoComprobante.FACTURA
     )
       throw new BadRequestException(MOTIVO_NO_ENVIABLE[EstadoSunat.NO_APLICA]);
-    return this.configuracion.contexto();
+    return this.configuracion.contexto(c.idEmpresa);
   }
 
-  private async requerido(id: number) {
-    const c = await this.model.comprobante(id);
+  private async requerido(id: number, idEmpresa?: number | null) {
+    const c = await this.model.comprobante(id, idEmpresa);
     if (!c) throw new NotFoundException('El comprobante no existe');
     return c;
   }

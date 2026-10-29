@@ -21,6 +21,10 @@ BEGIN;
 \ir funciones/general/estaciones/gen_obtener_estacion.sql
 \ir funciones/general/sucursales/gen_listar_sucursales.sql
 \ir funciones/general/sucursales/gen_obtener_sucursal.sql
+-- Multiempresa: sucursales por usuario (antes del login y de usuarios).
+\ir funciones/usuarios/auth_validar_empresa_sucursal.sql
+\ir funciones/usuarios/auth_sucursales_usuario.sql
+\ir funciones/usuarios/auth_asignar_sucursales_usuario.sql
 \ir funciones/login/auth_obtener_usuario_por_login.sql
 \ir funciones/pedidos/ven_autorizar_anulacion.sql
 \ir funciones/pedidos/ven_listar_pedidos.sql
@@ -49,6 +53,7 @@ BEGIN;
 \ir funciones/sesiones/auth_crear_sesion.sql
 \ir funciones/sesiones/auth_obtener_sesion.sql
 \ir funciones/sesiones/auth_validar_sesion.sql
+\ir funciones/sesiones/auth_cambiar_sucursal_sesion.sql
 \ir funciones/usuarios/auth_activar_usuario.sql
 \ir funciones/usuarios/auth_actualizar_usuario.sql
 \ir funciones/usuarios/auth_crear_usuario.sql

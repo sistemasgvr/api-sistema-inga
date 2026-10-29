@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { ImpresionLogic } from '../logic/impresion.logic';
 import { QzSigningLogic } from '../logic/qz-signing.logic';
@@ -31,8 +32,8 @@ export class ImpresionController {
   ) {}
   // Encabezado de los tickets (logo, RUC, razón social y dirección).
   @Get('empresa')
-  datosEmpresa() {
-    return this.empresa.datosTicket();
+  datosEmpresa(@EmpresaSesion() idEmpresa: number | null) {
+    return this.empresa.datosTicket(idEmpresa);
   }
   @Get('qz/configuracion')
   @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
@@ -59,8 +60,11 @@ export class ImpresionController {
   }
   // PDF archivado en Storage del ticket (comanda, precuenta o comprobante).
   @Get(':id/pdf')
-  async pdf(@Param('id', ParseIntPipe) id: number) {
-    return archivoPdf(await this.tickets.trabajo(id));
+  async pdf(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return archivoPdf(await this.tickets.trabajo(id, idEmpresa));
   }
   @Post(':id/confirmar')
   confirmar(

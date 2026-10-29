@@ -23,6 +23,8 @@ BEGIN
             u.estado,
             u.fecha_creacion,
             u.fecha_modificacion,
+            u.id_empresa,
+            auth_sucursales_usuario(u.id) AS sucursales,
             (
                 SELECT COALESCE(json_agg(json_build_object(
                     'id', r.id,

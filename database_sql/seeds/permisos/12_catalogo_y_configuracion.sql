@@ -1,17 +1,3 @@
--- Permisos de catálogo (productos, categorías, almacenes), configuración
--- (estaciones, sucursales) y SUNAT.
---
--- Los seis primeros módulos ya estaban en la BD, cargados a mano y sin seed.
--- Los versiono aquí con los mismos nombres para que una instalación nueva no
--- quede sin ellos: sin productos.listar el mozo no carga la carta, y sin
--- estaciones.listar nadie imprime comandas ni elige estación al cobrar.
---
--- SUNAT es nuevo: la pantalla está en desarrollo y por ahora solo la usa el
--- menú del front.
---
--- Ejecutar después de 01_auth.sql. Es idempotente y reactiva (estado = 1)
--- cualquiera de estos permisos que se haya dado de baja.
-
 INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VALUES
 -- MÓDULO: Productos (también cubre recetas, adicionales y tipos de producto)
 ('productos.listar',   'Listar productos',         'Permite consultar el listado general de productos', 'Productos', 1),

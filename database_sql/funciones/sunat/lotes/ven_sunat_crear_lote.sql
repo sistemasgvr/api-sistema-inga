@@ -12,11 +12,19 @@ DROP FUNCTION IF EXISTS ven_sunat_crear_lote(
     p_items JSONB,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS ven_sunat_crear_lote(
+    p_tipo_lote SMALLINT,
+    p_fecha_documentos DATE,
+    p_items JSONB,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION ven_sunat_crear_lote(
     p_tipo_lote SMALLINT,
     p_fecha_documentos DATE,
     p_items JSONB,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -34,6 +42,14 @@ BEGIN
         RETURN json_build_object('error', 'Tipo de lote inválido', 'registro', NULL);
     END IF;
 
+    IF p_id_empresa IS NULL THEN
+        RETURN json_build_object('error', 'No se pudo identificar la empresa de la sesión', 'registro', NULL);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM gen_empresa WHERE id = p_id_empresa AND estado = 1) THEN
+        RETURN json_build_object('error', 'La empresa no existe o está inactiva', 'registro', NULL);
+    END IF;
+
     SELECT
         array_agg((i->>'id_comprobante')::BIGINT) FILTER (WHERE (i->>'estado_item')::SMALLINT = 1),
         array_agg((i->>'id_comprobante')::BIGINT) FILTER (WHERE (i->>'estado_item')::SMALLINT = 3)
@@ -49,6 +65,7 @@ BEGIN
             fecha_envio_sunat = CURRENT_TIMESTAMP
         WHERE p_tipo_lote = 1
           AND c.id = ANY(COALESCE(v_adicionar, '{}'))
+          AND c.id_empresa = p_id_empresa
           AND c.estado = 1
           AND c.tipo_comprobante = 1
           AND c.estado_sunat = 1
@@ -63,12 +80,14 @@ BEGIN
     PERFORM 1
     FROM ven_comprobante c
     WHERE c.id = ANY(COALESCE(v_anular, '{}'))
+      AND c.id_empresa = p_id_empresa
     FOR UPDATE;
 
     v_tomados := v_tomados || COALESCE((
         SELECT array_agg(c.id)
         FROM ven_comprobante c
         WHERE c.id = ANY(COALESCE(v_anular, '{}'))
+          AND c.id_empresa = p_id_empresa
           AND c.estado_sunat = 2
           AND (c.fecha_emision AT TIME ZONE 'America/Lima')::DATE = p_fecha_documentos
           -- Boletas se anulan por resumen (RC) y facturas por comunicación de baja (RA).
@@ -88,19 +107,22 @@ BEGIN
         RETURN json_build_object('registro', NULL);
     END IF;
 
-    -- Serializa la asignación del correlativo del día para cada tipo de lote.
-    PERFORM pg_advisory_xact_lock(908001, p_tipo_lote);
+    -- Serializa la asignación del correlativo del día por empresa y tipo de lote:
+    -- la numeración de resúmenes y bajas también es por empresa (RUC).
+    PERFORM pg_advisory_xact_lock(908001000000 + p_id_empresa * 10 + p_tipo_lote);
 
     SELECT COALESCE(MAX(l.correlativo), 0) + 1
     INTO v_correlativo
     FROM ven_sunat_lote l
-    WHERE l.tipo_lote = p_tipo_lote
+    WHERE l.id_empresa = p_id_empresa
+      AND l.tipo_lote = p_tipo_lote
       AND l.fecha_envio = v_fecha_envio;
 
     v_identificador := CASE p_tipo_lote WHEN 1 THEN 'RC' ELSE 'RA' END
         || '-' || to_char(v_fecha_envio, 'YYYYMMDD') || '-' || v_correlativo;
 
     INSERT INTO ven_sunat_lote (
+        id_empresa,
         tipo_lote,
         fecha_documentos,
         fecha_envio,
@@ -111,6 +133,7 @@ BEGIN
         id_usuario_modificacion
     )
     VALUES (
+        p_id_empresa,
         p_tipo_lote,
         p_fecha_documentos,
         v_fecha_envio,
@@ -133,6 +156,7 @@ BEGIN
 
     RETURN json_build_object('registro', json_build_object(
         'id', v_id,
+        'id_empresa', p_id_empresa,
         'tipo_lote', p_tipo_lote,
         'correlativo', v_correlativo,
         'fecha_envio', v_fecha_envio,

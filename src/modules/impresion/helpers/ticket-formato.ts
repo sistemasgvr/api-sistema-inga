@@ -38,6 +38,8 @@ export interface ComandaImpresion {
     /** Resumen de la firma; solo existe después de enviarlo a SUNAT. */
     hash?: string | null;
   };
+  /** Empresa que emitió el comprobante (encabezado del ticket). */
+  empresa?: EmpresaTicket | null;
   pagos?: { nombre_medio: string; monto: number }[];
   total?: number;
   id: string;

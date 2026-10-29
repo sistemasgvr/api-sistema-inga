@@ -73,8 +73,8 @@ export class SunatLotesLogic {
   ) {}
 
   /** Comprobantes de un día agrupados por tipo y estado, para la pantalla del resumen. */
-  async resumenDia(dia = diaLima(new Date())) {
-    const registros = await this.comprobantes.delDia(dia);
+  async resumenDia(dia = diaLima(new Date()), idEmpresa: number | null) {
+    const registros = await this.comprobantes.delDia(dia, idEmpresa);
     const grupos = [TipoComprobante.BOLETA, TipoComprobante.FACTURA].map(
       (tipo) => {
         const delTipo = registros.filter((r) => r.tipoComprobante === tipo);
@@ -111,9 +111,9 @@ export class SunatLotesLogic {
    * Envío masivo del día: las facturas una por una (SUNAT no las admite en resumen)
    * y las boletas en resúmenes diarios de hasta 500.
    */
-  async enviarDia(dia: string, usuario: number | null) {
-    await this.configuracion.contexto();
-    const pendientes = (await this.comprobantes.delDia(dia)).filter(
+  async enviarDia(dia: string, usuario: number | null, idEmpresa: number | null) {
+    await this.configuracion.contexto(idEmpresa);
+    const pendientes = (await this.comprobantes.delDia(dia, idEmpresa)).filter(
       (r) => r.estado === 1 && r.estadoSunat === EstadoSunat.PENDIENTE,
     );
     const facturas = pendientes.filter(
@@ -131,7 +131,7 @@ export class SunatLotesLogic {
     };
     for (const f of facturas) {
       try {
-        const r = await this.emision.enviar(f.id, usuario);
+        const r = await this.emision.enviar(f.id, usuario, idEmpresa);
         resultadoFacturas.enviadas += 1;
         if (r.estadoSunat === EstadoSunat.ACEPTADO)
           resultadoFacturas.aceptadas += 1;
@@ -156,6 +156,7 @@ export class SunatLotesLogic {
               estadoItem: EstadoItem.ADICIONAR,
             })),
             usuario,
+            idEmpresa,
           ),
         );
       } catch (error) {
@@ -173,7 +174,12 @@ export class SunatLotesLogic {
   }
 
   /** Boletas pendientes de un día en resumen diario (programador o envío masivo). */
-  enviarBoletas(dia: string, ids: number[], usuario: number | null) {
+  enviarBoletas(
+    dia: string,
+    ids: number[],
+    usuario: number | null,
+    idEmpresa: number | null,
+  ) {
     return Promise.all(
       trozos(ids, MAX_ITEMS_RESUMEN).map((grupo) =>
         this.enviarLote(
@@ -184,6 +190,7 @@ export class SunatLotesLogic {
             estadoItem: EstadoItem.ADICIONAR,
           })),
           usuario,
+          idEmpresa,
         ),
       ),
     );
@@ -194,8 +201,13 @@ export class SunatLotesLogic {
    * baja (RA) y boletas por resumen diario con estado 3. Solo hasta 7 días después
    * de emitidos; pasado ese plazo corresponde una nota de crédito.
    */
-  async darDeBaja(ids: number[], motivo: string, usuario: number | null) {
-    const lista = await this.comprobantes.comprobantes(ids);
+  async darDeBaja(
+    ids: number[],
+    motivo: string,
+    usuario: number | null,
+    idEmpresa: number | null,
+  ) {
+    const lista = await this.comprobantes.comprobantes(ids, idEmpresa);
     if (!lista.length) throw new NotFoundException('El comprobante no existe');
     const hoy = diaLima(new Date());
     for (const c of lista) {
@@ -235,6 +247,7 @@ export class SunatLotesLogic {
             motivo,
           })),
           usuario,
+          idEmpresa,
         ),
       );
     }
@@ -252,7 +265,7 @@ export class SunatLotesLogic {
    * ya quedó hecha).
    */
   bajaPorReemision(
-    anterior: { id: number; estadoSunat: number } | null,
+    anterior: { id: number; idEmpresa: number; estadoSunat: number } | null,
     usuario: number,
   ) {
     if (anterior?.estadoSunat !== EstadoSunat.ACEPTADO) return;
@@ -260,9 +273,10 @@ export class SunatLotesLogic {
       [anterior.id],
       'REEMISION DEL COMPROBANTE',
       usuario,
+      anterior.idEmpresa,
     ).catch(async (error: Error) => {
       const [c] = await this.comprobantes
-        .comprobantes([anterior.id])
+        .comprobantes([anterior.id], anterior.idEmpresa)
         .catch(() => []);
       await this.emision.avisar(
         c ?? null,
@@ -274,8 +288,8 @@ export class SunatLotesLogic {
   }
 
   /** Consulta los tickets pendientes (todos o uno). */
-  async consultarPendientes(soloId?: number) {
-    const lotes = await this.model.enProceso(soloId);
+  async consultarPendientes(soloId?: number, idEmpresa?: number | null) {
+    const lotes = await this.model.enProceso(soloId, idEmpresa);
     for (const lote of lotes) {
       try {
         await this.consultarLote(lote);
@@ -289,34 +303,41 @@ export class SunatLotesLogic {
     return lotes.length;
   }
 
-  async consultar(id: number) {
-    const lote = await this.model.obtener(id);
+  async consultar(id: number, idEmpresa: number | null) {
+    const lote = await this.model.obtener(id, idEmpresa);
     if (!lote) throw new NotFoundException('El lote no existe');
     if (lote.estadoSunat === EstadoSunat.EN_PROCESO && lote.ticket)
-      await this.consultarPendientes(id);
-    return this.obtener(id);
+      await this.consultarPendientes(id, idEmpresa);
+    return this.obtener(id, idEmpresa);
   }
 
-  async obtener(id: number) {
-    const lote = await this.model.obtener(id);
+  async obtener(id: number, idEmpresa?: number | null) {
+    const lote = await this.model.obtener(id, idEmpresa);
     if (!lote) throw new NotFoundException('El lote no existe');
     return lote.registro;
   }
 
-  async listar(filtro: FiltroLotesDto) {
+  async listar(filtro: FiltroLotesDto, idEmpresa: number | null) {
     return mapListResult(
-      await this.model.listar({
-        fecha: filtro.fecha,
-        tipoLote: filtro.tipo_lote,
-        limite: filtro.limite ?? 10,
-        offset: filtro.offset,
-      }),
+      await this.model.listar(
+        {
+          fecha: filtro.fecha,
+          tipoLote: filtro.tipo_lote,
+          limite: filtro.limite ?? 10,
+          offset: filtro.offset,
+        },
+        idEmpresa,
+      ),
       filtro,
     );
   }
 
-  async archivo(id: number, tipo: 'xml' | 'cdr'): Promise<ArchivoSunat> {
-    const lote = await this.model.obtener(id);
+  async archivo(
+    id: number,
+    tipo: 'xml' | 'cdr',
+    idEmpresa: number | null,
+  ): Promise<ArchivoSunat> {
+    const lote = await this.model.obtener(id, idEmpresa);
     if (!lote) throw new NotFoundException('El lote no existe');
     return tipo === 'xml'
       ? this.archivos.leer(
@@ -340,9 +361,16 @@ export class SunatLotesLogic {
       motivo?: string | null;
     }[],
     usuario: number | null,
+    idEmpresa: number | null,
   ) {
-    const { emisor, token } = await this.configuracion.contexto();
-    const lote = await this.model.crear(tipoLote, dia, items, usuario);
+    const { emisor, token } = await this.configuracion.contexto(idEmpresa);
+    const lote = await this.model.crear(
+      tipoLote,
+      dia,
+      items,
+      usuario,
+      idEmpresa,
+    );
     if (!lote)
       throw new BadRequestException(
         'Ningún comprobante se puede incluir: ya fueron enviados, están en proceso o tienen otra baja en curso',
@@ -431,7 +459,9 @@ export class SunatLotesLogic {
   }
 
   private async consultarLote(lote: LoteEnProceso) {
-    const { emisor, token } = await this.configuracion.contexto();
+    const { emisor, token } = await this.configuracion.contexto(
+      lote.idEmpresa,
+    );
     await this.model.marcarConsulta(lote.id);
     const estado =
       lote.tipoLote === TipoLote.BAJA
@@ -480,6 +510,7 @@ export class SunatLotesLogic {
   private async itemsLote(lote: LoteCreado): Promise<ItemLote[]> {
     const lista = await this.comprobantes.comprobantes(
       lote.items.map((i) => i.idComprobante),
+      lote.idEmpresa,
     );
     const porId = new Map(lista.map((c) => [c.id, c]));
     return lote.items.map((i) => ({

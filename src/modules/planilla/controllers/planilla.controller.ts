@@ -24,6 +24,7 @@ import {
 } from '../dto/planilla.dto';
 import { PlanillaLogic } from '../logic/planilla.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Planilla - Trabajadores y pagos')
 @Controller('planilla')
@@ -54,8 +55,12 @@ export class PlanillaController {
   crearTrabajador(
     @Body() dto: CreateTrabajadorDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.crearTrabajador({ ...dto, idUsuarioAuditoria });
+    return this.planillaLogic.crearTrabajador(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch('trabajadores/:id')
@@ -66,11 +71,13 @@ export class PlanillaController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTrabajadorDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.actualizarTrabajador(id, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.planillaLogic.actualizarTrabajador(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch('trabajadores/:id/activar')

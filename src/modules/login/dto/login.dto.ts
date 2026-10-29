@@ -1,8 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class LoginDto {
-  @ApiProperty({ example: 'geraldine@gmail.com', description: 'Correo electrónico del usuario' })
+  @ApiProperty({
+    example: 'geraldine@gmail.com',
+    description: 'Correo electrónico del usuario',
+  })
   @IsEmail({}, { message: 'El correo electrónico no es válido' })
   @IsNotEmpty()
   @MaxLength(150)
@@ -24,4 +36,15 @@ export class LoginDto {
   @IsString()
   @MaxLength(512)
   userAgent?: string;
+}
+
+export class CambiarSucursalDto {
+  @ApiProperty({
+    example: 2,
+    description: 'Sucursal asignada al usuario en la que va a trabajar',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  idSucursal!: number;
 }

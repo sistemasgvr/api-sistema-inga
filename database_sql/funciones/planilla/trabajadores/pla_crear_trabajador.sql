@@ -10,6 +10,18 @@ DROP FUNCTION IF EXISTS pla_crear_trabajador(
     p_email VARCHAR,
     p_telefono VARCHAR
 );
+DROP FUNCTION IF EXISTS pla_crear_trabajador(
+    p_nombres VARCHAR,
+    p_apellidos VARCHAR,
+    p_num_documento VARCHAR,
+    p_puesto VARCHAR,
+    p_sueldo_referencial NUMERIC,
+    p_id_sucursal BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_email VARCHAR,
+    p_telefono VARCHAR,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_crear_trabajador(
     p_nombres VARCHAR,
     p_apellidos VARCHAR,
@@ -19,7 +31,9 @@ CREATE OR REPLACE FUNCTION pla_crear_trabajador(
     p_id_sucursal BIGINT DEFAULT NULL,
     p_id_usuario_auditoria BIGINT DEFAULT NULL,
     p_email VARCHAR DEFAULT NULL,
-    p_telefono VARCHAR DEFAULT NULL
+    p_telefono VARCHAR DEFAULT NULL,
+    -- Empresa del usuario que lo registra; la sucursal debe ser de esta empresa.
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -30,6 +44,7 @@ DECLARE
     v_apellidos VARCHAR;
     v_doc VARCHAR;
     v_existente RECORD;
+    v_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
@@ -63,6 +78,17 @@ BEGIN
         RETURN json_build_object('error', 'La sucursal indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 
+    v_empresa := COALESCE(p_id_empresa, (SELECT s.id_empresa FROM gen_sucursal s WHERE s.id = p_id_sucursal));
+    IF v_empresa IS NULL THEN
+        RETURN json_build_object('error', 'Indique la empresa o la sucursal del trabajador', 'registro', NULL);
+    END IF;
+
+    IF p_id_sucursal IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM gen_sucursal WHERE id = p_id_sucursal AND id_empresa = v_empresa
+    ) THEN
+        RETURN json_build_object('error', 'La sucursal indicada pertenece a otra empresa', 'registro', NULL);
+    END IF;
+
     IF v_doc IS NOT NULL THEN
         SELECT id, estado, nombres, apellidos INTO v_existente
         FROM pla_trabajador WHERE num_documento = v_doc;
@@ -84,11 +110,11 @@ BEGIN
     END IF;
 
     INSERT INTO pla_trabajador (
-        id_sucursal, nombres, apellidos, num_documento, puesto, email, telefono,
+        id_empresa, id_sucursal, nombres, apellidos, num_documento, puesto, email, telefono,
         sueldo_referencial, id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-        p_id_sucursal, v_nombres, v_apellidos, v_doc,
+        v_empresa, p_id_sucursal, v_nombres, v_apellidos, v_doc,
         NULLIF(TRIM(p_puesto), ''), NULLIF(LOWER(TRIM(p_email)), ''), NULLIF(TRIM(p_telefono), ''), COALESCE(p_sueldo_referencial, 0),
         p_id_usuario_auditoria, p_id_usuario_auditoria
     )

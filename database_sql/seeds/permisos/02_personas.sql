@@ -1,17 +1,3 @@
--- Permisos del maestro de personas (clientes, proveedores y convenios).
---
--- Lo pongo en su propio archivo, dentro de seeds/permisos/, en vez de agregarlo
--- al final de auth_permisos.sql. Dos motivos:
---
---  1. Estamos varios trabajando en módulos distintos al mismo tiempo. Si todos
---     escribimos en el mismo archivo, cada merge es un conflicto. Con un archivo
---     por módulo, cada quien toca el suyo y no se pisan.
---  2. Es la única forma de que no se vuelvan a olvidar permisos: el módulo y su
---     seed viven juntos, así que si existe el módulo existe su archivo.
---
--- Ejecutar después de auth_permisos.sql. Es idempotente: se puede correr las
--- veces que haga falta sin duplicar nada.
-
 INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VALUES
 -- MÓDULO: Personas (clientes y proveedores)
 ('personas.listar',   'Listar personas',           'Permite consultar el listado de clientes y proveedores', 'Personas', 1),

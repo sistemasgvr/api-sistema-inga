@@ -27,14 +27,18 @@ export class EmpresaLogic {
     private readonly storage: SupabaseStorageService,
   ) {}
 
-  async obtener() {
-    const empresa = await this.model.obtener();
+  async obtener(idEmpresa: number | null) {
+    const empresa = await this.model.obtener(idEmpresa);
     return empresa ? this.respuesta(empresa) : null;
   }
 
-  async guardar(dto: GuardarEmpresaDto, usuario: number) {
+  async guardar(
+    dto: GuardarEmpresaDto,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     // Los campos nuevos son opcionales: si el front no los envía se conservan.
-    const actual = await this.model.obtener();
+    const actual = await this.model.obtener(idEmpresa);
     const empresa = await this.model.guardar(
       {
         ruc: dto.ruc,
@@ -50,6 +54,7 @@ export class EmpresaLogic {
         tasaIgv: dto.tasaIgv ?? Number(actual?.tasa_igv ?? 18),
       },
       usuario,
+      idEmpresa,
     );
     return this.respuesta(empresa);
   }
@@ -60,11 +65,15 @@ export class EmpresaLogic {
       .then((filas) => filas.map((d) => this.distritoRespuesta(d)));
   }
 
-  async subirLogo(file: Express.Multer.File | undefined, usuario: number) {
+  async subirLogo(
+    file: Express.Multer.File | undefined,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Debes adjuntar un archivo de imagen');
     }
-    const empresa = await this.requerida();
+    const empresa = await this.requerida(idEmpresa);
 
     let original: Buffer;
     let ticket: Buffer;
@@ -106,8 +115,8 @@ export class EmpresaLogic {
     return this.respuesta(actualizada);
   }
 
-  async eliminarLogo(usuario: number) {
-    const empresa = await this.requerida();
+  async eliminarLogo(usuario: number, idEmpresa: number | null) {
+    const empresa = await this.requerida(idEmpresa);
     const actualizada = await this.model.guardarLogo(
       empresa.id,
       null,
@@ -119,8 +128,8 @@ export class EmpresaLogic {
   }
 
   /** Lo que necesita la PC que imprime para el encabezado de los tickets. */
-  async datosTicket() {
-    const empresa = await this.model.obtener();
+  async datosTicket(idEmpresa: number | null) {
+    const empresa = await this.model.obtener(idEmpresa);
     return {
       ruc: empresa?.ruc ?? null,
       razon_social: empresa?.razon_social ?? null,
@@ -152,11 +161,11 @@ export class EmpresaLogic {
       .toBuffer();
   }
 
-  private async requerida() {
-    const empresa = await this.model.obtener();
+  private async requerida(idEmpresa: number | null) {
+    const empresa = await this.model.obtener(idEmpresa);
     if (!empresa) {
       throw new NotFoundException(
-        'Primero guarda el RUC y la razón social de la empresa',
+        'No se encontró la empresa de la sesión; verifique su trabajador en la base de datos',
       );
     }
     return empresa;

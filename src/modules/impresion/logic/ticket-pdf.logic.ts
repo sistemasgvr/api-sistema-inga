@@ -54,28 +54,38 @@ export class TicketPdfLogic {
   ) {}
 
   /** Comanda, precuenta o ticket de comprobante enviado a la cola de impresión. */
-  async trabajo(idComanda: number): Promise<PdfTicket> {
+  async trabajo(
+    idComanda: number,
+    idEmpresa?: number | null,
+  ): Promise<PdfTicket> {
     const registro = await this.model.trabajo(idComanda);
     if (!registro)
       throw new NotFoundException('Esta comanda no tiene un ticket generado');
-    return this.archivado(registro, (ruta) =>
-      this.model.guardarTrabajo(idComanda, ruta),
+    return this.archivado(
+      registro,
+      (ruta) => this.model.guardarTrabajo(idComanda, ruta),
+      idEmpresa,
     );
   }
 
-  async comprobante(idComprobante: number): Promise<PdfTicket> {
+  async comprobante(
+    idComprobante: number,
+    idEmpresa?: number | null,
+  ): Promise<PdfTicket> {
     const registro = await this.model.comprobante(idComprobante);
     if (!registro) throw new NotFoundException('El comprobante no existe');
-    return this.archivado(registro, (ruta) =>
-      this.model.guardarComprobante(idComprobante, ruta),
+    return this.archivado(
+      registro,
+      (ruta) => this.model.guardarComprobante(idComprobante, ruta),
+      idEmpresa,
     );
   }
 
   /** Archiva en segundo plano los comprobantes recién emitidos; un fallo no afecta al cobro. */
-  archivarComprobantes(idPedido: number) {
+  archivarComprobantes(idPedido: number, idEmpresa?: number | null) {
     void (async () => {
       for (const id of await this.model.comprobantesSinPdf(idPedido))
-        await this.comprobante(id);
+        await this.comprobante(id, idEmpresa);
     })().catch((error: Error) =>
       this.logger.warn(
         `No se archivó el PDF del pedido ${idPedido}: ${error.message}`,
@@ -84,19 +94,20 @@ export class TicketPdfLogic {
   }
 
   /** Los datos impresos cambiaron (p. ej. medio de pago): se descarta el PDF y se vuelve a archivar. */
-  async regenerarComprobantes(idPedido: number) {
+  async regenerarComprobantes(idPedido: number, idEmpresa?: number | null) {
     const viejos = await this.model.invalidarComprobantes(idPedido);
     await this.storage
       .remove(viejos)
       .catch((error: Error) =>
         this.logger.warn(`No se borraron PDF anteriores: ${error.message}`),
       );
-    this.archivarComprobantes(idPedido);
+    this.archivarComprobantes(idPedido, idEmpresa);
   }
 
   private async archivado(
     { contenido, ruta_pdf, ancho_papel }: TicketArchivable,
     guardar: (ruta: string) => Promise<boolean>,
+    idEmpresa?: number | null,
   ): Promise<PdfTicket> {
     const nombre = this.nombre(contenido);
     if (ruta_pdf) {
@@ -113,6 +124,7 @@ export class TicketPdfLogic {
       contenido,
       nombre,
       ancho_papel === 58 ? 58 : 80,
+      idEmpresa,
     );
     if (!ruta_pdf && this.storage.isConfigured()) {
       try {
@@ -150,11 +162,15 @@ export class TicketPdfLogic {
     contenido: ComandaImpresion,
     nombre: string,
     papel: AnchoPapel,
+    idEmpresa?: number | null,
   ) {
-    const empresa = await this.empresa.datosTicket();
+    // El comprobante trae la empresa que lo emitió; las comandas usan la de la sesión.
+    const empresa =
+      contenido.empresa ??
+      (await this.empresa.datosTicket(idEmpresa ?? null));
     return ticketPdf(
       formatearComanda(contenido, empresa, papel),
-      empresa.logo ? await this.logo(empresa.logo) : null,
+      empresa?.logo ? await this.logo(empresa.logo) : null,
       nombre,
       papel,
     );

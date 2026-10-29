@@ -4,6 +4,8 @@
 -- migraciones/20261028_sunat_apisperu.sql (tablas y columnas).
 BEGIN;
 -- Empresa y distritos (vista Empresa).
+\ir funciones/general/empresa/gen_crear_series_empresa.sql
+\ir funciones/general/empresa/gen_empresa_crear_series.sql
 \ir funciones/general/empresa/gen_obtener_empresa.sql
 \ir funciones/general/empresa/gen_guardar_empresa.sql
 \ir funciones/general/empresa/gen_guardar_logo_empresa.sql
@@ -15,6 +17,7 @@ BEGIN;
 \ir funciones/sunat/configuracion/gen_guardar_configuracion_sunat.sql
 \ir funciones/sunat/configuracion/gen_guardar_certificado_sunat.sql
 \ir funciones/sunat/configuracion/gen_obtener_emisor_sunat.sql
+\ir funciones/sunat/configuracion/gen_listar_empresas_sunat_activas.sql
 
 -- Comprobantes: emisión, plazos y bandeja.
 \ir funciones/ventas/ven_sunat_fecha_limite.sql

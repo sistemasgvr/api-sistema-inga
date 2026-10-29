@@ -53,8 +53,9 @@ describe('Ventas', () => {
 
   it('pasa el pago, el medio y el usuario autenticado al cambiar el medio', async () => {
     model.cambiarMedioPago.mockResolvedValue({ registro: { id: 3 } });
-    await logic.cambiarMedioPago(57, 2, 15);
+    await logic.cambiarMedioPago(57, 2, 15, 1);
     expect(model.cambiarMedioPago).toHaveBeenCalledWith(57, 2, 15);
+    expect(tickets.regenerarComprobantes).toHaveBeenCalledWith(3, 1);
   });
 
   it.each([

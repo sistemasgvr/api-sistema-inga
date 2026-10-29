@@ -17,6 +17,7 @@ import { FiltroSucursalDto } from '../dto/filtros-sucursal.dto';
 import { CreateSucursalDto, UpdateSucursalDto } from '../dto/sucursales.dto';
 import { SucursalesLogic } from '../logic/sucursales.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('General - Sucursales')
 @Controller('general/sucursales')
@@ -26,8 +27,11 @@ export class SucursalesController {
   @Get()
   @Permisos(PermisoBanderas.SUCURSALES_LISTAR)
   @ApiOperation({ summary: 'Listar sucursales' })
-  listar(@Query() filtros: FiltroSucursalDto) {
-    return this.sucursalesLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroSucursalDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.sucursalesLogic.listar(filtros, idEmpresa);
   }
 
   @Get(':id')

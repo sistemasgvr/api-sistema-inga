@@ -6,11 +6,19 @@ DROP FUNCTION IF EXISTS ven_sunat_listar_bandeja(
     p_limite INTEGER,
     p_offset INTEGER
 );
+DROP FUNCTION IF EXISTS ven_sunat_listar_bandeja(
+    p_estado_sunat SMALLINT,
+    p_tipo_comprobante SMALLINT,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION ven_sunat_listar_bandeja(
     p_estado_sunat SMALLINT DEFAULT NULL,
     p_tipo_comprobante SMALLINT DEFAULT NULL,
     p_limite INTEGER DEFAULT 10,
-    p_offset INTEGER DEFAULT 0
+    p_offset INTEGER DEFAULT 0,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -25,6 +33,7 @@ BEGIN
     INTO v_total
     FROM ven_comprobante c
     WHERE c.tipo_comprobante IN (1, 2)
+      AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
       AND (p_tipo_comprobante IS NULL OR c.tipo_comprobante = p_tipo_comprobante)
       AND (
           (p_estado_sunat IS NULL AND c.estado_sunat IN (1, 3, 5))
@@ -53,6 +62,7 @@ BEGIN
             (c.estado_sunat = 1 AND c.fecha_limite_envio <= v_hoy + 1) AS por_vencer
         FROM ven_comprobante c
         WHERE c.tipo_comprobante IN (1, 2)
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
           AND (p_tipo_comprobante IS NULL OR c.tipo_comprobante = p_tipo_comprobante)
           AND (
               (p_estado_sunat IS NULL AND c.estado_sunat IN (1, 3, 5))

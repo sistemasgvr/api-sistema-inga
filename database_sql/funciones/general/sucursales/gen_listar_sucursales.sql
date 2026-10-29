@@ -1,14 +1,23 @@
+-- Sucursales; con p_id_empresa, solo las de esa empresa (la de la sesión).
 DROP FUNCTION IF EXISTS gen_listar_sucursales(
     p_busqueda VARCHAR,
     p_limite INTEGER,
     p_offset INTEGER,
     p_estado INT
 );
+DROP FUNCTION IF EXISTS gen_listar_sucursales(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gen_listar_sucursales(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -30,11 +39,13 @@ BEGIN
         v_total_global,
         v_activos,
         v_inactivos
-    FROM gen_sucursal s;
+    FROM gen_sucursal s
+    WHERE p_id_empresa IS NULL OR s.id_empresa = p_id_empresa;
 
     SELECT COUNT(*) INTO v_total
     FROM gen_sucursal s
     WHERE (p_estado IS NULL OR s.estado = p_estado)
+      AND (p_id_empresa IS NULL OR s.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(s.codigo) LIKE LOWER('%' || p_busqueda || '%')
@@ -63,6 +74,7 @@ BEGIN
             ) AS total_usuarios
         FROM gen_sucursal s
         WHERE (p_estado IS NULL OR s.estado = p_estado)
+          AND (p_id_empresa IS NULL OR s.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(s.codigo) LIKE LOWER('%' || p_busqueda || '%')

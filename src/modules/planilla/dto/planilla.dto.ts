@@ -116,7 +116,8 @@ export class CreateTrabajadorDto extends AuditoriaDto {
   @ApiPropertyOptional({
     example: 750,
     default: 0,
-    description: 'Monto habitual de la quincena. Solo sugiere el importe al pagar.',
+    description:
+      'Monto habitual de la quincena. Solo sugiere el importe al pagar.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -214,7 +215,10 @@ export class FiltroPagosDto extends FiltroPaginacionDto {
   @IsIn([1, 2])
   quincena?: number;
 
-  @ApiPropertyOptional({ enum: [1, 2, 3], description: '1 efectivo, 2 yape, 3 tarjeta' })
+  @ApiPropertyOptional({
+    enum: [1, 2, 3],
+    description: '1 efectivo, 2 yape, 3 tarjeta',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -256,7 +260,8 @@ export class CreatePagoDto extends AuditoriaDto {
   @ApiPropertyOptional({
     enum: [1, 2, 3],
     default: 1,
-    description: '1 efectivo (exige turno abierto), 2 yape, 3 tarjeta/transferencia',
+    description:
+      '1 efectivo (exige turno abierto), 2 yape, 3 tarjeta/transferencia',
   })
   @IsOptional()
   @Type(() => Number)
@@ -331,7 +336,8 @@ export class FiltroReportePeriodoDto {
 
   @ApiPropertyOptional({
     enum: [1, 2],
-    description: 'Sin quincena, la lista de pendientes viene vacía (sería ambigua)',
+    description:
+      'Sin quincena, la lista de pendientes viene vacía (sería ambigua)',
   })
   @IsOptional()
   @Type(() => Number)

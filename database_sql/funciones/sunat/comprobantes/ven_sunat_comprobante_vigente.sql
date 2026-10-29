@@ -11,6 +11,7 @@ DECLARE
 BEGIN
     SELECT json_build_object(
         'id', c.id,
+        'id_empresa', c.id_empresa,
         'estado_sunat', c.estado_sunat,
         'tipo_comprobante', c.tipo_comprobante
     )

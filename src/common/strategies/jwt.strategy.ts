@@ -20,7 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     super({
       jwtFromRequest: (req: Request) => {
         const authHeader = req.headers.authorization ?? '';
-        return authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+        return authHeader.startsWith('Bearer ')
+          ? authHeader.slice(7)
+          : authHeader;
       },
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('jwt.secret'),
@@ -34,26 +36,29 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       ? authHeader.slice(7)
       : authHeader;
 
-    const result = await this.db.callFunctionJson<AuthSessionValidateResult<{
-      id: number;
-      id_usuario: number;
-      nombre_usuario: string;
-      correo: string;
-      nombres: string;
-      apellidos: string;
-      es_super_admin: boolean;
-      estado: number;
-      fecha_inicio: string;
-    }>>('auth_validar_sesion', [token]);
+    const result = await this.db.callFunctionJson<
+      AuthSessionValidateResult<{
+        id: number;
+        id_usuario: number;
+        nombre_usuario: string;
+        correo: string;
+        nombres: string;
+        apellidos: string;
+        es_super_admin: boolean;
+        estado: number;
+        fecha_inicio: string;
+        id_empresa: number | null;
+        id_sucursal_activa: number | null;
+      }>
+    >('auth_validar_sesion', [token]);
 
     if (!result.valida || !result.registro) {
       throw new UnauthorizedException('Sesión inválida o expirada');
     }
 
-    const permisosResult = await this.db.callFunctionJson<{ permisos: string[] }>(
-      'auth_obtener_permisos_usuario',
-      [payload.sub],
-    );
+    const permisosResult = await this.db.callFunctionJson<{
+      permisos: string[];
+    }>('auth_obtener_permisos_usuario', [payload.sub]);
 
     return {
       id: payload.sub,
@@ -63,6 +68,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       apellidos: result.registro.apellidos,
       es_super_admin: result.registro.es_super_admin ?? false,
       permisos: permisosResult.permisos ?? [],
+      id_empresa: result.registro.id_empresa ?? null,
+      id_sucursal: result.registro.id_sucursal_activa ?? null,
       sesion: result.registro,
     };
   }

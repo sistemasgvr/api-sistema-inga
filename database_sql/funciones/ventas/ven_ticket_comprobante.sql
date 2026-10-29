@@ -13,6 +13,13 @@ BEGIN
     'tipo', 'COMPROBANTE', 'id', cp.id::TEXT, 'numero', 1, 'pedido', pedido.codigo,
     'mesa', detalle->>'codigo_mesa', 'mozo', detalle->>'nombre_mozo', 'tipo_pedido', pedido.tipo_pedido,
     'fecha', cp.fecha_emision, 'estacion', 'CAJA', 'total', cp.monto_total,
+    -- Encabezado del ticket: la empresa del comprobante, no la empresa activa.
+    'empresa', (SELECT jsonb_build_object(
+        'ruc', e.ruc,
+        'razon_social', e.razon_social,
+        'direccion', e.direccion,
+        'logo', e.logo_ticket)
+      FROM gen_empresa e WHERE e.id = cp.id_empresa),
     'comprobante', jsonb_build_object(
       'tipo_comprobante', cp.tipo_comprobante,
       'nombre_tipo', CASE cp.tipo_comprobante WHEN 1 THEN 'BOLETA DE VENTA' WHEN 2 THEN 'FACTURA' ELSE 'NOTA DE VENTA' END,

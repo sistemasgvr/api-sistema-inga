@@ -17,6 +17,7 @@ import { FiltroUsuarioDto } from '../dto/filtros-usuario.dto';
 import { CreateUsuarioDto, UpdateUsuarioDto } from '../dto/usuarios.dto';
 import { UsuariosLogic } from '../logic/usuarios.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Auth - Usuarios')
 @Controller('auth/usuarios')
@@ -35,14 +36,17 @@ export class UsuariosController {
   @ApiOperation({
     summary: 'Trabajadores activos con correo y sin cuenta de acceso',
   })
-  trabajadoresDisponibles() {
-    return this.usuariosLogic.trabajadoresDisponibles();
+  trabajadoresDisponibles(@EmpresaSesion() idEmpresa: number | null) {
+    return this.usuariosLogic.trabajadoresDisponibles(idEmpresa);
   }
 
   @Get('trabajadores-disponibles/:id')
   @Permisos(PermisoBanderas.USUARIOS_CREAR)
-  trabajadorDisponible(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosLogic.trabajadorDisponible(id);
+  trabajadorDisponible(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.usuariosLogic.trabajadorDisponible(id, idEmpresa);
   }
 
   @Get(':id')

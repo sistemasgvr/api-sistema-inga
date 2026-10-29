@@ -45,7 +45,7 @@ export class PlanillaModel {
     );
   }
 
-  crearTrabajador(dto: CreateTrabajadorDto) {
+  crearTrabajador(dto: CreateTrabajadorDto, idEmpresa: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('pla_crear_trabajador', [
       dto.nombres,
       dto.apellidos,
@@ -56,10 +56,15 @@ export class PlanillaModel {
       dto.idUsuarioAuditoria ?? null,
       dto.email ?? null,
       dto.telefono ?? null,
+      idEmpresa,
     ]);
   }
 
-  actualizarTrabajador(id: number, dto: UpdateTrabajadorDto) {
+  actualizarTrabajador(
+    id: number,
+    dto: UpdateTrabajadorDto,
+    idEmpresa: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'pla_actualizar_trabajador',
       [
@@ -73,6 +78,7 @@ export class PlanillaModel {
         dto.idUsuarioAuditoria ?? null,
         dto.email ?? null,
         dto.telefono ?? null,
+        idEmpresa,
       ],
     );
   }

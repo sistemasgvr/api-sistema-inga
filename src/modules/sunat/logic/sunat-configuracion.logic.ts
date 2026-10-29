@@ -82,11 +82,11 @@ export class SunatConfiguracionLogic {
     private readonly apisPeru: ApisPeruService,
   ) {}
 
-  async obtener() {
-    const c = await this.model.obtener();
+  async obtener(idEmpresa: number | null) {
+    const c = await this.model.obtener(idEmpresa);
     if (!c)
       throw new NotFoundException(
-        'Primero guarda el RUC y la razón social de la empresa',
+        'No se encontró la empresa de la sesión; verifique su trabajador en la base de datos',
       );
     let usuarioSol: string | null = null;
     if (c.usuario_sol_cifrado && this.cifrado.configurado()) {
@@ -96,7 +96,7 @@ export class SunatConfiguracionLogic {
         usuarioSol = null;
       }
     }
-    const emisor = await this.comprobantes.emisor();
+    const emisor = await this.comprobantes.emisor(c.id_empresa);
     return {
       proveedor: c.proveedor_ose ?? 'APISPERU',
       idAmbiente: c.id_ambiente ?? 1,
@@ -116,8 +116,12 @@ export class SunatConfiguracionLogic {
     };
   }
 
-  async guardar(dto: GuardarConfiguracionSunatDto, usuario: number) {
-    const c = await this.requerida();
+  async guardar(
+    dto: GuardarConfiguracionSunatDto,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
+    const c = await this.requerida(idEmpresa);
     const cifrar = (valor?: string) =>
       valor ? this.cifrado.cifrar(valor) : undefined;
     await this.model.guardar(
@@ -132,17 +136,18 @@ export class SunatConfiguracionLogic {
       },
       usuario,
     );
-    return this.obtener();
+    return this.obtener(idEmpresa);
   }
 
   async subirCertificado(
     file: Express.Multer.File | undefined,
     clave: string,
     usuario: number,
+    idEmpresa: number | null,
   ) {
     if (!file?.buffer?.length)
       throw new BadRequestException('Adjunte el certificado (.pfx o .p12)');
-    const c = await this.requerida();
+    const c = await this.requerida(idEmpresa);
     const leido = leerCertificado(file.buffer, clave);
     if (leido.vence && leido.vence.getTime() < Date.now())
       throw new BadRequestException(
@@ -158,15 +163,15 @@ export class SunatConfiguracionLogic {
       },
       usuario,
     );
-    return this.obtener();
+    return this.obtener(idEmpresa);
   }
 
   /**
    * Valida el token pidiendo a APIsPERU el XML de una boleta de prueba: no se envía
    * a SUNAT ni consume correlativos.
    */
-  async probar() {
-    const { emisor, token } = await this.contexto();
+  async probar(idEmpresa: number | null) {
+    const { emisor, token } = await this.contexto(idEmpresa);
     const prueba = construirFactura(
       {
         id: 0,
@@ -209,8 +214,10 @@ export class SunatConfiguracionLogic {
   }
 
   /** Emisor completo y token descifrado; falla con un mensaje claro si falta algo. */
-  async contexto(): Promise<{ emisor: EmisorSunat; token: string }> {
-    const emisor = await this.comprobantes.emisor();
+  async contexto(
+    idEmpresa: number | null,
+  ): Promise<{ emisor: EmisorSunat; token: string }> {
+    const emisor = await this.comprobantes.emisor(idEmpresa);
     if (!emisor)
       throw new BadRequestException(
         'Primero guarda los datos de la empresa en Configuración → Empresa',
@@ -228,17 +235,22 @@ export class SunatConfiguracionLogic {
   }
 
   /** true si hay token y llave de cifrado: el programador solo trabaja así. */
-  async lista() {
+  async lista(idEmpresa: number | null) {
     if (!this.cifrado.configurado()) return false;
-    const emisor = await this.comprobantes.emisor();
+    const emisor = await this.comprobantes.emisor(idEmpresa);
     return Boolean(emisor?.tokenCifrado) && !validarEmisor(emisor!).length;
   }
 
-  private async requerida() {
-    const c = await this.model.obtener();
+  /** Empresas activas con token; cada una se envía a SUNAT por separado. */
+  async empresasActivas() {
+    return this.model.empresasActivas();
+  }
+
+  private async requerida(idEmpresa: number | null) {
+    const c = await this.model.obtener(idEmpresa);
     if (!c)
       throw new NotFoundException(
-        'Primero guarda el RUC y la razón social de la empresa',
+        'No se encontró la empresa de la sesión; verifique su trabajador en la base de datos',
       );
     return c;
   }

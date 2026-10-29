@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION ven_pedido_cobrar(p_id BIGINT,p_item BIGINT,p_datos J
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; t BIGINT; persona cli_persona%ROWTYPE; convenio cli_convenio%ROWTYPE;
   medio SMALLINT:=(p_datos->>'medio_pago')::SMALLINT; tipo SMALLINT:=(p_datos->>'tipo_comprobante')::SMALLINT;
-  pago BIGINT; comprobante BIGINT; correlativo gen_correlativo%ROWTYPE; resultado JSON;
+  pago BIGINT; comprobante BIGINT; correlativo gen_correlativo%ROWTYPE; resultado JSON; v_empresa BIGINT;
   credito BOOLEAN:=COALESCE((p_datos->>'credito')::BOOLEAN,FALSE); monto_credito NUMERIC; excedente NUMERIC:=0; disponible NUMERIC;
 BEGIN
   v:=ven_bloquear_pedido(p_id);
@@ -64,19 +64,21 @@ BEGIN
       -- Boleta con DNI: se vincula al cliente si está registrado; si no, queda solo el DNI.
       SELECT * INTO persona FROM cli_persona WHERE tipo_documento=1 AND num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
     END IF;
-    SELECT * INTO correlativo FROM gen_correlativo WHERE id_sucursal=v.id_sucursal AND tipo_documento=tipo AND estado=1
+    SELECT s.id_empresa INTO v_empresa FROM gen_sucursal s WHERE s.id=v.id_sucursal;
+    IF v_empresa IS NULL THEN RAISE EXCEPTION 'La sucursal del pedido no tiene empresa'; END IF;
+    SELECT * INTO correlativo FROM gen_correlativo WHERE id_empresa=v_empresa AND tipo_documento=tipo AND estado=1
       ORDER BY id LIMIT 1 FOR UPDATE;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante en esta sucursal antes de cobrar'; END IF;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante de la empresa antes de cobrar'; END IF;
     UPDATE gen_correlativo SET ultimo_numero=ultimo_numero+1 WHERE id=correlativo.id RETURNING * INTO correlativo;
     -- SUNAT: boleta y factura quedan pendientes (1) hasta su fecha límite de envío;
     -- la nota de venta no se envía (0). Con tasa 0 el importe va como exonerado.
     INSERT INTO ven_comprobante (
-      id_pedido, id_persona, tipo_comprobante, receptor_tipo_doc, receptor_num_doc, receptor_razon_social,
+      id_empresa, id_pedido, id_persona, tipo_comprobante, receptor_tipo_doc, receptor_num_doc, receptor_razon_social,
       serie, correlativo, monto_gravado, monto_exonerado, monto_igv, monto_total,
       estado_sunat, fecha_limite_envio, id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-      p_id, persona.id, tipo, COALESCE(persona.tipo_documento, CASE WHEN tipo = 2 THEN 6 ELSE 1 END),
+      v_empresa, p_id, persona.id, tipo, COALESCE(persona.tipo_documento, CASE WHEN tipo = 2 THEN 6 ELSE 1 END),
       COALESCE(NULLIF(p_datos->>'documento', ''), persona.num_documento),
       COALESCE(NULLIF(btrim(persona.razon_social), ''),
         NULLIF(btrim(concat_ws(' ', persona.nombres, persona.apellido_paterno, persona.apellido_materno)), '')),

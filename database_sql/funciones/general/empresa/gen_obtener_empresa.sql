@@ -1,6 +1,8 @@
--- Empresa activa (el sistema trabaja con una sola: las sucursales usan su id).
+-- Datos de una empresa concreta (la de la sesión). La configuración SUNAT cuelga
+-- de esta misma fila.
 DROP FUNCTION IF EXISTS gen_obtener_empresa();
-CREATE OR REPLACE FUNCTION gen_obtener_empresa()
+DROP FUNCTION IF EXISTS gen_obtener_empresa(p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gen_obtener_empresa(p_id_empresa BIGINT)
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
@@ -21,9 +23,8 @@ BEGIN
     )
     INTO v_registro
     FROM gen_empresa e
-    WHERE e.estado = 1
-    ORDER BY e.id
-    LIMIT 1;
+    WHERE e.id = p_id_empresa
+      AND e.estado = 1;
 
     RETURN json_build_object('registro', v_registro);
 END;

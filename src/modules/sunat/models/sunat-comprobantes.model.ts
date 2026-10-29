@@ -13,6 +13,7 @@ export interface EmisorRegistro extends EmisorSunat {
 
 /** Comprobante con su estado SUNAT y las rutas de sus archivos en Storage. */
 export interface ComprobanteEstado extends ComprobanteSunat {
+  idEmpresa: number;
   idPedido: number;
   estado: number;
   estadoSunat: number;
@@ -83,6 +84,7 @@ interface FilaEmisor {
 
 interface FilaComprobante {
   id: number;
+  id_empresa: number;
   id_pedido: number;
   tipo_comprobante: number;
   serie: string;
@@ -142,11 +144,11 @@ interface FilaDia {
 export class SunatComprobantesModel {
   constructor(private readonly db: DatabaseService) {}
 
-  /** Datos del emisor (empresa activa) con el ubigeo de su distrito y el token cifrado. */
-  async emisor(): Promise<EmisorRegistro | null> {
+  /** Datos del emisor (empresa de la sesión) con el ubigeo de su distrito y el token cifrado. */
+  async emisor(idEmpresa: number | null): Promise<EmisorRegistro | null> {
     const { registro: r } = await this.db.callFunctionJson<
       AuthSingleResult<FilaEmisor>
-    >('gen_obtener_emisor_sunat');
+    >('gen_obtener_emisor_sunat', [idEmpresa]);
     if (!r) return null;
     return {
       ruc: r.ruc,
@@ -162,13 +164,17 @@ export class SunatComprobantesModel {
     };
   }
 
-  async comprobantes(ids: number[]): Promise<ComprobanteEstado[]> {
+  async comprobantes(
+    ids: number[],
+    idEmpresa?: number | null,
+  ): Promise<ComprobanteEstado[]> {
     if (!ids.length) return [];
     const { registros } = await this.db.callFunctionJson<
       AuthListResult<FilaComprobante>
-    >('ven_sunat_obtener_comprobantes', [ids]);
+    >('ven_sunat_obtener_comprobantes', [ids, idEmpresa ?? null]);
     return registros.map((r) => ({
       id: r.id,
+      idEmpresa: Number(r.id_empresa),
       idPedido: r.id_pedido,
       tipoComprobante: r.tipo_comprobante,
       serie: r.serie,
@@ -208,8 +214,8 @@ export class SunatComprobantesModel {
     }));
   }
 
-  async comprobante(id: number) {
-    return (await this.comprobantes([id]))[0] ?? null;
+  async comprobante(id: number, idEmpresa?: number | null) {
+    return (await this.comprobantes([id], idEmpresa))[0] ?? null;
   }
 
   /** Reserva el comprobante para un envío individual (solo uno a la vez). */
@@ -267,10 +273,10 @@ export class SunatComprobantesModel {
   }
 
   /** Pendientes cuya fecha límite ya llegó (programador). */
-  async vencidos(limite = 200) {
+  async vencidos(limite = 200, idEmpresa?: number | null) {
     const { registros } = await this.db.callFunctionJson<
       AuthListResult<{ id: number; tipo_comprobante: number; dia: string }>
-    >('ven_sunat_listar_vencidos', [limite]);
+    >('ven_sunat_listar_vencidos', [limite, idEmpresa ?? null]);
     return registros.map((r) => ({
       id: r.id,
       tipoComprobante: r.tipo_comprobante,
@@ -287,14 +293,14 @@ export class SunatComprobantesModel {
   }
 
   /** Pendientes que vencen hoy o mañana: para el aviso diario. */
-  async porVencer() {
+  async porVencer(idEmpresa?: number | null) {
     const { registros } = await this.db.callFunctionJson<
       AuthListResult<{
         tipo_comprobante: number;
         cantidad: number;
         vence: string;
       }>
-    >('ven_sunat_resumen_por_vencer');
+    >('ven_sunat_resumen_por_vencer', [idEmpresa ?? null]);
     return registros.map((r) => ({
       tipoComprobante: r.tipo_comprobante,
       cantidad: Number(r.cantidad),
@@ -303,10 +309,13 @@ export class SunatComprobantesModel {
   }
 
   /** Boletas y facturas emitidas en un día de Lima. */
-  async delDia(dia: string): Promise<ComprobanteDia[]> {
+  async delDia(
+    dia: string,
+    idEmpresa?: number | null,
+  ): Promise<ComprobanteDia[]> {
     const { registros } = await this.db.callFunctionJson<
       AuthListResult<FilaDia>
-    >('ven_sunat_listar_comprobantes_dia', [dia]);
+    >('ven_sunat_listar_comprobantes_dia', [dia, idEmpresa ?? null]);
     return registros.map((r) => ({
       id: r.id,
       idPedido: r.id_pedido,
@@ -325,12 +334,15 @@ export class SunatComprobantesModel {
   }
 
   /** Pendientes, en proceso y rechazados (o el estado indicado). */
-  bandeja(filtro: {
-    estadoSunat?: number;
-    tipoComprobante?: number;
-    limite: number;
-    offset: number;
-  }) {
+  bandeja(
+    filtro: {
+      estadoSunat?: number;
+      tipoComprobante?: number;
+      limite: number;
+      offset: number;
+    },
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthListResult>(
       'ven_sunat_listar_bandeja',
       [
@@ -338,6 +350,7 @@ export class SunatComprobantesModel {
         filtro.tipoComprobante ?? null,
         filtro.limite,
         filtro.offset,
+        idEmpresa ?? null,
       ],
     );
   }
@@ -347,6 +360,7 @@ export class SunatComprobantesModel {
     const { registro } = await this.db.callFunctionJson<
       AuthSingleResult<{
         id: number;
+        id_empresa: number;
         estado_sunat: number;
         tipo_comprobante: number;
       }>
@@ -354,6 +368,7 @@ export class SunatComprobantesModel {
     return registro
       ? {
           id: registro.id,
+          idEmpresa: Number(registro.id_empresa),
           estadoSunat: registro.estado_sunat,
           tipoComprobante: registro.tipo_comprobante,
         }

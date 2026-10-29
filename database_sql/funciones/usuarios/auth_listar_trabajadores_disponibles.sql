@@ -1,8 +1,14 @@
+-- Trabajadores con correo y sin usuario; solo los de la empresa indicada (la de la sesión).
 DROP FUNCTION IF EXISTS auth_listar_trabajadores_disponibles(
     p_id BIGINT
 );
+DROP FUNCTION IF EXISTS auth_listar_trabajadores_disponibles(
+    p_id BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_listar_trabajadores_disponibles(
-    p_id BIGINT DEFAULT NULL
+    p_id BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -14,7 +20,7 @@ BEGIN
     INTO v_registros
     FROM (
         SELECT t.id, t.nombres, t.apellidos, t.email, t.telefono,
-               s.nombre AS nombre_sucursal
+               t.id_sucursal, s.nombre AS nombre_sucursal, t.id_empresa
         FROM pla_trabajador t
         LEFT JOIN gen_sucursal s ON s.id = t.id_sucursal
         WHERE t.estado = 1 AND t.email IS NOT NULL
@@ -22,6 +28,7 @@ BEGIN
               SELECT 1 FROM auth_usuario u WHERE u.id_trabajador = t.id
           )
           AND (p_id IS NULL OR t.id = p_id)
+          AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
         ORDER BY t.apellidos, t.nombres, t.id
     ) t;
 
