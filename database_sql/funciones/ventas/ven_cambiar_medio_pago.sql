@@ -1,12 +1,13 @@
 -- Cambia el medio de pago de una venta cobrada: anula el pago y registra uno nuevo en el mismo turno.
 -- Si el turno ya se cerró recalcula su cierre. El crédito (4) se corrige desde CxC.
 DROP FUNCTION IF EXISTS ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT)
+DROP FUNCTION IF EXISTS ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_cambiar_medio_pago(p_id_pago BIGINT, p_medio SMALLINT, p_usuario BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE g ven_pago%ROWTYPE; pedido ven_pedido%ROWTYPE; turno caj_turno%ROWTYPE; nombre_anterior TEXT; nombre_nuevo TEXT;
 BEGIN
   SELECT * INTO g FROM ven_pago WHERE id = p_id_pago FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'El pago no existe' USING ERRCODE = 'P0002'; END IF;
+  IF NOT FOUND OR NOT ven_pedido_de_empresa(g.id_pedido, p_id_empresa) THEN RAISE EXCEPTION 'El pago no existe' USING ERRCODE = 'P0002'; END IF;
   IF g.estado <> 1 THEN RAISE EXCEPTION 'El pago ya fue anulado o reemplazado'; END IF;
 
   SELECT * INTO pedido FROM ven_pedido WHERE id = g.id_pedido FOR UPDATE;

@@ -6,7 +6,7 @@ BEGIN
   -- Las transiciones que afectan inventario pasan por el mismo flujo que sus endpoints.
   IF v_destino = 2 THEN RETURN ven_pedido_comandar(p_id,p_item,p_datos,p_usuario); END IF;
   IF v_destino = 5 THEN RETURN ven_pedido_anular(p_id,p_item,p_datos,p_usuario); END IF;
-  v := ven_bloquear_pedido(p_id);
+  v := ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v_destino IS NULL OR v_destino NOT IN (3,4) THEN RAISE EXCEPTION 'Estado de destino inválido'; END IF;
   IF v.estado_pedido = v_destino THEN RETURN ven_obtener_pedido(p_id); END IF;
   IF NOT ((v.estado_pedido = 2 AND v_destino = 3) OR (v.estado_pedido = 3 AND v_destino = 4)) THEN RAISE EXCEPTION 'Transición de estado inválida: % a %',v.estado_pedido,v_destino; END IF;

@@ -18,6 +18,10 @@ RETURNS JSON LANGUAGE sql STABLE AS $$
     FROM ven_pedido p
     LEFT JOIN vigente v ON v.id_pedido = p.id
     WHERE p.estado = 1 AND p.estado_pedido = 4
+      -- id_empresa lo fija el API (la de la sesión); id_sucursal es un filtro opcional.
+      AND (NULLIF(p_f->>'id_empresa', '') IS NULL OR p.id_sucursal IN (
+        SELECT s.id FROM gen_sucursal s WHERE s.id_empresa = (p_f->>'id_empresa')::BIGINT))
+      AND (NULLIF(p_f->>'id_sucursal', '') IS NULL OR p.id_sucursal = (p_f->>'id_sucursal')::BIGINT)
       AND (NULLIF(p_f->>'fecha_desde', '') IS NULL
         OR (p.fecha_cierre AT TIME ZONE 'America/Lima')::DATE >= (p_f->>'fecha_desde')::DATE)
       AND (NULLIF(p_f->>'fecha_hasta', '') IS NULL

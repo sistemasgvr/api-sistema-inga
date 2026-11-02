@@ -1,7 +1,8 @@
 -- Traigo un pago de planilla por ID, con los datos del trabajador y del turno.
 -- Registrar y anular terminan llamando acá para devolver siempre el mismo shape.
 DROP FUNCTION IF EXISTS pla_obtener_pago(p_id BIGINT);
-CREATE OR REPLACE FUNCTION pla_obtener_pago(p_id BIGINT)
+DROP FUNCTION IF EXISTS pla_obtener_pago(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION pla_obtener_pago(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -40,6 +41,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = p.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE p.id = p_id
+          AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

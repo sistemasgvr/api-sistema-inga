@@ -52,21 +52,21 @@ export class PersonasLogic {
     return datos;
   }
 
-  async listar(filtros: FiltroPersonasDto) {
-    const result = await this.personasModel.listar(filtros);
+  async listar(filtros: FiltroPersonasDto, idEmpresa?: number | null) {
+    const result = await this.personasModel.listar(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async buscar(dto: BuscarPersonasDto) {
-    return await this.personasModel.buscar(dto);
+  async buscar(dto: BuscarPersonasDto, idEmpresa?: number | null) {
+    return await this.personasModel.buscar(dto, idEmpresa);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.personasModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idEmpresa?: number | null) {
+    const result = await this.personasModel.obtenerPorId(id, idEmpresa);
     return mapSingleResult(result, `Persona con ID ${id} no encontrada`);
   }
 
-  async crear(dto: CreatePersonaDto) {
+  async crear(dto: CreatePersonaDto, idEmpresa?: number | null) {
     const datos = this.normalizarPorTipo(dto.tipo_persona, {
       tipoPersona: dto.tipo_persona,
       tipoDocumento: dto.tipo_documento ?? null,
@@ -87,11 +87,16 @@ export class PersonasLogic {
     const result = await this.personasModel.crear(
       datos,
       dto.idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapSingleResult(result, 'No se pudo crear la persona');
   }
 
-  async actualizar(id: number, dto: UpdatePersonaDto) {
+  async actualizar(
+    id: number,
+    dto: UpdatePersonaDto,
+    idEmpresa?: number | null,
+  ) {
     const datos = this.normalizarPorTipo(dto.tipo_persona ?? null, {
       tipoPersona: dto.tipo_persona ?? null,
       tipoDocumento: dto.tipo_documento ?? null,
@@ -114,20 +119,37 @@ export class PersonasLogic {
       datos,
       dto.quitar_convenio ?? false,
       dto.idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapSingleResult(result, `Persona con ID ${id} no encontrada`);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.personasModel.eliminar(id, idUsuarioAuditoria);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.personasModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapDeleteResult(
       result,
       `Persona con ID ${id} no encontrada o ya inactiva`,
     );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.personasModel.activar(id, idUsuarioAuditoria);
+  async activar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.personasModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapActivateResult(
       result,
       `Persona con ID ${id} no encontrada o ya activa`,

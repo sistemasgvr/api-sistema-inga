@@ -16,7 +16,7 @@ import {
 export class TurnosModel {
   constructor(private readonly db: DatabaseService) {}
 
-  listar(filtros: FiltroTurnosDto) {
+  listar(filtros: FiltroTurnosDto, idSucursal: number) {
     return this.db.callFunctionJson<AuthListResult>('caj_listar_turnos', [
       filtros.limite ?? 10,
       filtros.offset ?? 0,
@@ -25,19 +25,21 @@ export class TurnosModel {
       filtros.estado_turno ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
+      idSucursal,
     ]);
   }
 
-  obtenerPorId(id: number) {
+  obtenerPorId(id: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_obtener_turno', [
       id,
+      idSucursal,
     ]);
   }
 
-  obtenerAbiertoPorCajero(idCajero: number) {
+  obtenerAbiertoPorCajero(idCajero: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'caj_obtener_turno_abierto',
-      [idCajero],
+      [idCajero, idSucursal],
     );
   }
 
@@ -58,9 +60,10 @@ export class TurnosModel {
     >('auth_obtener_usuario', [idUsuario]);
   }
 
-  resumen(id: number) {
+  resumen(id: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_resumen_turno', [
       id,
+      idSucursal,
     ]);
   }
 
@@ -69,7 +72,8 @@ export class TurnosModel {
     idCajero: number,
     montoApertura: number,
     observacion: string | null,
-    idUsuarioAuditoria?: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_abrir_turno', [
       idCaja,
@@ -77,19 +81,25 @@ export class TurnosModel {
       montoApertura,
       observacion,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
-  cerrar(id: number, dto: CerrarTurnoDto) {
+  cerrar(id: number, dto: CerrarTurnoDto, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_cerrar_turno', [
       id,
       dto.monto_cierre_declarado,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
-  registrarMovimiento(idTurno: number, dto: CreateMovimientoDto) {
+  registrarMovimiento(
+    idTurno: number,
+    dto: CreateMovimientoDto,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'caj_registrar_movimiento',
       [
@@ -99,21 +109,27 @@ export class TurnosModel {
         dto.motivo,
         dto.id_usuario_autoriza ?? null,
         dto.idUsuarioAuditoria ?? null,
+        idSucursal,
       ],
     );
   }
 
-  listarMovimientos(idTurno: number) {
+  listarMovimientos(idTurno: number, idSucursal: number) {
     return this.db.callFunctionJson<{ registros: unknown[]; resumen: unknown }>(
       'caj_listar_movimientos',
-      [idTurno],
+      [idTurno, idSucursal],
     );
   }
 
-  anularMovimiento(id: number, idUsuarioAuditoria?: number) {
+  anularMovimiento(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('caj_anular_movimiento', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
@@ -125,12 +141,14 @@ export class TurnosModel {
   guardarArqueo(
     idTurno: number,
     detalle: ArqueoLineaDto[],
-    idUsuarioAuditoria?: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_guardar_arqueo', [
       idTurno,
       JSON.stringify(detalle),
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 }

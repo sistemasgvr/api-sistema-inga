@@ -9,6 +9,16 @@ DROP FUNCTION IF EXISTS cxp_registrar_cargo(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS cxp_registrar_cargo(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE,
+    p_num_comprobante VARCHAR,
+    p_id_gasto_diario BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_registrar_cargo(
     p_id_persona BIGINT,
     p_monto NUMERIC,
@@ -16,7 +26,8 @@ CREATE OR REPLACE FUNCTION cxp_registrar_cargo(
     p_num_comprobante VARCHAR DEFAULT NULL,
     p_id_gasto_diario BIGINT DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -32,7 +43,8 @@ BEGIN
     v_fecha := COALESCE(p_fecha_movimiento, CURRENT_DATE);
 
     SELECT es_proveedor INTO v_es_proveedor
-    FROM cli_persona WHERE id = p_id_persona AND estado = 1;
+    FROM cli_persona WHERE id = p_id_persona AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La persona indicada no existe o está inactiva', 'registro', NULL);

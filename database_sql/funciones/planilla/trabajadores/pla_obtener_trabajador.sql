@@ -1,7 +1,8 @@
 -- Traigo un trabajador por ID con el acumulado pagado. No filtra por estado (ficha y reactivación).
 -- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
 DROP FUNCTION IF EXISTS pla_obtener_trabajador(p_id BIGINT);
-CREATE OR REPLACE FUNCTION pla_obtener_trabajador(p_id BIGINT)
+DROP FUNCTION IF EXISTS pla_obtener_trabajador(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION pla_obtener_trabajador(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -49,6 +50,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON t.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON t.id_usuario_modificacion = um.id
         WHERE t.id = p_id
+          AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

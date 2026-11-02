@@ -8,6 +8,16 @@ DROP FUNCTION IF EXISTS caj_listar_turnos(
     p_fecha_desde DATE,
     p_fecha_hasta DATE
 );
+DROP FUNCTION IF EXISTS caj_listar_turnos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_caja BIGINT,
+    p_id_cajero BIGINT,
+    p_estado_turno INT,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_listar_turnos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
@@ -15,7 +25,8 @@ CREATE OR REPLACE FUNCTION caj_listar_turnos(
     p_id_cajero BIGINT DEFAULT NULL,
     p_estado_turno INT DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -38,11 +49,13 @@ BEGIN
     INTO v_cant_abiertos, v_cant_cerrados, v_descuadres
     FROM caj_turno t
     WHERE t.estado = 1
+      AND caj_turno_de_sucursal(t.id, p_id_sucursal)
       AND (p_id_caja IS NULL OR t.id_caja = p_id_caja);
 
     SELECT COUNT(*) INTO v_total
     FROM caj_turno t
     WHERE t.estado = 1
+      AND caj_turno_de_sucursal(t.id, p_id_sucursal)
       AND (p_id_caja IS NULL OR t.id_caja = p_id_caja)
       AND (p_id_cajero IS NULL OR t.id_cajero = p_id_cajero)
       AND (p_estado_turno IS NULL OR t.estado_turno = p_estado_turno)
@@ -75,6 +88,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = tu.estado_turno
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'TURNO_ESTADO')
         WHERE tu.estado = 1
+          AND (p_id_sucursal IS NULL OR c.id_sucursal = p_id_sucursal)
           AND (p_id_caja IS NULL OR tu.id_caja = p_id_caja)
           AND (p_id_cajero IS NULL OR tu.id_cajero = p_id_cajero)
           AND (p_estado_turno IS NULL OR tu.estado_turno = p_estado_turno)

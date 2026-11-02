@@ -2173,21 +2173,488 @@ WHERE s.estado = 1
   AND p.controla_stock = TRUE
   AND s.stock_actual <= s.stock_minimo;
 
--- Saldo deudor por cliente del consorcio. Espejo de vw_cxp_saldo_proveedor.
---
--- Positivo = esa persona nos debe. La rehice para que tenga la misma forma que
--- la de proveedores: antes solo devolvia el saldo, y las pantallas necesitan
--- ademas el documento, los totales y cuando fue el ultimo abono.
---
--- Como es un cambio de columnas, va con DROP: CREATE OR REPLACE VIEW no permite
--- agregar columnas al medio.
---
--- Incluye a los clientes en cero a proposito: la pantalla de convenios muestra
--- la lista completa, y el filtro de "solo con deuda" se aplica despues.
+-- =============================================================================
+-- MULTIEMPRESA FASE 3: catálogos por empresa (mismo bloque que la migración
+-- 20261101_multiempresa_fase3.sql; re-ejecutable). Incluye las vistas de saldos.
+-- =============================================================================
+-- ---------------------------------------------------------------------------
+-- auth_rol: roles propios de cada empresa (NULL = global del sistema)
+-- ---------------------------------------------------------------------------
+ALTER TABLE auth_rol ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE auth_rol r
+SET id_empresa = NULL
+WHERE r.id_empresa IS NULL;
+DO $mig$ BEGIN
+    ALTER TABLE auth_rol
+        ADD CONSTRAINT fk_auth_rol_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+ALTER TABLE auth_rol DROP CONSTRAINT IF EXISTS uq_auth_rol_codigo;
+DO $mig$ BEGIN
+    ALTER TABLE auth_rol
+        ADD CONSTRAINT uq_auth_rol_empresa_codigo
+        UNIQUE (id_empresa, codigo);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN duplicate_table THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- gen_qz_configuracion: certificado por empresa (se mantiene fila única global
+-- como respaldo; la columna permite filtrar por empresa cuando se multiplique)
+-- ---------------------------------------------------------------------------
+ALTER TABLE gen_qz_configuracion ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE gen_qz_configuracion
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE gen_qz_configuracion
+        ADD CONSTRAINT fk_gen_qz_configuracion_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- cli_convenio
+-- ---------------------------------------------------------------------------
+ALTER TABLE cli_convenio ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE cli_convenio c
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = c.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE c.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE cli_convenio
+        ADD CONSTRAINT fk_cli_convenio_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM cli_convenio WHERE id_empresa IS NULL) THEN
+        ALTER TABLE cli_convenio ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- cli_persona (clientes y proveedores)
+-- ---------------------------------------------------------------------------
+ALTER TABLE cli_persona ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE cli_persona p
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = p.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE p.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+-- Respaldo: si hay varias empresas y sin creador, queda NULL (se asigna manualmente).
+DO $mig$ BEGIN
+    ALTER TABLE cli_persona
+        ADD CONSTRAINT fk_cli_persona_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+ALTER TABLE cli_persona DROP CONSTRAINT IF EXISTS uq_cli_persona_doc;
+DO $mig$ BEGIN
+    ALTER TABLE cli_persona
+        ADD CONSTRAINT uq_cli_persona_empresa_doc
+        UNIQUE (id_empresa, tipo_documento, num_documento);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN duplicate_table THEN NULL;
+END $mig$;
+
+-- Cliente genérico por empresa (boletas sin DNI y notas de venta).
+DO $mig$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN SELECT id FROM gen_empresa LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM cli_persona
+            WHERE id_empresa = r.id AND tipo_documento = 1 AND num_documento = '00000000'
+        ) THEN
+            INSERT INTO cli_persona (id_empresa, tipo_persona, tipo_documento, num_documento, razon_social, nombres, es_cliente, estado)
+            VALUES (r.id, 1, 1, '00000000', 'CLIENTES VARIOS', 'CLIENTES VARIOS', TRUE, 1);
+        END IF;
+    END LOOP;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_categoria
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_categoria ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_categoria c
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = c.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE c.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_categoria
+        ADD CONSTRAINT fk_pro_categoria_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pro_categoria WHERE id_empresa IS NULL) THEN
+        ALTER TABLE pro_categoria ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_subcategoria
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_subcategoria ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_subcategoria s
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = s.id_usuario_creacion),
+    c.id_empresa
+)
+FROM pro_categoria c
+WHERE c.id = s.id_categoria
+  AND s.id_empresa IS NULL;
+UPDATE pro_subcategoria s
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE s.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_subcategoria
+        ADD CONSTRAINT fk_pro_subcategoria_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pro_subcategoria WHERE id_empresa IS NULL) THEN
+        ALTER TABLE pro_subcategoria ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_tipo_producto
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_tipo_producto ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_tipo_producto t
+SET id_empresa = COALESCE(
+    (SELECT tt.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador tt ON tt.id = u.id_trabajador
+      WHERE u.id = t.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE t.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_tipo_producto
+        ADD CONSTRAINT fk_pro_tipo_producto_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_producto
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_producto ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_producto p
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = p.id_usuario_creacion),
+    sc.id_empresa
+)
+FROM pro_subcategoria sc
+WHERE sc.id = p.id_subcategoria
+  AND p.id_empresa IS NULL;
+UPDATE pro_producto p
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE p.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_producto
+        ADD CONSTRAINT fk_pro_producto_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pro_producto WHERE id_empresa IS NULL) THEN
+        ALTER TABLE pro_producto ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_receta
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_receta ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_receta r
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = r.id_usuario_creacion),
+    p.id_empresa
+)
+FROM pro_producto p
+WHERE p.id = r.id_producto
+  AND r.id_empresa IS NULL;
+UPDATE pro_receta r
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE r.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_receta
+        ADD CONSTRAINT fk_pro_receta_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pro_receta WHERE id_empresa IS NULL) THEN
+        ALTER TABLE pro_receta ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_receta_insumo (hereda de la receta)
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_receta_insumo ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_receta_insumo ri
+SET id_empresa = r.id_empresa
+FROM pro_receta r
+WHERE r.id = ri.id_receta
+  AND ri.id_empresa IS NULL;
+DO $mig$ BEGIN
+    ALTER TABLE pro_receta_insumo
+        ADD CONSTRAINT fk_pro_receta_insumo_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- pro_adicional
+-- ---------------------------------------------------------------------------
+ALTER TABLE pro_adicional ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE pro_adicional a
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = a.id_usuario_creacion),
+    p.id_empresa
+)
+FROM pro_producto p
+WHERE p.id = a.id_producto
+  AND a.id_empresa IS NULL;
+UPDATE pro_adicional a
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE a.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE pro_adicional
+        ADD CONSTRAINT fk_pro_adicional_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pro_adicional WHERE id_empresa IS NULL) THEN
+        ALTER TABLE pro_adicional ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- com_compra
+-- ---------------------------------------------------------------------------
+ALTER TABLE com_compra ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE com_compra c
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = c.id_usuario_creacion),
+    s.id_empresa
+)
+FROM gen_almacen a
+JOIN gen_sucursal s ON s.id = a.id_sucursal
+WHERE a.id = c.id_almacen_destino
+  AND c.id_empresa IS NULL;
+UPDATE com_compra c
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE c.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE com_compra
+        ADD CONSTRAINT fk_com_compra_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+DO $mig$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM com_compra WHERE id_empresa IS NULL) THEN
+        ALTER TABLE com_compra ALTER COLUMN id_empresa SET NOT NULL;
+    END IF;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- cxp_movimiento
+-- ---------------------------------------------------------------------------
+ALTER TABLE cxp_movimiento ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE cxp_movimiento m
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = m.id_usuario_creacion),
+    p.id_empresa
+)
+FROM cli_persona p
+WHERE p.id = m.id_persona
+  AND m.id_empresa IS NULL;
+UPDATE cxp_movimiento m
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE m.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE cxp_movimiento
+        ADD CONSTRAINT fk_cxp_movimiento_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- cxc_movimiento (por consistencia)
+-- ---------------------------------------------------------------------------
+ALTER TABLE cxc_movimiento ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE cxc_movimiento m
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = m.id_usuario_creacion),
+    p.id_empresa
+)
+FROM cli_persona p
+WHERE p.id = m.id_persona
+  AND m.id_empresa IS NULL;
+UPDATE cxc_movimiento m
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE m.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE cxc_movimiento
+        ADD CONSTRAINT fk_cxc_movimiento_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- gad_categoria
+-- ---------------------------------------------------------------------------
+ALTER TABLE gad_categoria ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE gad_categoria g
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = g.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE g.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE gad_categoria
+        ADD CONSTRAINT fk_gad_categoria_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- gdo_categoria
+-- ---------------------------------------------------------------------------
+ALTER TABLE gdo_categoria ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE gdo_categoria g
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = g.id_usuario_creacion),
+    (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+)
+WHERE g.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE gdo_categoria
+        ADD CONSTRAINT fk_gdo_categoria_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+ALTER TABLE gdo_categoria DROP CONSTRAINT IF EXISTS uq_gdo_categoria_codigo;
+DO $mig$ BEGIN
+    ALTER TABLE gdo_categoria
+        ADD CONSTRAINT uq_gdo_categoria_empresa_codigo
+        UNIQUE (id_empresa, codigo);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN duplicate_table THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- gdo_insumo
+-- ---------------------------------------------------------------------------
+ALTER TABLE gdo_insumo ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+UPDATE gdo_insumo i
+SET id_empresa = COALESCE(
+    (SELECT t.id_empresa
+       FROM auth_usuario u JOIN pla_trabajador t ON t.id = u.id_trabajador
+      WHERE u.id = i.id_usuario_creacion),
+    c.id_empresa
+)
+FROM gdo_categoria c
+WHERE c.id = i.id_categoria
+  AND i.id_empresa IS NULL;
+UPDATE gdo_insumo i
+SET id_empresa = (SELECT e.id FROM gen_empresa e WHERE e.estado = 1 ORDER BY e.id LIMIT 1)
+WHERE i.id_empresa IS NULL
+  AND (SELECT COUNT(*) FROM gen_empresa e WHERE e.estado = 1) = 1;
+DO $mig$ BEGIN
+    ALTER TABLE gdo_insumo
+        ADD CONSTRAINT fk_gdo_insumo_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+ALTER TABLE gdo_insumo DROP CONSTRAINT IF EXISTS uq_gdo_insumo_nombre;
+DO $mig$ BEGIN
+    ALTER TABLE gdo_insumo
+        ADD CONSTRAINT uq_gdo_insumo_empresa_nombre
+        UNIQUE (id_empresa, id_categoria, nombre);
+EXCEPTION WHEN duplicate_object THEN NULL;
+          WHEN duplicate_table THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- notificaciones
+-- ---------------------------------------------------------------------------
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS id_empresa BIGINT;
+DO $mig$ BEGIN
+    ALTER TABLE notificaciones
+        ADD CONSTRAINT fk_notificaciones_empresa
+        FOREIGN KEY (id_empresa) REFERENCES gen_empresa (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- Fase 4: aviso de una sola sucursal (cocina, pedidos, caja).
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS id_sucursal BIGINT;
+DO $mig$ BEGIN
+    ALTER TABLE notificaciones
+        ADD CONSTRAINT fk_notificaciones_sucursal
+        FOREIGN KEY (id_sucursal) REFERENCES gen_sucursal (id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
+
+-- ---------------------------------------------------------------------------
+-- Vistas de saldos: exponen id_empresa
+-- ---------------------------------------------------------------------------
 DROP VIEW IF EXISTS vw_cxc_saldo_persona;
 CREATE VIEW vw_cxc_saldo_persona AS
 SELECT
     p.id AS id_persona,
+    p.id_empresa,
     COALESCE(
         NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),
         p.razon_social
@@ -2210,12 +2677,17 @@ FROM cli_persona p
 LEFT JOIN cli_convenio c ON c.id = p.id_convenio
 LEFT JOIN cxc_movimiento m ON m.id_persona = p.id AND m.estado = 1
 WHERE p.es_cliente = TRUE AND p.estado = 1
-GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento,
+GROUP BY p.id, p.id_empresa, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento,
          p.id_convenio, c.nombre, c.limite_credito;
 
-CREATE OR REPLACE VIEW vw_cxp_saldo_proveedor AS
+-- ---------------------------------------------------------------------------
+-- Vista de saldos CxP: expone id_empresa
+-- ---------------------------------------------------------------------------
+DROP VIEW IF EXISTS vw_cxp_saldo_proveedor;
+CREATE VIEW vw_cxp_saldo_proveedor AS
 SELECT
     p.id AS id_persona,
+    p.id_empresa,
     COALESCE(
         NULLIF(TRIM(COALESCE(p.nombres, '') || ' ' || COALESCE(p.apellido_paterno, '')), ''),
         p.razon_social
@@ -2234,7 +2706,7 @@ SELECT
 FROM cli_persona p
 LEFT JOIN cxp_movimiento m ON m.id_persona = p.id AND m.estado = 1
 WHERE p.es_proveedor = TRUE AND p.estado = 1
-GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento;
+GROUP BY p.id, p.id_empresa, p.nombres, p.apellido_paterno, p.razon_social, p.num_documento;
 
 CREATE OR REPLACE VIEW vw_ventas_por_medio AS
 SELECT
@@ -2299,11 +2771,9 @@ $$;
 -- SEMILLA MÍNIMA (catálogos para arrancar el API)
 -- =============================================================================
 
--- Cliente genérico para boletas sin DNI y notas de venta (lo exigen
--- ven_pedido_cobrar y ven_reemitir_comprobante).
-INSERT INTO cli_persona (tipo_persona, tipo_documento, num_documento, razon_social, nombres, es_cliente)
-VALUES (1, 1, '00000000', 'CLIENTES VARIOS', 'CLIENTES VARIOS', TRUE)
-ON CONFLICT ON CONSTRAINT uq_cli_persona_doc DO UPDATE SET es_cliente = TRUE, estado = 1;
+-- Los catálogos de cada empresa (cliente genérico, categorías de gasto) los
+-- crea gen_crear_catalogos_empresa al registrar la empresa; aquí se completan
+-- para las empresas que ya existen.
 
 INSERT INTO gen_lista (codigo, nombre, descripcion) VALUES
     ('PRODUCTO_TIPO', 'Tipo de producto', 'Clasificación de ítems'),
@@ -2421,11 +2891,15 @@ INSERT INTO gen_condicion_pago (codigo, nombre, dias_credito) VALUES
     ('CREDITO_30', 'Crédito 30 días', 30)
 ON CONFLICT (codigo) DO NOTHING;
 
-INSERT INTO cli_convenio (nombre, id_condicion_pago, limite_credito, corte_quincenal)
-SELECT v.nombre, c.id, 0, TRUE
+INSERT INTO cli_convenio (id_empresa, nombre, id_condicion_pago, limite_credito, corte_quincenal)
+SELECT e.id, v.nombre, c.id, 0, TRUE
 FROM (VALUES ('GVR'), ('4G'), ('ApuSalud'), ('Jurisconta')) AS v(nombre)
 JOIN gen_condicion_pago c ON c.codigo = 'CREDITO_15'
-WHERE NOT EXISTS (SELECT 1 FROM cli_convenio existente WHERE existente.nombre = v.nombre);
+CROSS JOIN gen_empresa e
+WHERE NOT EXISTS (
+    SELECT 1 FROM cli_convenio existente
+    WHERE existente.id_empresa = e.id AND existente.nombre = v.nombre
+);
 
 INSERT INTO pro_unidad_medida (codigo, codigo_sunat, nombre, simbolo, es_fraccionable) VALUES
     ('NIU', 'NIU', 'Unidad', 'und', FALSE),
@@ -2462,25 +2936,32 @@ JOIN pro_unidad_medida o ON o.codigo = v.origen
 JOIN pro_unidad_medida d ON d.codigo = v.destino
 ON CONFLICT (id_unidad_origen, id_unidad_destino) DO NOTHING;
 
-INSERT INTO auth_rol (codigo, nombre, descripcion) VALUES
+-- Roles base del sistema: globales (id_empresa NULL), visibles para toda empresa.
+INSERT INTO auth_rol (codigo, nombre, descripcion)
+SELECT v.codigo, v.nombre, v.descripcion
+FROM (VALUES
     ('ADMIN', 'Administración', 'Control total, reportes, crédito, almacén'),
     ('CAJERO', 'Caja', 'Cobro, comprobantes, turno de caja'),
     ('MOZO', 'Mozo', 'Toma de pedidos y comandas'),
     ('CHEF', 'Cocina', 'KDS, producción, alertas de receta'),
     ('BARMAN', 'Barra', 'Comandas de tragos y stock de onzas')
-ON CONFLICT (codigo) DO NOTHING;
+) AS v(codigo, nombre, descripcion)
+WHERE NOT EXISTS (
+    SELECT 1 FROM auth_rol r
+    WHERE r.codigo = v.codigo AND r.id_empresa IS NULL
+);
 
 INSERT INTO gen_pais (nombre, codigo_iso)
 VALUES ('Perú', 'PE')
 ON CONFLICT (codigo_iso) DO NOTHING;
 
 
--- Categorias base de gastos administrativos (M16).
+-- Categorias base de gastos administrativos (M16), por empresa.
 -- Son las que el cliente nombro en la reunion. Puede crear mas desde el sistema.
 -- Sin código: se identifican por nombre, así que el NOT EXISTS reemplaza al
 -- ON CONFLICT para que el script siga siendo re-ejecutable.
-INSERT INTO gad_categoria (nombre, tipo_gasto, orden)
-SELECT v.nombre, v.tipo_gasto, v.orden
+INSERT INTO gad_categoria (id_empresa, nombre, tipo_gasto, orden)
+SELECT e.id, v.nombre, v.tipo_gasto, v.orden
 FROM (VALUES
     ('Alquiler del local',   1, 1),
     ('Servicios basicos',    1, 2),
@@ -2489,30 +2970,34 @@ FROM (VALUES
     ('Utiles de oficina',    2, 5),
     ('Otros gastos',         2, 6)
 ) AS v(nombre, tipo_gasto, orden)
+CROSS JOIN gen_empresa e
 WHERE NOT EXISTS (
     SELECT 1 FROM gad_categoria c
-    WHERE c.id_categoria_padre IS NULL AND c.nombre = v.nombre
+    WHERE c.id_empresa = e.id AND c.id_categoria_padre IS NULL AND c.nombre = v.nombre
 );
 
 -- Subcategorias de servicios basicos: el cliente los nombra por separado
 -- (luz, agua, internet) y quiere verlos desglosados en el reporte mensual.
-INSERT INTO gad_categoria (id_categoria_padre, nombre, tipo_gasto, orden)
-SELECT p.id, v.nombre, 1, v.orden
+INSERT INTO gad_categoria (id_empresa, id_categoria_padre, nombre, tipo_gasto, orden)
+SELECT p.id_empresa, p.id, v.nombre, 1, v.orden
 FROM (VALUES
     ('Luz',      1),
     ('Agua',     2),
     ('Internet', 3)
 ) AS v(nombre, orden)
 JOIN gad_categoria p ON p.id_categoria_padre IS NULL AND p.nombre = 'Servicios basicos'
-WHERE NOT EXISTS (
-    SELECT 1 FROM gad_categoria c
-    WHERE c.id_categoria_padre = p.id AND c.nombre = v.nombre
-);
+WHERE p.id_empresa IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM gad_categoria c
+      WHERE c.id_categoria_padre = p.id AND c.nombre = v.nombre
+  );
 
--- Categorias de gasto diario (M14).
+-- Categorias de gasto diario (M14), por empresa.
 -- Son exactamente las de la hoja fisica de "Requerimiento Diario" que el
 -- cliente mostro en la reunion, en el mismo orden.
-INSERT INTO gdo_categoria (codigo, nombre, orden) VALUES
+INSERT INTO gdo_categoria (id_empresa, codigo, nombre, orden)
+SELECT e.id, v.codigo, v.nombre, v.orden
+FROM (VALUES
     ('PROCESADOS',    'Procesados',            1),
     ('ABARROTES',     'Abarrotes',             2),
     ('VERDURAS',      'Verduras y Frutas',     3),
@@ -2522,7 +3007,9 @@ INSERT INTO gdo_categoria (codigo, nombre, orden) VALUES
     ('ASEO',          'Aseo y Limpieza',       7),
     ('LICORES',       'Licores y Gaseosas',    8),
     ('OTROS_GDO',     'Otros',                 9)
-ON CONFLICT (codigo) DO NOTHING;
+) AS v(codigo, nombre, orden)
+CROSS JOIN gen_empresa e
+ON CONFLICT ON CONSTRAINT uq_gdo_categoria_empresa_codigo DO NOTHING;
 
 -- =============================================================================
 -- FIN

@@ -1,10 +1,12 @@
 -- Vuelve a poner una comanda (o precuenta) en la cola de impresión de su estación.
 DROP FUNCTION IF EXISTS ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT)
+DROP FUNCTION IF EXISTS ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_reimprimir_comanda(p_id_comanda BIGINT, p_usuario BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE c ven_comanda%ROWTYPE; pedido JSONB;
 BEGIN
-  SELECT * INTO c FROM ven_comanda WHERE id = p_id_comanda AND estado = 1;
+  SELECT * INTO c FROM ven_comanda WHERE id = p_id_comanda AND estado = 1
+    AND ven_pedido_de_empresa(id_pedido, p_id_empresa);
   IF NOT FOUND THEN RAISE EXCEPTION 'La comanda no existe' USING ERRCODE = 'P0002'; END IF;
   IF NOT EXISTS(SELECT 1 FROM gen_estacion e WHERE e.id = c.id_estacion AND e.estado = 1) THEN
     RAISE EXCEPTION 'La estación de esta comanda está desactivada';

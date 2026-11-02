@@ -14,9 +14,9 @@ import { EstacionesModel } from '../models/estaciones.model';
 @Injectable()
 export class EstacionesLogic {
   constructor(private readonly estacionesModel: EstacionesModel) {}
-  async principal(id: number) {
+  async principal(id: number, idSucursal: number) {
     return mapSingleResult(
-      await this.estacionesModel.principal(id),
+      await this.estacionesModel.principal(id, idSucursal),
       'Estación no encontrada',
     );
   }
@@ -26,8 +26,8 @@ export class EstacionesLogic {
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.estacionesModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idSucursal: number | null) {
+    const result = await this.estacionesModel.obtenerPorId(id, idSucursal);
     return mapSingleResult(result, `Estación con ID ${id} no encontrada`);
   }
 
@@ -68,19 +68,35 @@ export class EstacionesLogic {
     const id = (estacion as { id?: number } | null)?.id;
     if (!anchoPapel || !id) return estacion;
     await this.estacionesModel.guardarAnchoPapel(id, anchoPapel);
-    return this.obtenerPorId(id);
+    return this.obtenerPorId(id, null);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.estacionesModel.eliminar(id, idUsuarioAuditoria);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.estacionesModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
     return mapDeleteResult(
       result,
       `Estación con ID ${id} no encontrada o ya inactiva`,
     );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.estacionesModel.activar(id, idUsuarioAuditoria);
+  async activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.estacionesModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
 
     if (!result || (result as any).activado === false) {
       return {

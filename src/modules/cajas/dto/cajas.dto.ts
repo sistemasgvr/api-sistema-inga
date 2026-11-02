@@ -28,9 +28,12 @@ export class FiltroCajasDto extends FiltroPaginacionDto {
 }
 
 export class CreateCajaDto extends AuditoriaDto {
-  @ApiProperty({ example: 1 })
+  /** Ignorado: el API usa la sucursal de la sesión. */
+  @ApiPropertyOptional({
+    description: 'Ignorado: se usa la sucursal de la sesión',
+  })
+  @IsOptional()
   @IsInt()
-  @IsNotEmpty()
   id_sucursal!: number;
 
   @ApiProperty({ example: 'Caja principal', maxLength: 100 })

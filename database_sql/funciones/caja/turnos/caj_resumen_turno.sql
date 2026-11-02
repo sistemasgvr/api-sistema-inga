@@ -1,6 +1,7 @@
 -- Resumen completo de un turno: totales, movimientos y arqueo en una sola llamada.
 DROP FUNCTION IF EXISTS caj_resumen_turno(p_id BIGINT);
-CREATE OR REPLACE FUNCTION caj_resumen_turno(p_id BIGINT)
+DROP FUNCTION IF EXISTS caj_resumen_turno(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION caj_resumen_turno(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -13,7 +14,7 @@ BEGIN
     SET TIME ZONE 'America/Lima';
 
     -- caj_obtener_turno ya trae la fila del turno con todos los totales.
-    v_turno := (caj_obtener_turno(p_id)::JSONB->'registro')::JSON;
+    v_turno := (caj_obtener_turno(p_id, p_id_sucursal)::JSONB->'registro')::JSON;
 
     IF v_turno IS NULL THEN
         RETURN json_build_object('registro', NULL);

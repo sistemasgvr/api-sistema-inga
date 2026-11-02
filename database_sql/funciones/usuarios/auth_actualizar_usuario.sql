@@ -13,6 +13,15 @@ DROP FUNCTION IF EXISTS auth_actualizar_usuario(
     p_pin_hash VARCHAR,
     p_roles_ids JSON,
     p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
+DROP FUNCTION IF EXISTS auth_actualizar_usuario(
+    p_id BIGINT,
+    p_username VARCHAR,
+    p_password_hash VARCHAR,
+    p_pin_hash VARCHAR,
+    p_roles_ids JSON,
+    p_id_usuario_auditoria BIGINT,
     p_sucursales JSON,
     p_id_sucursal_predeterminada BIGINT
 );
@@ -25,7 +34,8 @@ CREATE OR REPLACE FUNCTION auth_actualizar_usuario(
     p_id_usuario_auditoria BIGINT DEFAULT NULL,
     -- NULL conserva las sucursales actuales.
     p_sucursales JSON DEFAULT NULL,
-    p_id_sucursal_predeterminada BIGINT DEFAULT NULL
+    p_id_sucursal_predeterminada BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -36,7 +46,11 @@ DECLARE
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF NOT EXISTS (SELECT 1 FROM auth_usuario_datos WHERE id = p_id AND estado = 1) THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM auth_usuario_datos
+        WHERE id = p_id AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
+    ) THEN
         RAISE EXCEPTION 'Usuario no encontrado o inactivo.';
     END IF;
 

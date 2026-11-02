@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS gen_obtener_estacion(p_id BIGINT);
-CREATE OR REPLACE FUNCTION gen_obtener_estacion(p_id BIGINT)
+DROP FUNCTION IF EXISTS gen_obtener_estacion(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION gen_obtener_estacion(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -34,6 +35,7 @@ BEGIN
         LEFT JOIN auth_usuario_datos uc ON e.id_usuario_creacion = uc.id
         LEFT JOIN auth_usuario_datos um ON e.id_usuario_modificacion = um.id
         WHERE e.id = p_id AND e.estado = 1
+          AND (p_id_sucursal IS NULL OR e.id_sucursal = p_id_sucursal)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

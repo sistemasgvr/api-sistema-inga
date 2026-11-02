@@ -5,7 +5,7 @@ DECLARE v ven_pedido%ROWTYPE; d RECORD;
   v_pendientes JSONB := '[]'::JSONB;
   v_comanda BIGINT; v_numero INTEGER; v_estacion BIGINT;
 BEGIN
-  v := ven_bloquear_pedido(p_id);
+  v := ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'Solo se comandan pedidos abiertos o comandados'; END IF;
   PERFORM ven_turno_vigente_pedido(v.id_sucursal,v.id_turno,p_usuario);
   IF NOT EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3) THEN RAISE EXCEPTION 'No se puede comandar un pedido sin ítems'; END IF;

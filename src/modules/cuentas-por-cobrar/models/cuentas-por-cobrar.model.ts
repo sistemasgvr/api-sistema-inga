@@ -31,6 +31,7 @@ const SQL_DETALLE_RESUMEN = `
   FROM vw_cxc_saldo_persona v
   LEFT JOIN cxc_movimiento m ON m.id_persona = v.id_persona AND m.estado = 1
   WHERE v.id_persona = $1
+    AND ($4::BIGINT IS NULL OR v.id_empresa = $4::BIGINT)
   GROUP BY v.id_persona, v.nombre, v.num_documento, v.convenio, v.limite_credito, v.saldo`;
 
 const SQL_DETALLE_MOVIMIENTOS = `
@@ -120,14 +121,18 @@ export class CuentasPorCobrarModel {
     ]);
   }
 
-  obtenerMovimiento(id: number) {
+  obtenerMovimiento(id: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'cxc_obtener_movimiento',
-      [id],
+      [id, idEmpresa ?? null],
     );
   }
 
-  obtenerEstadoCuenta(idPersona: number, filtros: FiltroEstadoCuentaDto) {
+  obtenerEstadoCuenta(
+    idPersona: number,
+    filtros: FiltroEstadoCuentaDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'cxc_obtener_estado_cuenta',
       [
@@ -135,11 +140,12 @@ export class CuentasPorCobrarModel {
         filtros.anio ?? null,
         filtros.mes ?? null,
         filtros.quincena ?? null,
+        idEmpresa ?? null,
       ],
     );
   }
 
-  registrarConsumo(dto: CreateConsumoDto) {
+  registrarConsumo(dto: CreateConsumoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxc_registrar_consumo', [
       dto.id_persona,
       dto.monto,
@@ -148,10 +154,11 @@ export class CuentasPorCobrarModel {
       dto.id_pago ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  registrarAbono(dto: CreateAbonoCxcDto) {
+  registrarAbono(dto: CreateAbonoCxcDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxc_registrar_abono', [
       dto.id_persona,
       dto.monto,
@@ -161,26 +168,34 @@ export class CuentasPorCobrarModel {
       dto.id_pedido ?? null,
       dto.medio_pago,
       dto.id_turno ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  registrarAjuste(dto: CreateAjusteCxcDto) {
+  registrarAjuste(dto: CreateAjusteCxcDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxc_registrar_ajuste', [
       dto.id_persona,
       dto.monto,
       dto.motivo,
       dto.fecha_movimiento ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
   // Devuelve AuthSingleResult y no AuthDeleteResult porque cxc_anular_movimiento
   // responde con el movimiento ya anulado, no con una bandera `eliminado`.
-  anularMovimiento(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  anularMovimiento(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>('cxc_anular_movimiento', [
       id,
       motivo ?? null,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -189,17 +204,20 @@ export class CuentasPorCobrarModel {
   // Solo lectura, para imprimir o exportar. Va como consulta parametrizada
   // (no como función cxc_*) porque no decide nada: junta los movimientos con
   // el pedido que originó cada cargo y sus platos. Parámetros comunes:
-  // $1 id_persona, $2 desde y $3 hasta (DATE de Lima, NULL = sin límite).
+  // $1 id_persona, $2 desde y $3 hasta (DATE de Lima, NULL = sin límite);
+  // el resumen recibe además $4 id_empresa de la sesión.
 
   async resumenEstadoCuentaDetalle(
     idPersona: number,
     desde: string | null,
     hasta: string | null,
+    idEmpresa: number | null,
   ) {
     const { rows } = await this.db.query(SQL_DETALLE_RESUMEN, [
       idPersona,
       desde,
       hasta,
+      idEmpresa,
     ]);
     return rows[0] ?? null;
   }
@@ -217,12 +235,13 @@ export class CuentasPorCobrarModel {
     return rows;
   }
 
-  reportePeriodo(filtros: FiltroReporteCxcDto) {
+  reportePeriodo(filtros: FiltroReporteCxcDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxc_reporte_periodo', [
       filtros.anio ?? null,
       filtros.mes ?? null,
       filtros.quincena ?? null,
       filtros.id_convenio ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

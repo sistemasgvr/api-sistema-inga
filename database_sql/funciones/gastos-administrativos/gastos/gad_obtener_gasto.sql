@@ -1,7 +1,8 @@
 -- Traigo un gasto administrativo por ID.
 -- Registrar y actualizar terminan llamando acá para devolver el mismo shape.
 DROP FUNCTION IF EXISTS gad_obtener_gasto(p_id BIGINT);
-CREATE OR REPLACE FUNCTION gad_obtener_gasto(p_id BIGINT)
+DROP FUNCTION IF EXISTS gad_obtener_gasto(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gad_obtener_gasto(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -49,6 +50,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = g.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE g.id = p_id
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

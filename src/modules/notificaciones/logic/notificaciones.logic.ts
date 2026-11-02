@@ -85,6 +85,8 @@ export class NotificacionesLogic
       ruta: dto.ruta,
       idReferencia: dto.idReferencia ?? null,
       idsUsuario: dto.idsUsuario,
+      idEmpresa: dto.idEmpresa ?? null,
+      idSucursal: dto.idSucursal ?? null,
     });
     if (!creada?.id) return null;
     const notif: NotificacionEmitida = {
@@ -98,7 +100,10 @@ export class NotificacionesLogic
       creadaEn: new Date(creada.creada_en ?? Date.now()).toISOString(),
       leida: false,
     };
-    this.gateway.emitirNotificacion(notif, dto.idsUsuario);
+    this.gateway.emitirNotificacion(notif, dto.idsUsuario, {
+      idEmpresa: dto.idEmpresa,
+      idSucursal: dto.idSucursal,
+    });
     return notif;
   }
 
@@ -130,6 +135,10 @@ export class NotificacionesLogic
           this.gateway.emitirNotificacion(
             aNotificacion(r),
             r.ids_usuario_destino?.map(Number),
+            {
+              idEmpresa: r.id_empresa == null ? null : Number(r.id_empresa),
+              idSucursal: r.id_sucursal == null ? null : Number(r.id_sucursal),
+            },
           );
       } while (this.despachoPendiente);
     } catch (error) {
@@ -165,6 +174,7 @@ export class NotificacionesLogic
       canalesPermitidos(user),
       filtros,
       user.id_empresa ?? null,
+      user.id_sucursal ?? null,
     );
     return {
       registros: (result?.registros ?? []).map(aNotificacion),
@@ -183,6 +193,8 @@ export class NotificacionesLogic
       user.id,
       canalesPermitidos(user),
       dto.canal,
+      user.id_empresa ?? null,
+      user.id_sucursal ?? null,
     );
     this.gateway.notificarLeidas(user.id, 'todas');
     return result;
@@ -192,6 +204,8 @@ export class NotificacionesLogic
     const result = await this.model.contarNoLeidas(
       user.id,
       canalesPermitidos(user),
+      user.id_empresa ?? null,
+      user.id_sucursal ?? null,
     );
     return { total: Number(result?.total ?? 0) };
   }

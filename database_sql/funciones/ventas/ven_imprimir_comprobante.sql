@@ -1,11 +1,13 @@
 -- Imprime un comprobante en la estación principal de caja, por la misma cola que las comandas.
 DROP FUNCTION IF EXISTS ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT)
+DROP FUNCTION IF EXISTS ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_imprimir_comprobante(p_id_comprobante BIGINT, p_usuario BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE cp ven_comprobante%ROWTYPE; pedido ven_pedido%ROWTYPE; estacion gen_estacion%ROWTYPE;
   comanda BIGINT; numero INTEGER;
 BEGIN
-  SELECT * INTO cp FROM ven_comprobante WHERE id = p_id_comprobante;
+  SELECT * INTO cp FROM ven_comprobante WHERE id = p_id_comprobante
+    AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
   IF NOT FOUND THEN RAISE EXCEPTION 'El comprobante no existe' USING ERRCODE = 'P0002'; END IF;
   IF cp.estado <> 1 THEN RAISE EXCEPTION 'El comprobante está anulado; imprime el vigente'; END IF;
 

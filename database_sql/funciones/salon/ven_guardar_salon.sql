@@ -2,12 +2,16 @@ DROP FUNCTION IF EXISTS ven_guardar_salon(p_id BIGINT, p_d JSONB, p_usuario BIGI
 CREATE OR REPLACE FUNCTION ven_guardar_salon(p_id BIGINT, p_d JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_salon%ROWTYPE; v_anterior ven_salon%ROWTYPE;
+  -- id_sucursal_sesion (la sesión): el salón se guarda siempre en esa sucursal.
+  v_sesion BIGINT := (p_d->>'id_sucursal_sesion')::BIGINT;
 BEGIN
   IF p_id IS NOT NULL THEN
-    SELECT * INTO v_anterior FROM ven_salon WHERE id = p_id AND estado = 1 FOR UPDATE;
+    SELECT * INTO v_anterior FROM ven_salon WHERE id = p_id AND estado = 1
+      AND (v_sesion IS NULL OR id_sucursal = v_sesion) FOR UPDATE;
     IF NOT FOUND THEN RETURN json_build_object('registro', NULL); END IF;
   END IF;
   v := jsonb_populate_record(v_anterior, p_d);
+  v.id_sucursal := COALESCE(v_sesion, v.id_sucursal);
   v.codigo := upper(trim(v.codigo)); v.nombre := trim(v.nombre);
   v.posicion_x := COALESCE(v.posicion_x, 0); v.posicion_y := COALESCE(v.posicion_y, 0);
   v.ancho := COALESCE(v.ancho, 200); v.alto := COALESCE(v.alto, 150);

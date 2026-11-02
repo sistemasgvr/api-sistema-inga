@@ -6,11 +6,19 @@ DROP FUNCTION IF EXISTS auth_actualizar_rol(
     p_descripcion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_actualizar_rol(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_actualizar_rol(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,
     p_descripcion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -25,6 +33,7 @@ BEGIN
     IF v_nombre IS NOT NULL AND EXISTS (
         SELECT 1 FROM auth_rol
         WHERE LOWER(nombre) = LOWER(v_nombre) AND id <> p_id AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object('error', 'Ya existe otro rol con el nombre ' || v_nombre, 'registro', NULL);
     END IF;
@@ -34,7 +43,8 @@ BEGIN
         nombre = COALESCE(v_nombre, nombre),
         descripcion = COALESCE(p_descripcion, descripcion),
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'Rol no encontrado o inactivo', 'registro', NULL);

@@ -8,7 +8,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
-import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
+import {
+  EmpresaSesion,
+  SucursalSesion,
+} from '../../../common/decorators/sesion-empresa.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { ImpresionLogic } from '../logic/impresion.logic';
 import { QzSigningLogic } from '../logic/qz-signing.logic';
@@ -55,8 +58,11 @@ export class ImpresionController {
     return this.qz.firmar(dto.mensaje);
   }
   @Get('pendientes')
-  pendientes(@Query('estacion', ParseIntPipe) estacion: number) {
-    return this.service.pendientes([estacion]);
+  pendientes(
+    @Query('estacion', ParseIntPipe) estacion: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.service.pendientes([estacion], idSucursal);
   }
   // PDF archivado en Storage del ticket (comanda, precuenta o comprobante).
   @Get(':id/pdf')

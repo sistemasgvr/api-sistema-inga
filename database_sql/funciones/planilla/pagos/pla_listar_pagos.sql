@@ -10,6 +10,18 @@ DROP FUNCTION IF EXISTS pla_listar_pagos(
     p_fecha_desde DATE,
     p_fecha_hasta DATE
 );
+DROP FUNCTION IF EXISTS pla_listar_pagos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_trabajador BIGINT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_medio_pago INTEGER,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_listar_pagos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
@@ -19,7 +31,8 @@ CREATE OR REPLACE FUNCTION pla_listar_pagos(
     p_quincena INTEGER DEFAULT NULL,
     p_medio_pago INTEGER DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -45,6 +58,9 @@ BEGIN
     INTO v_total, v_monto_total, v_efectivo, v_yape, v_tarjeta, v_trabajadores
     FROM pla_pago p
     WHERE p.estado = 1
+      AND (p_id_empresa IS NULL OR p.id_trabajador IN (
+          SELECT id FROM pla_trabajador WHERE id_empresa = p_id_empresa
+      ))
       AND (p_id_trabajador IS NULL OR p.id_trabajador = p_id_trabajador)
       AND (p_anio IS NULL OR p.anio = p_anio)
       AND (p_mes IS NULL OR p.mes = p_mes)
@@ -76,6 +92,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = p.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE p.estado = 1
+          AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
           AND (p_id_trabajador IS NULL OR p.id_trabajador = p_id_trabajador)
           AND (p_anio IS NULL OR p.anio = p_anio)
           AND (p_mes IS NULL OR p.mes = p_mes)

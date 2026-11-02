@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION ven_pedido_entregar(p_id BIGINT,p_item BIGINT,p_datos
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; pr pro_producto%ROWTYPE;
   objetivo NUMERIC:=(p_datos->>'cantidad_entregada')::NUMERIC; n NUMERIC; detalles JSONB; c RECORD;
 BEGIN
-  v:=ven_bloquear_pedido(p_id);
+  v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   PERFORM alm_bloquear();
   SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ítem no encontrado' USING ERRCODE='P0002'; END IF;

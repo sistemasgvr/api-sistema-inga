@@ -50,7 +50,7 @@ export class PersonasModel {
     return null;
   }
 
-  listar(filtros: FiltroPersonasDto) {
+  listar(filtros: FiltroPersonasDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('cli_listar_personas', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
@@ -58,23 +58,34 @@ export class PersonasModel {
       this.resolveRolFiltro(filtros.rol),
       filtros.id_convenio ?? null,
       this.resolveEstadoFiltro(filtros.estado),
+      idEmpresa ?? null,
     ]);
   }
 
-  buscar(dto: BuscarPersonasDto) {
+  buscar(dto: BuscarPersonasDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<{ registros: unknown[] }>(
       'cli_buscar_personas',
-      [dto.buscar ?? '', this.resolveRolFiltro(dto.rol), dto.limite ?? 15],
+      [
+        dto.buscar ?? '',
+        this.resolveRolFiltro(dto.rol),
+        dto.limite ?? 15,
+        idEmpresa ?? null,
+      ],
     );
   }
 
-  obtenerPorId(id: number) {
+  obtenerPorId(id: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_persona', [
       id,
+      idEmpresa ?? null,
     ]);
   }
 
-  crear(datos: PersonaDbParams, idUsuarioAuditoria?: number) {
+  crear(
+    datos: PersonaDbParams,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_crear_persona', [
       datos.tipoPersona,
       datos.tipoDocumento,
@@ -91,6 +102,7 @@ export class PersonasModel {
       datos.esProveedor,
       datos.idConvenio,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -99,6 +111,7 @@ export class PersonasModel {
     datos: PersonaDbParams,
     quitarConvenio: boolean,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'cli_actualizar_persona',
@@ -120,21 +133,24 @@ export class PersonasModel {
         datos.idConvenio,
         quitarConvenio,
         idUsuarioAuditoria ?? null,
+        idEmpresa ?? null,
       ],
     );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('cli_eliminar_persona', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthActivateResult>('cli_activar_persona', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

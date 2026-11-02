@@ -4,11 +4,19 @@ DROP FUNCTION IF EXISTS cxc_obtener_estado_cuenta(
     p_mes SMALLINT,
     p_quincena SMALLINT
 );
+DROP FUNCTION IF EXISTS cxc_obtener_estado_cuenta(
+    p_id_persona BIGINT,
+    p_anio SMALLINT,
+    p_mes SMALLINT,
+    p_quincena SMALLINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_obtener_estado_cuenta(
     p_id_persona BIGINT,
     p_anio SMALLINT DEFAULT NULL,
     p_mes SMALLINT DEFAULT NULL,
-    p_quincena SMALLINT DEFAULT NULL
+    p_quincena SMALLINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -24,7 +32,8 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    SELECT TRUE INTO v_existe FROM cli_persona WHERE id = p_id_persona AND estado = 1;
+    SELECT TRUE INTO v_existe FROM cli_persona WHERE id = p_id_persona AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La persona no existe o está inactiva', 'registro', NULL);
     END IF;

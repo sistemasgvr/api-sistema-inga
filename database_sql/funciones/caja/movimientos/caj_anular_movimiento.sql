@@ -3,9 +3,15 @@ DROP FUNCTION IF EXISTS caj_anular_movimiento(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS caj_anular_movimiento(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_anular_movimiento(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -20,7 +26,8 @@ BEGIN
     INTO v_id_turno, v_estado_turno
     FROM caj_movimiento m
     INNER JOIN caj_turno t ON m.id_turno = t.id
-    WHERE m.id = p_id AND m.estado = 1;
+    WHERE m.id = p_id AND m.estado = 1
+      AND caj_turno_de_sucursal(t.id, p_id_sucursal);
 
     IF NOT FOUND THEN
         RETURN json_build_object('eliminado', FALSE, 'id', p_id);

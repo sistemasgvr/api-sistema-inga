@@ -1,5 +1,7 @@
+-- Con p_id_sucursal (la de la sesión) solo devuelve pedidos de esa sucursal.
 DROP FUNCTION IF EXISTS public.ven_obtener_pedido(p_id BIGINT);
-CREATE OR REPLACE FUNCTION public.ven_obtener_pedido(p_id BIGINT)
+DROP FUNCTION IF EXISTS public.ven_obtener_pedido(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION public.ven_obtener_pedido(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE sql AS $$
   SELECT json_build_object('registro', (
     SELECT to_jsonb(p) || jsonb_build_object(
@@ -19,5 +21,6 @@ RETURNS JSON LANGUAGE sql AS $$
         WHERE d.id_pedido = p.id AND d.estado = 1), '[]'::JSONB),
       'comandas', COALESCE((SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM ven_comanda c WHERE c.id_pedido = p.id), '[]'::JSONB)
     ) FROM ven_pedido p WHERE p.id = p_id AND p.estado = 1
+      AND (p_id_sucursal IS NULL OR p.id_sucursal = p_id_sucursal)
   ));
 $$;

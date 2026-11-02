@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
 import { FiltroPaginacionDto } from '../../../common/dto/filtro-paginacion.dto';
 
@@ -21,9 +28,12 @@ export class FiltroAlmacenesDto extends FiltroPaginacionDto {
 }
 
 export class CreateAlmacenDto extends AuditoriaDto {
-  @ApiProperty({ description: 'ID de la sucursal', example: 1 })
+  /** Ignorado: el API usa la sucursal de la sesión. */
+  @ApiPropertyOptional({
+    description: 'Ignorado: se usa la sucursal de la sesión',
+  })
+  @IsOptional()
   @IsInt()
-  @IsNotEmpty()
   id_sucursal!: number;
 
   @ApiProperty({ example: 'Almacén Principal', maxLength: 100 })
@@ -38,7 +48,10 @@ export class CreateAlmacenDto extends AuditoriaDto {
   @MaxLength(255)
   descripcion?: string;
 
-  @ApiProperty({ description: 'Tipo de almacén (según catálogo ALMACEN_TIPO)', example: 1 })
+  @ApiProperty({
+    description: 'Tipo de almacén (según catálogo ALMACEN_TIPO)',
+    example: 1,
+  })
   @IsInt()
   @IsNotEmpty()
   tipo_almacen!: number;

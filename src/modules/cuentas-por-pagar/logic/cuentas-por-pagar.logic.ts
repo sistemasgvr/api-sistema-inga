@@ -38,10 +38,15 @@ export class CuentasPorPagarLogic {
     return mapListResult(result, filtros);
   }
 
-  async obtenerEstadoCuenta(idPersona: number, limiteMovimientos?: number) {
+  async obtenerEstadoCuenta(
+    idPersona: number,
+    limiteMovimientos?: number,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.model.obtenerEstadoCuenta(
       idPersona,
       limiteMovimientos,
+      idEmpresa,
     );
 
     if (!result?.registro) {
@@ -53,18 +58,21 @@ export class CuentasPorPagarLogic {
     return result.registro;
   }
 
-  async listarMovimientos(filtros: FiltroMovimientosCxpDto) {
-    const result = await this.model.listarMovimientos(filtros);
+  async listarMovimientos(
+    filtros: FiltroMovimientosCxpDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.listarMovimientos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerMovimiento(id: number) {
-    const result = await this.model.obtenerMovimiento(id);
+  async obtenerMovimiento(id: number, idEmpresa?: number | null) {
+    const result = await this.model.obtenerMovimiento(id, idEmpresa);
     return mapSingleResult(result, `Movimiento con ID ${id} no encontrado`);
   }
 
-  async registrarCargo(dto: CreateCargoDto) {
-    const result = await this.model.registrarCargo(dto);
+  async registrarCargo(dto: CreateCargoDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarCargo(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el cargo');
     const movimiento = registro as MovimientoNotificado;
     this.notificaciones
@@ -77,13 +85,14 @@ export class CuentasPorPagarLogic {
         severidad: 'info',
         ruta: RutasNotificacion.cuentaPorPagar(movimiento?.id_persona),
         idReferencia: movimiento?.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
     return registro;
   }
 
-  async registrarAbono(dto: CreateAbonoDto) {
-    const result = await this.model.registrarAbono(dto);
+  async registrarAbono(dto: CreateAbonoDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarAbono(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el abono');
     const movimiento = registro as MovimientoNotificado;
     this.notificaciones
@@ -96,18 +105,29 @@ export class CuentasPorPagarLogic {
         severidad: 'success',
         ruta: RutasNotificacion.cuentaPorPagar(movimiento?.id_persona),
         idReferencia: movimiento?.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
     return registro;
   }
 
-  async registrarAjuste(dto: CreateAjusteDto) {
-    const result = await this.model.registrarAjuste(dto);
+  async registrarAjuste(dto: CreateAjusteDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarAjuste(dto, idEmpresa);
     return mapSingleResult(result, 'No se pudo registrar el ajuste');
   }
 
-  async anularMovimiento(id: number, motivo?: string, idUsuarioAuditoria?: number) {
-    const result = await this.model.anularMovimiento(id, motivo, idUsuarioAuditoria);
+  async anularMovimiento(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.anularMovimiento(
+      id,
+      motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapDeleteResult(
       result,
       `Movimiento con ID ${id} no encontrado o ya anulado`,
@@ -119,8 +139,11 @@ export class CuentasPorPagarLogic {
    * los totales en cero. Por eso no uso `mapSingleResult`, que lanzaría un 404
    * donde la respuesta correcta es "cero".
    */
-  async reportePeriodo(filtros: FiltroReporteCxpDto) {
-    const result = await this.model.reportePeriodo(filtros);
+  async reportePeriodo(
+    filtros: FiltroReporteCxpDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.reportePeriodo(filtros, idEmpresa);
 
     if (!result?.registro) {
       throw new NotFoundException('No se pudo generar el reporte del período');

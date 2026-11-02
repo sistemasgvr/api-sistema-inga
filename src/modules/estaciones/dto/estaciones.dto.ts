@@ -33,9 +33,12 @@ export class FiltroEstacionesDto extends FiltroPaginacionDto {
 }
 
 export class CreateEstacionDto extends AuditoriaDto {
-  @ApiProperty({ description: 'ID de la sucursal', example: 1 })
+  /** Ignorado: el API usa la sucursal de la sesión. */
+  @ApiPropertyOptional({
+    description: 'Ignorado: se usa la sucursal de la sesión',
+  })
+  @IsOptional()
   @IsInt()
-  @IsNotEmpty()
   id_sucursal!: number;
 
   @ApiProperty({ example: 'Cocina Principal', maxLength: 100 })

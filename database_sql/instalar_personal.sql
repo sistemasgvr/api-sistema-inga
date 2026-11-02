@@ -6,6 +6,7 @@ BEGIN;
 \ir funciones/caja/cajas/caj_obtener_caja.sql
 \ir funciones/caja/movimientos/caj_listar_movimientos.sql
 \ir funciones/caja/turnos/caj_abrir_turno.sql
+\ir funciones/caja/turnos/caj_turno_de_sucursal.sql
 \ir funciones/caja/turnos/caj_listar_turnos.sql
 \ir funciones/caja/turnos/caj_obtener_turno.sql
 \ir funciones/caja/turnos/caj_obtener_turno_vigente.sql
@@ -61,4 +62,5 @@ BEGIN;
 \ir funciones/usuarios/auth_listar_usuarios.sql
 \ir funciones/usuarios/auth_listar_trabajadores_disponibles.sql
 \ir funciones/usuarios/auth_obtener_usuario.sql
+\ir funciones/personas/personas/cli_asignar_empresa_movimiento.sql
 COMMIT;

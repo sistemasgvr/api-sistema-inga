@@ -27,17 +27,21 @@ export class ConveniosModel {
     return 1;
   }
 
-  listar(filtros: FiltroConveniosDto) {
+  listar(filtros: FiltroConveniosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('cli_listar_convenios', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
       filtros.offset ?? 0,
       this.resolveEstadoFiltro(filtros.estado),
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_convenio', [id]);
+  obtenerPorId(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_convenio', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
   listarCondicionesPago() {
@@ -53,6 +57,7 @@ export class ConveniosModel {
     limiteCredito: number,
     corteQuincenal: boolean,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_crear_convenio', [
       nombre,
@@ -60,6 +65,7 @@ export class ConveniosModel {
       limiteCredito,
       corteQuincenal,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -70,28 +76,34 @@ export class ConveniosModel {
     limiteCredito: number | null,
     corteQuincenal: boolean | null,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
-    return this.db.callFunctionJson<AuthSingleResult>('cli_actualizar_convenio', [
-      id,
-      nombre,
-      idCondicionPago,
-      limiteCredito,
-      corteQuincenal,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'cli_actualizar_convenio',
+      [
+        id,
+        nombre,
+        idCondicionPago,
+        limiteCredito,
+        corteQuincenal,
+        idUsuarioAuditoria ?? null,
+        idEmpresa ?? null,
+      ],
+    );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('cli_eliminar_convenio', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('cli_activar_convenio', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'cli_activar_convenio',
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 }

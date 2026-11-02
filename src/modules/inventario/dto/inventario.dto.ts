@@ -16,7 +16,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { CantidadMaxima, MontoMaximo } from '../../../common/decorators/limites.decorator';
+import {
+  CantidadMaxima,
+  MontoMaximo,
+} from '../../../common/decorators/limites.decorator';
 
 export class DetalleMovimientoDto {
   @ApiProperty() @IsInt() @Min(1) id_producto!: number;
@@ -103,21 +106,53 @@ export class PrepararDto {
 }
 
 export class DisponibilidadDto {
- @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_receta!: number;
- @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_almacen!: number;
- @ApiProperty() @Type(() => Number) @IsNumber({maxDecimalPlaces:4}) @Min(0.0001) @CantidadMaxima() cantidad!: number;
- @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_pedido_detalle?: number;
+  @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_receta!: number;
+  @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_almacen!: number;
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.0001)
+  @CantidadMaxima()
+  cantidad!: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_pedido_detalle?: number;
 }
 export class CocinaFiltroDto {
- @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_sucursal!: number;
- @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_estacion?: number;
- @ApiPropertyOptional() @IsOptional() @IsIn(['true','false']) historial?: string;
- @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limite=50;
- @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(0) offset=0;
+  /** Ignorado: la cocina es la de la sucursal de la sesión. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_estacion?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  historial?: string;
+  @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limite =
+    50;
+  @ApiPropertyOptional() @Type(() => Number) @IsInt() @Min(0) offset = 0;
 }
 export class FiltroInventarioDto {
- @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) buscar?: string;
- @ApiPropertyOptional() @IsOptional() @IsIn(['todos','alertas','normales']) estado?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  buscar?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(['todos', 'alertas', 'normales'])
+  estado?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -144,6 +179,17 @@ export class FiltroInventarioDto {
   offset = 0;
 }
 export class AvisosCocinaFiltroDto {
- @ApiProperty() @Type(() => Number) @IsInt() @Min(1) id_sucursal!: number;
- @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) id_estacion?: number;
+  /** Ignorado: los avisos son los de la sucursal de la sesión. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_estacion?: number;
 }

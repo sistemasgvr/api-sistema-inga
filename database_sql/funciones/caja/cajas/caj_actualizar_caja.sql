@@ -22,7 +22,8 @@ BEGIN
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
     SELECT COALESCE(p_id_sucursal, id_sucursal) INTO v_id_sucursal
-    FROM caj_caja WHERE id = p_id AND estado = 1;
+    FROM caj_caja WHERE id = p_id AND estado = 1
+      AND (p_id_sucursal IS NULL OR id_sucursal = p_id_sucursal);
 
     IF v_id_sucursal IS NULL THEN
         RETURN json_build_object('error', 'La caja no existe o está inactiva', 'registro', NULL);

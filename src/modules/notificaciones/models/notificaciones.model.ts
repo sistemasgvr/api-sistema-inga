@@ -12,6 +12,8 @@ export interface NotificacionRow {
   creada_en: string;
   leida?: boolean;
   ids_usuario_destino?: number[] | null;
+  id_empresa?: number | null;
+  id_sucursal?: number | null;
 }
 
 @Injectable()
@@ -27,6 +29,7 @@ export class NotificacionesModel {
     idReferencia: number | null;
     idsUsuario?: number[] | null;
     idEmpresa?: number | null;
+    idSucursal?: number | null;
   }) {
     return this.db.callFunctionJson<{ id: string | null; creada_en: string }>(
       'not_crear',
@@ -42,6 +45,7 @@ export class NotificacionesModel {
         null,
         true,
         dto.idEmpresa ?? null,
+        dto.idSucursal ?? null,
       ],
     );
   }
@@ -56,6 +60,7 @@ export class NotificacionesModel {
       offset?: number;
     },
     idEmpresa?: number | null,
+    idSucursal?: number | null,
   ) {
     return this.db.callFunctionJson<{
       registros: NotificacionRow[];
@@ -68,6 +73,7 @@ export class NotificacionesModel {
       filtros.limite ?? 30,
       filtros.offset ?? 0,
       idEmpresa ?? null,
+      idSucursal ?? null,
     ]);
   }
 
@@ -81,18 +87,27 @@ export class NotificacionesModel {
   async marcarTodasLeidas(
     idUsuario: number,
     canales: string[],
-    canal?: string,
+    canal: string | undefined,
+    idEmpresa: number | null,
+    idSucursal: number | null,
   ) {
     return this.db.callFunctionJson<{ ok: boolean; total: number }>(
       'not_marcar_todas_leidas',
-      [idUsuario, canales, canal ?? null],
+      [idUsuario, canales, canal ?? null, idEmpresa, idSucursal],
     );
   }
 
-  async contarNoLeidas(idUsuario: number, canales: string[]) {
+  async contarNoLeidas(
+    idUsuario: number,
+    canales: string[],
+    idEmpresa: number | null,
+    idSucursal: number | null,
+  ) {
     return this.db.callFunctionJson<{ total: number }>('not_contar_no_leidas', [
       idUsuario,
       canales,
+      idEmpresa,
+      idSucursal,
     ]);
   }
 

@@ -6,12 +6,21 @@ DROP FUNCTION IF EXISTS cxp_registrar_ajuste(
     p_fecha_movimiento DATE,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS cxp_registrar_ajuste(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_motivo VARCHAR,
+    p_fecha_movimiento DATE,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_registrar_ajuste(
     p_id_persona BIGINT,
     p_monto NUMERIC,
     p_motivo VARCHAR,
     p_fecha_movimiento DATE DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,7 +38,8 @@ BEGIN
     v_motivo := NULLIF(TRIM(p_motivo), '');
 
     SELECT es_proveedor INTO v_es_proveedor
-    FROM cli_persona WHERE id = p_id_persona AND estado = 1;
+    FROM cli_persona WHERE id = p_id_persona AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La persona indicada no existe o está inactiva', 'registro', NULL);

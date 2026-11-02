@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT);
-CREATE OR REPLACE FUNCTION gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
+DROP FUNCTION IF EXISTS gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION gdo_obtener_dia(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -35,7 +36,8 @@ BEGIN
         LEFT JOIN caj_caja c ON t.id_caja = c.id
         LEFT JOIN auth_usuario_datos uc ON d.id_usuario_creacion = uc.id
         WHERE d.id = p_id
-          AND (p_id_empresa IS NULL OR d.id_empresa = p_id_empresa)
+          AND (p_id_sucursal IS NULL OR d.id_sucursal = p_id_sucursal)
+          AND (p_id_empresa IS NULL OR EXISTS (SELECT 1 FROM gen_sucursal se WHERE se.id = d.id_sucursal AND se.id_empresa = p_id_empresa))
     ) x;
 
     IF v_dia IS NULL THEN
@@ -85,7 +87,6 @@ BEGIN
         LEFT JOIN pro_unidad_medida um ON det.id_unidad_medida = um.id
         LEFT JOIN cli_persona p ON det.id_proveedor = p.id AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
         WHERE det.id_gasto_dia = p_id AND det.estado = 1
-          AND (p_id_empresa IS NULL OR det.id_empresa = p_id_empresa)
     ) y;
 
     RETURN json_build_object(

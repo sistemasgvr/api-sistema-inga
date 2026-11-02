@@ -33,14 +33,21 @@ export class CuentasPorPagarModel {
     ]);
   }
 
-  obtenerEstadoCuenta(idPersona: number, limiteMovimientos = 20) {
+  obtenerEstadoCuenta(
+    idPersona: number,
+    limiteMovimientos = 20,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'cxp_obtener_estado_cuenta',
-      [idPersona, limiteMovimientos],
+      [idPersona, limiteMovimientos, idEmpresa ?? null],
     );
   }
 
-  listarMovimientos(filtros: FiltroMovimientosCxpDto) {
+  listarMovimientos(
+    filtros: FiltroMovimientosCxpDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthListResult>('cxp_listar_movimientos', [
       filtros.limite ?? 10,
       filtros.offset ?? 0,
@@ -51,14 +58,18 @@ export class CuentasPorPagarModel {
       filtros.semana ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerMovimiento(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('cxp_obtener_movimiento', [id]);
+  obtenerMovimiento(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'cxp_obtener_movimiento',
+      [id, idEmpresa ?? null],
+    );
   }
 
-  registrarCargo(dto: CreateCargoDto) {
+  registrarCargo(dto: CreateCargoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxp_registrar_cargo', [
       dto.id_persona,
       dto.monto,
@@ -67,10 +78,11 @@ export class CuentasPorPagarModel {
       dto.id_gasto_diario ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  registrarAbono(dto: CreateAbonoDto) {
+  registrarAbono(dto: CreateAbonoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxp_registrar_abono', [
       dto.id_persona,
       dto.monto,
@@ -80,31 +92,40 @@ export class CuentasPorPagarModel {
       dto.num_comprobante ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  registrarAjuste(dto: CreateAjusteDto) {
+  registrarAjuste(dto: CreateAjusteDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxp_registrar_ajuste', [
       dto.id_persona,
       dto.monto,
       dto.motivo,
       dto.fecha_movimiento ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  anularMovimiento(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  anularMovimiento(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('cxp_anular_movimiento', [
       id,
       motivo ?? null,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  reportePeriodo(filtros: FiltroReporteCxpDto) {
+  reportePeriodo(filtros: FiltroReporteCxpDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cxp_reporte_periodo', [
       filtros.anio ?? null,
       filtros.mes ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

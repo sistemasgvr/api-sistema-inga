@@ -5,10 +5,17 @@ DROP FUNCTION IF EXISTS cxp_anular_movimiento(
     p_motivo VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS cxp_anular_movimiento(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_anular_movimiento(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -23,7 +30,8 @@ BEGIN
     SELECT m.id, m.id_persona, m.medio_pago, m.id_turno, m.tipo_movimiento
     INTO v_mov
     FROM cxp_movimiento m
-    WHERE m.id = p_id AND m.estado = 1;
+    WHERE m.id = p_id AND m.estado = 1
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('eliminado', FALSE, 'id', p_id);

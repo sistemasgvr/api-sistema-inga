@@ -2,7 +2,8 @@
 -- Traigo una caja por ID, con el turno abierto si lo tiene.
 -- Crear y actualizar terminan llamando acá para devolver siempre el mismo formato.
 DROP FUNCTION IF EXISTS caj_obtener_caja(p_id BIGINT);
-CREATE OR REPLACE FUNCTION caj_obtener_caja(p_id BIGINT)
+DROP FUNCTION IF EXISTS caj_obtener_caja(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION caj_obtener_caja(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -37,6 +38,7 @@ BEGIN
         ) ta ON TRUE
         LEFT JOIN auth_usuario_datos u ON ta.id_cajero = u.id
         WHERE c.id = p_id
+          AND (p_id_sucursal IS NULL OR c.id_sucursal = p_id_sucursal)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

@@ -17,6 +17,10 @@ import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { CreateMesaDto, UpdateMesaDto, FiltroSalonDto } from '../dto/salon.dto';
 import { SalonLogic } from '../logic/salon.logic';
+import {
+  SucursalSesion,
+  sucursalDe,
+} from '../../../common/decorators/sesion-empresa.decorator';
 
 type AuthRequest = Request & { user: AuthenticatedUser };
 
@@ -28,22 +32,34 @@ export class MesasController {
   @Get()
   @Permisos(PermisoBanderas.AMBIENTES_LISTAR)
   @ApiOperation({ summary: 'Listar mesas con filtros y paginación' })
-  listar(@Query() filtros: FiltroSalonDto) {
-    return this.logic.listar('mesa', filtros);
+  listar(
+    @Query() filtros: FiltroSalonDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.listar('mesa', filtros, idSucursal);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.AMBIENTES_LISTAR)
   @ApiOperation({ summary: 'Obtener mesa' })
-  obtener(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtener('mesa', id);
+  obtener(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.obtener('mesa', id, idSucursal);
   }
 
   @Post()
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Crear mesa' })
   crear(@Body() dto: CreateMesaDto, @Req() req: AuthRequest) {
-    return this.logic.guardar('mesa', null, dto, req.user.id);
+    return this.logic.guardar(
+      'mesa',
+      null,
+      dto,
+      req.user.id,
+      sucursalDe(req.user),
+    );
   }
 
   @Patch(':id')
@@ -54,20 +70,26 @@ export class MesasController {
     @Body() dto: UpdateMesaDto,
     @Req() req: AuthRequest,
   ) {
-    return this.logic.guardar('mesa', id, dto, req.user.id);
+    return this.logic.guardar(
+      'mesa',
+      id,
+      dto,
+      req.user.id,
+      sucursalDe(req.user),
+    );
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Desactivar mesa (baja lógica)' })
   eliminar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
-    return this.logic.estado('mesa', id, 0, req.user.id);
+    return this.logic.estado('mesa', id, 0, req.user.id, sucursalDe(req.user));
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Reactivar mesa' })
   activar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
-    return this.logic.estado('mesa', id, 1, req.user.id);
+    return this.logic.estado('mesa', id, 1, req.user.id, sucursalDe(req.user));
   }
 }

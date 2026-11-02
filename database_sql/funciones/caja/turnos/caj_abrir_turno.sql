@@ -7,12 +7,21 @@ DROP FUNCTION IF EXISTS caj_abrir_turno(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS caj_abrir_turno(
+    p_id_caja BIGINT,
+    p_id_cajero BIGINT,
+    p_monto_apertura NUMERIC,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_abrir_turno(
     p_id_caja BIGINT,
     p_id_cajero BIGINT,
     p_monto_apertura NUMERIC DEFAULT 0,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -24,7 +33,11 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    IF NOT EXISTS (SELECT 1 FROM caj_caja WHERE id = p_id_caja AND estado = 1) THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM caj_caja
+        WHERE id = p_id_caja AND estado = 1
+          AND (p_id_sucursal IS NULL OR id_sucursal = p_id_sucursal)
+    ) THEN
         RETURN json_build_object('error', 'La caja indicada no existe o está inactiva', 'registro', NULL);
     END IF;
 

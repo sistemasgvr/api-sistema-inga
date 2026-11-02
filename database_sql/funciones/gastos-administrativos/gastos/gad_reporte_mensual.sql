@@ -4,9 +4,22 @@ DROP FUNCTION IF EXISTS gad_reporte_mensual(
     p_anio INTEGER,
     p_mes INTEGER
 );
+DROP FUNCTION IF EXISTS gad_reporte_mensual(
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_id_empresa BIGINT,
+    p_id_sucursal BIGINT
+);
+DROP FUNCTION IF EXISTS gad_reporte_mensual(
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_reporte_mensual(
     p_anio INTEGER DEFAULT NULL,
-    p_mes INTEGER DEFAULT NULL
+    p_mes INTEGER DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -47,12 +60,18 @@ BEGIN
     INTO v_total, v_fijos, v_variables, v_efectivo, v_yape, v_tarjeta, v_cantidad
     FROM gad_gasto g
     INNER JOIN gad_categoria c ON g.id_categoria = c.id
-    WHERE g.estado = 1 AND g.anio = v_anio AND g.mes = v_mes;
+    WHERE g.estado = 1 AND g.anio = v_anio AND g.mes = v_mes
+      AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
+      AND (p_id_sucursal IS NULL OR g.id_sucursal = p_id_sucursal);
 
     SELECT COALESCE(SUM(g.monto), 0)
     INTO v_total_prev
     FROM gad_gasto g
-    WHERE g.estado = 1 AND g.anio = v_anio_prev AND g.mes = v_mes_prev;
+    WHERE g.estado = 1 AND g.anio = v_anio_prev AND g.mes = v_mes_prev
+      AND (p_id_empresa IS NULL OR g.id_categoria IN (
+          SELECT id FROM gad_categoria WHERE id_empresa = p_id_empresa
+      ))
+      AND (p_id_sucursal IS NULL OR g.id_sucursal = p_id_sucursal);
 
     -- COALESCE(padre, propia) agrupa cada subcategoría bajo su rama.
     SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.monto DESC), '[]'::JSON)
@@ -74,6 +93,8 @@ BEGIN
         INNER JOIN gad_categoria raiz
             ON raiz.id = COALESCE(c.id_categoria_padre, c.id)
         WHERE g.estado = 1 AND g.anio = v_anio AND g.mes = v_mes
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
+          AND (p_id_sucursal IS NULL OR g.id_sucursal = p_id_sucursal)
         GROUP BY raiz.id, raiz.nombre, raiz.tipo_gasto
     ) x;
 

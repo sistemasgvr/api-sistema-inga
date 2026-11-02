@@ -6,6 +6,8 @@ BEGIN;
 -- Empresa y distritos (vista Empresa).
 \ir funciones/general/empresa/gen_crear_series_empresa.sql
 \ir funciones/general/empresa/gen_empresa_crear_series.sql
+\ir funciones/general/empresa/gen_crear_catalogos_empresa.sql
+\ir funciones/general/empresa/gen_empresa_crear_catalogos.sql
 \ir funciones/general/empresa/gen_obtener_empresa.sql
 \ir funciones/general/empresa/gen_guardar_empresa.sql
 \ir funciones/general/empresa/gen_guardar_logo_empresa.sql
@@ -51,6 +53,7 @@ BEGIN;
 \ir funciones/ventas/ven_reemitir_comprobante.sql
 \ir funciones/ventas/ven_ticket_comprobante.sql
 \ir funciones/ventas/ven_obtener_venta.sql
+\ir funciones/ventas/ven_pedido_de_empresa.sql
 \ir funciones/ventas/ven_listar_ventas.sql
 COMMIT;
 

@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION ven_pedido_precuenta(p_id BIGINT,p_item BIGINT,p_dato
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; estacion gen_estacion%ROWTYPE; comanda BIGINT; numero INTEGER;
 BEGIN
-  v:=ven_bloquear_pedido(p_id);
+  v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite precuenta'; END IF;
   SELECT * INTO estacion FROM gen_estacion WHERE es_caja_principal AND id_sucursal=v.id_sucursal AND estado=1;
   IF NOT FOUND OR NULLIF(btrim(estacion.impresora_ip),'') IS NULL THEN RAISE EXCEPTION 'Configure la estación principal de caja y cobros en Estaciones'; END IF;

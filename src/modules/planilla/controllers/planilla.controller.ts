@@ -37,16 +37,22 @@ export class PlanillaController {
     summary:
       'Listar trabajadores, con lo pagado en el período y su último pago',
   })
-  listarTrabajadores(@Query() filtros: FiltroTrabajadoresDto) {
-    return this.planillaLogic.listarTrabajadores(filtros);
+  listarTrabajadores(
+    @Query() filtros: FiltroTrabajadoresDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.planillaLogic.listarTrabajadores(filtros, idEmpresa);
   }
 
   @Get('trabajadores/:id')
   @Permisos(PermisoBanderas.TRABAJADORES_VER)
   @ApiOperation({ summary: 'Obtener trabajador por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerTrabajador(@Param('id', ParseIntPipe) id: number) {
-    return this.planillaLogic.obtenerTrabajador(id);
+  obtenerTrabajador(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.planillaLogic.obtenerTrabajador(id, idEmpresa);
   }
 
   @Post('trabajadores')
@@ -87,8 +93,13 @@ export class PlanillaController {
   activarTrabajador(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.activarTrabajador(id, idUsuarioAuditoria);
+    return this.planillaLogic.activarTrabajador(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 
   @Delete('trabajadores/:id')
@@ -98,8 +109,13 @@ export class PlanillaController {
   eliminarTrabajador(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.eliminarTrabajador(id, idUsuarioAuditoria);
+    return this.planillaLogic.eliminarTrabajador(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 
   @Get('pagos')
@@ -107,8 +123,11 @@ export class PlanillaController {
   @ApiOperation({
     summary: 'Listar pagos de planilla, con desglose por medio de pago',
   })
-  listarPagos(@Query() filtros: FiltroPagosDto) {
-    return this.planillaLogic.listarPagos(filtros);
+  listarPagos(
+    @Query() filtros: FiltroPagosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.planillaLogic.listarPagos(filtros, idEmpresa);
   }
 
   @Get('pagos/reporte')
@@ -116,16 +135,22 @@ export class PlanillaController {
   @ApiOperation({
     summary: 'Reporte del período: pagados, pendientes y totales por medio',
   })
-  reportePeriodo(@Query() filtros: FiltroReportePeriodoDto) {
-    return this.planillaLogic.reportePeriodo(filtros);
+  reportePeriodo(
+    @Query() filtros: FiltroReportePeriodoDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.planillaLogic.reportePeriodo(filtros, idEmpresa);
   }
 
   @Get('pagos/:id')
   @Permisos(PermisoBanderas.PLANILLA_PAGOS_LISTAR)
   @ApiOperation({ summary: 'Obtener pago por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPago(@Param('id', ParseIntPipe) id: number) {
-    return this.planillaLogic.obtenerPago(id);
+  obtenerPago(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.planillaLogic.obtenerPago(id, idEmpresa);
   }
 
   @Post('pagos')
@@ -137,8 +162,12 @@ export class PlanillaController {
   registrarPago(
     @Body() dto: CreatePagoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.registrarPago({ ...dto, idUsuarioAuditoria });
+    return this.planillaLogic.registrarPago(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete('pagos/:id')
@@ -152,7 +181,13 @@ export class PlanillaController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularPagoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.planillaLogic.anularPago(id, dto.motivo, idUsuarioAuditoria);
+    return this.planillaLogic.anularPago(
+      id,
+      dto.motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 }

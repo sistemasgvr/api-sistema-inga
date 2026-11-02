@@ -43,13 +43,16 @@ export class CuentasPorCobrarLogic {
     return mapListResult(result, filtros);
   }
 
-  async listarMovimientos(filtros: FiltroMovimientosCxcDto, idEmpresa?: number | null) {
+  async listarMovimientos(
+    filtros: FiltroMovimientosCxcDto,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.model.listarMovimientos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerMovimiento(id: number) {
-    const result = await this.model.obtenerMovimiento(id);
+  async obtenerMovimiento(id: number, idEmpresa?: number | null) {
+    const result = await this.model.obtenerMovimiento(id, idEmpresa);
     return mapSingleResult(result, `Movimiento con ID ${id} no encontrado`);
   }
 
@@ -60,6 +63,7 @@ export class CuentasPorCobrarLogic {
   async obtenerEstadoCuentaDetalle(
     idPersona: number,
     filtros: FiltroEstadoCuentaDetalleDto,
+    idEmpresa: number | null,
   ) {
     const desde = filtros.fecha_desde?.slice(0, 10) ?? null;
     const hasta = filtros.fecha_hasta?.slice(0, 10) ?? null;
@@ -72,6 +76,7 @@ export class CuentasPorCobrarLogic {
       idPersona,
       desde,
       hasta,
+      idEmpresa,
     );
     if (!resumen) {
       throw new NotFoundException(
@@ -90,8 +95,16 @@ export class CuentasPorCobrarLogic {
     };
   }
 
-  async obtenerEstadoCuenta(idPersona: number, filtros: FiltroEstadoCuentaDto) {
-    const result = await this.model.obtenerEstadoCuenta(idPersona, filtros);
+  async obtenerEstadoCuenta(
+    idPersona: number,
+    filtros: FiltroEstadoCuentaDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.obtenerEstadoCuenta(
+      idPersona,
+      filtros,
+      idEmpresa,
+    );
     return mapSingleResult(
       result,
       `El cliente con ID ${idPersona} no existe o no está marcado como cliente`,
@@ -107,8 +120,8 @@ export class CuentasPorCobrarLogic {
    * devuelve `registro`, así que la perdería justo cuando más hace falta.
    * Por eso la vuelvo a pegar a mano sobre el registro.
    */
-  async registrarConsumo(dto: CreateConsumoDto) {
-    const result = await this.model.registrarConsumo(dto);
+  async registrarConsumo(dto: CreateConsumoDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarConsumo(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el consumo');
 
     const movimiento = registro as MovimientoNotificado;
@@ -123,6 +136,7 @@ export class CuentasPorCobrarLogic {
         severidad: 'info',
         ruta: RutasNotificacion.cuentaPorCobrar(movimiento?.id_persona),
         idReferencia: movimiento?.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
 
@@ -133,8 +147,8 @@ export class CuentasPorCobrarLogic {
     };
   }
 
-  async registrarAbono(dto: CreateAbonoCxcDto) {
-    const result = await this.model.registrarAbono(dto);
+  async registrarAbono(dto: CreateAbonoCxcDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarAbono(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el abono');
     const movimiento = registro as MovimientoNotificado;
     this.notificaciones
@@ -147,13 +161,14 @@ export class CuentasPorCobrarLogic {
         severidad: 'success',
         ruta: RutasNotificacion.cuentaPorCobrar(movimiento?.id_persona),
         idReferencia: movimiento?.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
     return registro;
   }
 
-  async registrarAjuste(dto: CreateAjusteCxcDto) {
-    const result = await this.model.registrarAjuste(dto);
+  async registrarAjuste(dto: CreateAjusteCxcDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarAjuste(dto, idEmpresa);
     return mapSingleResult(result, 'No se pudo registrar el ajuste');
   }
 
@@ -166,11 +181,13 @@ export class CuentasPorCobrarLogic {
     id: number,
     motivo?: string,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     const result = await this.model.anularMovimiento(
       id,
       motivo,
       idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapSingleResult(result, `Movimiento con ID ${id} no encontrado`);
   }
@@ -181,8 +198,11 @@ export class CuentasPorCobrarLogic {
    * uso `mapSingleResult`, que lanzaría un 404 donde la respuesta correcta es
    * "no hubo consumos".
    */
-  async reportePeriodo(filtros: FiltroReporteCxcDto) {
-    const result = await this.model.reportePeriodo(filtros);
+  async reportePeriodo(
+    filtros: FiltroReporteCxcDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.reportePeriodo(filtros, idEmpresa);
 
     if (result?.error) {
       throw new BadRequestException(result.error);

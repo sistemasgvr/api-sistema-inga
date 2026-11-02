@@ -12,6 +12,19 @@ DROP FUNCTION IF EXISTS pla_registrar_pago(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS pla_registrar_pago(
+    p_id_trabajador BIGINT,
+    p_monto NUMERIC,
+    p_fecha_pago DATE,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_registrar_pago(
     p_id_trabajador BIGINT,
     p_monto NUMERIC,
@@ -22,7 +35,8 @@ CREATE OR REPLACE FUNCTION pla_registrar_pago(
     p_mes INTEGER DEFAULT NULL,
     p_quincena INTEGER DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -42,7 +56,8 @@ BEGIN
     v_fecha := COALESCE(p_fecha_pago, CURRENT_DATE);
 
     SELECT TRIM(nombres || ' ' || apellidos) INTO v_nombre
-    FROM pla_trabajador WHERE id = p_id_trabajador AND estado = 1;
+    FROM pla_trabajador WHERE id = p_id_trabajador AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF v_nombre IS NULL THEN
         RETURN json_build_object('error', 'El trabajador no existe o está inactivo', 'registro', NULL);

@@ -31,7 +31,11 @@ export class ImpresionModel {
     }
   }
 
-  async tomar(estaciones: number[], propietario: string) {
+  async tomar(
+    estaciones: number[],
+    propietario: string,
+    idSucursal: number | null,
+  ) {
     // Una sola sentencia y SKIP LOCKED protegen incluso con varios procesos del VPS.
     const result = await this.db.query<{
       id: string;
@@ -47,6 +51,7 @@ export class ImpresionModel {
         JOIN ven_comanda c ON c.id=t.id_comanda
         JOIN ven_pedido p ON p.id=c.id_pedido
         WHERE t.estado='pendiente' AND t.id_estacion=ANY($1::bigint[])
+          AND ($3::bigint IS NULL OR e.id_sucursal=$3::bigint)
           AND e.estado=1 AND NULLIF(trim(e.impresora_ip),'') IS NOT NULL
           AND c.estado=1 AND p.estado=1 AND p.estado_pedido<>5
         ORDER BY t.id_comanda FOR UPDATE OF t SKIP LOCKED LIMIT 1
@@ -57,7 +62,7 @@ export class ImpresionModel {
       ) SELECT t.id_comanda::text AS id, t.id_estacion::int AS id_estacion,
           t.contenido, e.impresora_ip AS host, e.ancho_papel
         FROM tomado t JOIN gen_estacion e ON e.id=t.id_estacion`,
-      [estaciones, propietario],
+      [estaciones, propietario, idSucursal],
     );
     return result.rows[0] ?? null;
   }
@@ -89,7 +94,7 @@ export class ImpresionModel {
     return Boolean(result.rowCount);
   }
 
-  async pendientes(estaciones: number[]) {
+  async pendientes(estaciones: number[], idSucursal: number) {
     return (
       await this.db.query<{
         id: string;
@@ -106,9 +111,10 @@ export class ImpresionModel {
       FROM ven_impresion_trabajo t JOIN gen_estacion e ON e.id=t.id_estacion
       JOIN ven_comanda c ON c.id=t.id_comanda JOIN ven_pedido p ON p.id=c.id_pedido
       WHERE t.id_estacion=ANY($1::bigint[]) AND t.estado<>'enviado'
+        AND e.id_sucursal=$2::bigint
         AND c.estado=1 AND p.estado=1 AND p.estado_pedido<>5
       ORDER BY t.id_comanda LIMIT 100`,
-        [estaciones],
+        [estaciones, idSucursal],
       )
     ).rows;
   }

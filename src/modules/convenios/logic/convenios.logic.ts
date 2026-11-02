@@ -24,13 +24,13 @@ import { ConveniosModel } from '../models/convenios.model';
 export class ConveniosLogic {
   constructor(private readonly conveniosModel: ConveniosModel) {}
 
-  async listar(filtros: FiltroConveniosDto) {
-    const result = await this.conveniosModel.listar(filtros);
+  async listar(filtros: FiltroConveniosDto, idEmpresa?: number | null) {
+    const result = await this.conveniosModel.listar(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.conveniosModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idEmpresa?: number | null) {
+    const result = await this.conveniosModel.obtenerPorId(id, idEmpresa);
     return mapSingleResult(result, `Convenio con ID ${id} no encontrado`);
   }
 
@@ -38,18 +38,23 @@ export class ConveniosLogic {
     return await this.conveniosModel.listarCondicionesPago();
   }
 
-  async crear(dto: CreateConvenioDto) {
+  async crear(dto: CreateConvenioDto, idEmpresa?: number | null) {
     const result = await this.conveniosModel.crear(
       dto.nombre,
       dto.id_condicion_pago,
       dto.limite_credito ?? 0,
       dto.corte_quincenal ?? true,
       dto.idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapSingleResult(result, 'No se pudo crear el convenio');
   }
 
-  async actualizar(id: number, dto: UpdateConvenioDto) {
+  async actualizar(
+    id: number,
+    dto: UpdateConvenioDto,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.conveniosModel.actualizar(
       id,
       dto.nombre ?? null,
@@ -61,20 +66,37 @@ export class ConveniosLogic {
       dto.limite_credito ?? null,
       dto.corte_quincenal ?? null,
       dto.idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapSingleResult(result, `Convenio con ID ${id} no encontrado`);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.conveniosModel.eliminar(id, idUsuarioAuditoria);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.conveniosModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapDeleteResult(
       result,
       `Convenio con ID ${id} no encontrado o ya inactivo`,
     );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.conveniosModel.activar(id, idUsuarioAuditoria);
+  async activar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.conveniosModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapActivateResult(
       result,
       `Convenio con ID ${id} no encontrado o ya activo`,

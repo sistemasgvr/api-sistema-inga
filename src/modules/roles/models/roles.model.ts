@@ -24,28 +24,34 @@ export class RolesModel {
     return 1;
   }
 
-  listar(filtros: FiltroRolDto) {
+  listar(filtros: FiltroRolDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('auth_listar_roles', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
       filtros.offset ?? 0,
       this.resolveEstadoFiltro(filtros.estado),
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('auth_obtener_rol', [id]);
+  obtenerPorId(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('auth_obtener_rol', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
   crear(
     nombre: string,
     descripcion?: string,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_crear_rol', [
       nombre,
       descripcion ?? null,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -54,42 +60,54 @@ export class RolesModel {
     nombre: string | null,
     descripcion: string | null,
     idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_actualizar_rol', [
       id,
       nombre,
       descripcion,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('auth_eliminar_rol', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthActivateResult>('auth_activar_rol', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  asignarPermisos(idRol: number, idsPermisos: number[], idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('auth_asignar_permisos_rol', [
-      idRol,
-      idsPermisos,
-      idUsuarioAuditoria ?? null,
-    ]);
+  asignarPermisos(
+    idRol: number,
+    idsPermisos: number[],
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'auth_asignar_permisos_rol',
+      [idRol, idsPermisos, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 
-  asignarRolesAUsuario(idUsuario: number, idsRoles: number[], idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthAsignarRolesUsuarioResult>('auth_asignar_roles_usuario', [
-      idUsuario,
-      idsRoles,
-      idUsuarioAuditoria ?? null,
-    ]);
+  asignarRolesAUsuario(
+    idUsuario: number,
+    idsRoles: number[],
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthAsignarRolesUsuarioResult>(
+      'auth_asignar_roles_usuario',
+      [idUsuario, idsRoles, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 }

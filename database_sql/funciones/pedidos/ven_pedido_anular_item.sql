@@ -4,7 +4,7 @@ RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE;
 BEGIN
   PERFORM ven_autorizar_anulacion(p_usuario,(p_datos->>'id_usuario_autoriza')::BIGINT,p_datos->>'motivo');
-  v:=ven_bloquear_pedido(p_id);
+  v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite anulación de ítems'; END IF;
   IF EXISTS(SELECT 1 FROM ven_pago WHERE id_pedido=p_id AND estado=1) OR EXISTS(SELECT 1 FROM ven_comprobante WHERE id_pedido=p_id AND estado=1) THEN
     RAISE EXCEPTION 'El pedido tiene pagos o comprobantes; requiere reverso de cobro'; END IF;

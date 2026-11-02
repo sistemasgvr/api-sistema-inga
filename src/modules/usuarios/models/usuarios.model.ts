@@ -42,7 +42,7 @@ export class UsuariosModel {
     return 1;
   }
 
-  listar(filtros: FiltroUsuarioDto) {
+  listar(filtros: FiltroUsuarioDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthUsuarioListResult>(
       'auth_listar_usuarios',
       [
@@ -50,13 +50,15 @@ export class UsuariosModel {
         filtros.limite ?? 10,
         filtros.offset ?? 0,
         this.resolveEstadoFiltro(filtros.estado),
+        idEmpresa ?? null,
       ],
     );
   }
 
-  obtenerPorId(id: number) {
+  obtenerPorId(id: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('auth_obtener_usuario', [
       id,
+      idEmpresa ?? null,
     ]);
   }
 
@@ -91,6 +93,7 @@ export class UsuariosModel {
     idUsuarioAuditoria?: number,
     sucursalesIds?: number[] | null,
     idSucursalPredeterminada?: number | null,
+    idEmpresa?: number | null,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'auth_actualizar_usuario',
@@ -103,21 +106,23 @@ export class UsuariosModel {
         idUsuarioAuditoria ?? null,
         sucursalesIds ? JSON.stringify(sucursalesIds) : null,
         idSucursalPredeterminada ?? null,
+        idEmpresa ?? null,
       ],
     );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthDeleteResult>('auth_eliminar_usuario', [
       id,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthActivateResult>(
       'auth_activar_usuario',
-      [id, idUsuarioAuditoria ?? null],
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
     );
   }
 

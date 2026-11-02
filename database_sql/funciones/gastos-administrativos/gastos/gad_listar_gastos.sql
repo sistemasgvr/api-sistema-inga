@@ -11,6 +11,33 @@ DROP FUNCTION IF EXISTS gad_listar_gastos(
     p_fecha_desde DATE,
     p_fecha_hasta DATE
 );
+DROP FUNCTION IF EXISTS gad_listar_gastos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_categoria BIGINT,
+    p_tipo_gasto INT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_medio_pago INT,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE,
+    p_id_empresa BIGINT,
+    p_id_sucursal BIGINT
+);
+DROP FUNCTION IF EXISTS gad_listar_gastos(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_categoria BIGINT,
+    p_tipo_gasto INT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_medio_pago INT,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_listar_gastos(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -21,7 +48,9 @@ CREATE OR REPLACE FUNCTION gad_listar_gastos(
     p_mes INTEGER DEFAULT NULL,
     p_medio_pago INT DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -50,6 +79,8 @@ BEGIN
     FROM gad_gasto g
     INNER JOIN gad_categoria c ON g.id_categoria = c.id
     WHERE g.estado = 1
+      AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
+      AND (p_id_sucursal IS NULL OR g.id_sucursal = p_id_sucursal)
       AND (
           p_id_categoria IS NULL
           OR g.id_categoria = p_id_categoria
@@ -97,6 +128,8 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = g.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE g.estado = 1
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
+          AND (p_id_sucursal IS NULL OR g.id_sucursal = p_id_sucursal)
           AND (
               p_id_categoria IS NULL
               OR g.id_categoria = p_id_categoria

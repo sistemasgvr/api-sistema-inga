@@ -5,10 +5,17 @@ DROP FUNCTION IF EXISTS cxc_anular_movimiento(
     p_motivo VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS cxc_anular_movimiento(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_anular_movimiento(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -22,7 +29,8 @@ DECLARE
 BEGIN
     SET TIME ZONE 'America/Lima';
 
-    SELECT * INTO v_mov FROM cxc_movimiento WHERE id = p_id;
+    SELECT * INTO v_mov FROM cxc_movimiento WHERE id = p_id
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'El movimiento no existe', 'registro', NULL);

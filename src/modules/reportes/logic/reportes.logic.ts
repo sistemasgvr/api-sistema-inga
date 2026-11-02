@@ -17,7 +17,10 @@ const DIA_MS = 24 * 60 * 60 * 1000;
 export class ReportesLogic {
   constructor(private readonly model: ReportesModel) {}
 
-  private periodo(filtros: FiltroReporteDto): FiltroPeriodo {
+  private periodo(
+    filtros: FiltroReporteDto,
+    idEmpresa: number | null,
+  ): FiltroPeriodo {
     const desde = Date.parse(`${filtros.fecha_desde.slice(0, 10)}T00:00:00Z`);
     const hasta = Date.parse(`${filtros.fecha_hasta.slice(0, 10)}T00:00:00Z`);
     if (Number.isNaN(desde) || Number.isNaN(hasta)) {
@@ -36,12 +39,13 @@ export class ReportesLogic {
     return {
       fecha_desde: filtros.fecha_desde.slice(0, 10),
       fecha_hasta: filtros.fecha_hasta.slice(0, 10),
+      id_empresa: idEmpresa,
       id_sucursal: filtros.id_sucursal ?? null,
     };
   }
 
-  async dashboard(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async dashboard(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [
       resumen_ventas,
       productos,
@@ -83,8 +87,8 @@ export class ReportesLogic {
     };
   }
 
-  async ventas(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async ventas(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [resumen_ventas, productos, por_medio, por_tipo, por_mozo, ventas] =
       await Promise.all([
         this.model.resumenVentas(f),
@@ -105,8 +109,8 @@ export class ReportesLogic {
     };
   }
 
-  async gastos(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async gastos(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [gastos_diarios, gastos_diarios_items, gastos_administrativos] =
       await Promise.all([
         this.model.gastosDiariosPorDia(f),
@@ -121,8 +125,8 @@ export class ReportesLogic {
     };
   }
 
-  async caja(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async caja(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [turnos, movimientos] = await Promise.all([
       this.model.turnos(f),
       this.model.movimientosCaja(f),
@@ -130,8 +134,8 @@ export class ReportesLogic {
     return { periodo: f, turnos, movimientos };
   }
 
-  async cuentas(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async cuentas(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [por_cobrar, por_pagar] = await Promise.all([
       this.model.cuentasPorCobrar(f),
       this.model.cuentasPorPagar(f),
@@ -139,23 +143,23 @@ export class ReportesLogic {
     return { periodo: f, por_cobrar, por_pagar };
   }
 
-  async planilla(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async planilla(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     return { periodo: f, pagos: await this.model.pagosPlanilla(f) };
   }
 
-  async inventario(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async inventario(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [stock, movimientos] = await Promise.all([
-      this.model.stock(f.id_sucursal),
+      this.model.stock(f),
       this.model.movimientosInventario(f),
     ]);
     return { periodo: f, stock, movimientos };
   }
 
   /** Estado de resultados del período y la foto de caja, cuentas e inventario. */
-  async general(filtros: FiltroReporteDto) {
-    const f = this.periodo(filtros);
+  async general(filtros: FiltroReporteDto, idEmpresa: number | null) {
+    const f = this.periodo(filtros, idEmpresa);
     const [
       resumen_ventas,
       productos,
@@ -177,7 +181,7 @@ export class ReportesLogic {
       this.model.turnos(f),
       this.model.cuentasPorCobrar(f),
       this.model.cuentasPorPagar(f),
-      this.model.stock(f.id_sucursal),
+      this.model.stock(f),
     ]);
     return {
       periodo: f,

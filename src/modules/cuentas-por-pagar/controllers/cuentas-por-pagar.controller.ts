@@ -45,8 +45,11 @@ export class CuentasPorPagarController {
   @Get('movimientos')
   @Permisos(PermisoBanderas.CXP_LISTAR)
   @ApiOperation({ summary: 'Historial de cargos y abonos con filtros' })
-  listarMovimientos(@Query() filtros: FiltroMovimientosCxpDto) {
-    return this.logic.listarMovimientos(filtros);
+  listarMovimientos(
+    @Query() filtros: FiltroMovimientosCxpDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarMovimientos(filtros, idEmpresa);
   }
 
   @Get('reporte')
@@ -55,16 +58,22 @@ export class CuentasPorPagarController {
     summary:
       'Reporte del período: cargos, abonos, desglose por proveedor y por semana',
   })
-  reportePeriodo(@Query() filtros: FiltroReporteCxpDto) {
-    return this.logic.reportePeriodo(filtros);
+  reportePeriodo(
+    @Query() filtros: FiltroReporteCxpDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.reportePeriodo(filtros, idEmpresa);
   }
 
   @Get('movimientos/:id')
   @Permisos(PermisoBanderas.CXP_LISTAR)
   @ApiOperation({ summary: 'Obtener movimiento por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerMovimiento(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerMovimiento(id);
+  obtenerMovimiento(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerMovimiento(id, idEmpresa);
   }
 
   @Get('proveedores/:idPersona')
@@ -74,8 +83,11 @@ export class CuentasPorPagarController {
       'Estado de cuenta del proveedor: saldo, totales y últimos movimientos',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerEstadoCuenta(@Param('idPersona', ParseIntPipe) idPersona: number) {
-    return this.logic.obtenerEstadoCuenta(idPersona);
+  obtenerEstadoCuenta(
+    @Param('idPersona', ParseIntPipe) idPersona: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerEstadoCuenta(idPersona, undefined, idEmpresa);
   }
 
   @Post('cargos')
@@ -87,8 +99,9 @@ export class CuentasPorPagarController {
   registrarCargo(
     @Body() dto: CreateCargoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarCargo({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarCargo({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Post('abonos')
@@ -100,8 +113,9 @@ export class CuentasPorPagarController {
   registrarAbono(
     @Body() dto: CreateAbonoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Post('ajustes')
@@ -113,8 +127,12 @@ export class CuentasPorPagarController {
   registrarAjuste(
     @Body() dto: CreateAjusteDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarAjuste({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarAjuste(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete('movimientos/:id')
@@ -128,7 +146,13 @@ export class CuentasPorPagarController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularMovimientoCxpDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.anularMovimiento(id, dto.motivo, idUsuarioAuditoria);
+    return this.logic.anularMovimiento(
+      id,
+      dto.motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 }

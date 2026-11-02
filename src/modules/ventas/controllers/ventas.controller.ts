@@ -32,8 +32,11 @@ export class VentasController {
     summary:
       'Pedidos cobrados con su comprobante vigente, pagos y caja; incluye resumen por medio de pago',
   })
-  listar(@Query() filtros: FiltroVentasDto) {
-    return this.logic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroVentasDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listar(filtros, idEmpresa);
   }
 
   @Get(':id')
@@ -41,8 +44,11 @@ export class VentasController {
   @ApiOperation({
     summary: 'Venta con pagos, historial de comprobantes y comandas',
   })
-  obtener(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtener(id);
+  obtener(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtener(id, idEmpresa);
   }
 
   @Patch('pagos/:idPago/medio')
@@ -57,7 +63,12 @@ export class VentasController {
     @UsuarioAuditoria() usuario: number,
     @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.cambiarMedioPago(idPago, dto.medio_pago, usuario, idEmpresa);
+    return this.logic.cambiarMedioPago(
+      idPago,
+      dto.medio_pago,
+      usuario,
+      idEmpresa,
+    );
   }
 
   @Post(':id/reemitir')
@@ -110,8 +121,9 @@ export class VentasController {
   reimprimirComanda(
     @Param('idComanda', ParseIntPipe) idComanda: number,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.reimprimirComanda(idComanda, usuario);
+    return this.logic.reimprimirComanda(idComanda, usuario, idEmpresa);
   }
 
   @Post('comprobantes/:idComprobante/imprimir')
@@ -122,7 +134,8 @@ export class VentasController {
   imprimirComprobante(
     @Param('idComprobante', ParseIntPipe) idComprobante: number,
     @UsuarioAuditoria() usuario: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.imprimirComprobante(idComprobante, usuario);
+    return this.logic.imprimirComprobante(idComprobante, usuario, idEmpresa);
   }
 }

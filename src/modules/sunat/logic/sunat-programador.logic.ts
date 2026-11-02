@@ -133,6 +133,7 @@ export class SunatProgramadorLogic
       'Comprobantes por enviar a SUNAT',
       `Pendientes que vencen hoy o mañana: ${detalle}. Se enviarán solos al vencer; puede enviarlos ahora desde Ventas.`,
       'warning',
+      idEmpresa,
     );
   }
 }

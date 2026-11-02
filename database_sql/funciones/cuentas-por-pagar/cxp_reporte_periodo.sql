@@ -3,9 +3,15 @@ DROP FUNCTION IF EXISTS cxp_reporte_periodo(
     p_anio INTEGER,
     p_mes INTEGER
 );
+DROP FUNCTION IF EXISTS cxp_reporte_periodo(
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_reporte_periodo(
     p_anio INTEGER DEFAULT NULL,
-    p_mes INTEGER DEFAULT NULL
+    p_mes INTEGER DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,12 +35,14 @@ BEGIN
         COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 2), 0)
     INTO v_cargos, v_abonos
     FROM cxp_movimiento m
-    WHERE m.estado = 1 AND m.anio = v_anio AND m.mes = v_mes;
+    WHERE m.estado = 1 AND m.anio = v_anio AND m.mes = v_mes
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa);
 
     -- La deuda actual NO se filtra por período: es el saldo vivo acumulado.
     SELECT COALESCE(SUM(v.saldo) FILTER (WHERE v.saldo > 0), 0)
     INTO v_deuda_actual
-    FROM vw_cxp_saldo_proveedor v;
+    FROM vw_cxp_saldo_proveedor v
+    WHERE p_id_empresa IS NULL OR v.id_empresa = p_id_empresa;
 
     SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.saldo_actual DESC), '[]'::JSON)
     INTO v_por_proveedor
@@ -53,6 +61,7 @@ BEGIN
             ON m.id_persona = p.id AND m.estado = 1
            AND m.anio = v_anio AND m.mes = v_mes
         WHERE p.es_proveedor = TRUE
+          AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa)
         GROUP BY p.id, p.nombres, p.apellido_paterno, p.razon_social
     ) x;
 
@@ -67,6 +76,7 @@ BEGIN
             COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_movimiento = 2), 0) AS abonos
         FROM cxp_movimiento m
         WHERE m.estado = 1 AND m.anio = v_anio AND m.mes = v_mes
+          AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
         GROUP BY m.semana
     ) y;
 

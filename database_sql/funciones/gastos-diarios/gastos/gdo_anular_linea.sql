@@ -6,10 +6,17 @@ DROP FUNCTION IF EXISTS gdo_anular_linea(
     p_motivo VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gdo_anular_linea(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION gdo_anular_linea(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,7 +36,8 @@ BEGIN
     INTO v_linea
     FROM gdo_gasto_detalle det
     INNER JOIN gdo_gasto_dia dia ON det.id_gasto_dia = dia.id
-    WHERE det.id = p_id AND det.estado = 1;
+    WHERE det.id = p_id AND det.estado = 1
+      AND (p_id_sucursal IS NULL OR dia.id_sucursal = p_id_sucursal);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La línea no existe o ya fue anulada', 'registro', NULL);

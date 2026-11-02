@@ -1,6 +1,7 @@
 -- Traigo un turno con sus totales ya calculados.
 DROP FUNCTION IF EXISTS caj_obtener_turno(p_id BIGINT);
-CREATE OR REPLACE FUNCTION caj_obtener_turno(p_id BIGINT)
+DROP FUNCTION IF EXISTS caj_obtener_turno(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION caj_obtener_turno(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -9,6 +10,10 @@ DECLARE
     v_totales JSONB;
 BEGIN
     SET TIME ZONE 'America/Lima';
+
+    IF NOT caj_turno_de_sucursal(p_id, p_id_sucursal) THEN
+        RETURN json_build_object('registro', NULL);
+    END IF;
 
     SELECT to_jsonb(t) INTO v_registro
     FROM (

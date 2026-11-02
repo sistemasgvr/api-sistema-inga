@@ -17,8 +17,8 @@ export class CajasLogic {
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.cajasModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idSucursal: number) {
+    const result = await this.cajasModel.obtenerPorId(id, idSucursal);
     return mapSingleResult(result, `Caja con ID ${id} no encontrada`);
   }
 
@@ -41,13 +41,35 @@ export class CajasLogic {
     return mapSingleResult(result, `Caja con ID ${id} no encontrada`);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.cajasModel.eliminar(id, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Caja con ID ${id} no encontrada o ya inactiva`);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.cajasModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
+    return mapDeleteResult(
+      result,
+      `Caja con ID ${id} no encontrada o ya inactiva`,
+    );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.cajasModel.activar(id, idUsuarioAuditoria);
-    return mapActivateResult(result, `Caja con ID ${id} no encontrada o ya activa`);
+  async activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.cajasModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
+    return mapActivateResult(
+      result,
+      `Caja con ID ${id} no encontrada o ya activa`,
+    );
   }
 }

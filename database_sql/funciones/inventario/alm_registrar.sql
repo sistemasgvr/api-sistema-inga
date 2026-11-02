@@ -1,5 +1,7 @@
+-- p_id_sucursal (la de la sesión): todos los almacenes del detalle deben ser de esa sucursal.
 DROP FUNCTION IF EXISTS alm_registrar(p_datos JSONB, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION alm_registrar(p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS alm_registrar(p_datos JSONB, p_usuario BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION alm_registrar(p_datos JSONB,p_usuario BIGINT,p_id_sucursal BIGINT DEFAULT NULL) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE mov BIGINT; x JSONB; n INTEGER:=0;
 BEGIN
   PERFORM alm_bloquear();
@@ -13,6 +15,9 @@ BEGIN
     VALUES(mov,n,(x->>'id_producto')::BIGINT,(x->>'id_almacen')::BIGINT,(x->>'id_unidad_medida')::BIGINT,
       (x->>'cantidad')::NUMERIC,(x->>'signo')::SMALLINT,(x->>'costo_unitario')::NUMERIC,x->>'observacion',p_usuario);
   END LOOP;
+  IF NOT alm_movimiento_de_sucursal(mov,p_id_sucursal) THEN
+    RAISE EXCEPTION 'Los almacenes del movimiento deben pertenecer a la sucursal en la que trabaja';
+  END IF;
   IF COALESCE((p_datos->>'confirmar')::BOOLEAN,FALSE) THEN RETURN alm_confirmar(mov,p_usuario); END IF;
   RETURN json_build_object('registro',(SELECT to_jsonb(m) FROM alm_movimiento m WHERE id=mov));
 END $$;

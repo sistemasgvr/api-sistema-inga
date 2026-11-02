@@ -10,22 +10,32 @@ import { FiltroVentasDto, ReemitirComprobanteDto } from '../dto/ventas.dto';
 export class VentasModel {
   constructor(private readonly db: DatabaseService) {}
 
-  listar(filtros: FiltroVentasDto) {
+  listar(filtros: FiltroVentasDto, idEmpresa: number | null) {
     return this.db.callFunctionJson<AuthListResult>('ven_listar_ventas', [
-      JSON.stringify({ ...filtros, offset: filtros.offset }),
+      JSON.stringify({
+        ...filtros,
+        offset: filtros.offset,
+        id_empresa: idEmpresa,
+      }),
     ]);
   }
 
-  obtener(id: number) {
+  obtener(id: number, idEmpresa: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('ven_obtener_venta', [
       id,
+      idEmpresa,
     ]);
   }
 
-  cambiarMedioPago(idPago: number, medio: number, usuario: number) {
+  cambiarMedioPago(
+    idPago: number,
+    medio: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'ven_cambiar_medio_pago',
-      [idPago, medio, usuario],
+      [idPago, medio, usuario, idEmpresa],
     );
   }
 
@@ -41,17 +51,25 @@ export class VentasModel {
     );
   }
 
-  reimprimirComanda(idComanda: number, usuario: number) {
+  reimprimirComanda(
+    idComanda: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'ven_reimprimir_comanda',
-      [idComanda, usuario],
+      [idComanda, usuario, idEmpresa],
     );
   }
 
-  imprimirComprobante(idComprobante: number, usuario: number) {
+  imprimirComprobante(
+    idComprobante: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'ven_imprimir_comprobante',
-      [idComprobante, usuario],
+      [idComprobante, usuario, idEmpresa],
     );
   }
 }

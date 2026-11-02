@@ -4,9 +4,15 @@ DROP FUNCTION IF EXISTS pla_eliminar_trabajador(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS pla_eliminar_trabajador(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_eliminar_trabajador(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -17,7 +23,8 @@ BEGIN
     UPDATE pla_trabajador
     SET estado = 0,
         id_usuario_modificacion = p_id_usuario_auditoria
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('eliminado', FALSE, 'id', p_id);

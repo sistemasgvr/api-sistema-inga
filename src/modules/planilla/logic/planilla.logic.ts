@@ -38,13 +38,19 @@ export class PlanillaLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  async listarTrabajadores(filtros: FiltroTrabajadoresDto) {
-    const result = await this.planillaModel.listarTrabajadores(filtros);
+  async listarTrabajadores(
+    filtros: FiltroTrabajadoresDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.planillaModel.listarTrabajadores(
+      filtros,
+      idEmpresa,
+    );
     return mapListResult(result, filtros);
   }
 
-  async obtenerTrabajador(id: number) {
-    const result = await this.planillaModel.obtenerTrabajador(id);
+  async obtenerTrabajador(id: number, idEmpresa?: number | null) {
+    const result = await this.planillaModel.obtenerTrabajador(id, idEmpresa);
     return mapSingleResult(result, `Trabajador con ID ${id} no encontrado`);
   }
 
@@ -93,10 +99,15 @@ export class PlanillaLogic {
     throw error;
   }
 
-  async eliminarTrabajador(id: number, idUsuarioAuditoria?: number) {
+  async eliminarTrabajador(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.planillaModel.eliminarTrabajador(
       id,
       idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapDeleteResult(
       result,
@@ -104,10 +115,15 @@ export class PlanillaLogic {
     );
   }
 
-  async activarTrabajador(id: number, idUsuarioAuditoria?: number) {
+  async activarTrabajador(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.planillaModel.activarTrabajador(
       id,
       idUsuarioAuditoria,
+      idEmpresa,
     );
     return mapActivateResult(
       result,
@@ -115,39 +131,45 @@ export class PlanillaLogic {
     );
   }
 
-  async listarPagos(filtros: FiltroPagosDto) {
-    const result = await this.planillaModel.listarPagos(filtros);
+  async listarPagos(filtros: FiltroPagosDto, idEmpresa?: number | null) {
+    const result = await this.planillaModel.listarPagos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerPago(id: number) {
-    const result = await this.planillaModel.obtenerPago(id);
+  async obtenerPago(id: number, idEmpresa?: number | null) {
+    const result = await this.planillaModel.obtenerPago(id, idEmpresa);
     return mapSingleResult(result, `Pago con ID ${id} no encontrado`);
   }
 
-  async registrarPago(dto: CreatePagoDto) {
-    const result = await this.planillaModel.registrarPago(dto);
+  async registrarPago(dto: CreatePagoDto, idEmpresa?: number | null) {
+    const result = await this.planillaModel.registrarPago(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el pago');
-    this.notificarPago('registrado', registro);
+    this.notificarPago('registrado', registro, undefined, idEmpresa);
     return registro;
   }
 
-  async anularPago(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  async anularPago(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     // Se lee antes de anular para poder contar en el aviso de quién era el pago.
     const pago = await this.planillaModel
-      .obtenerPago(id)
+      .obtenerPago(id, idEmpresa)
       .then((r) => (r as { registro?: PagoNotificado })?.registro ?? null)
       ?.catch(() => null);
     const result = await this.planillaModel.anularPago(
       id,
       motivo,
       idUsuarioAuditoria,
+      idEmpresa,
     );
     const respuesta = mapDeleteResult(
       result,
       `Pago con ID ${id} no encontrado o ya anulado`,
     );
-    if (pago) this.notificarPago('anulado', { ...pago, id }, motivo);
+    if (pago) this.notificarPago('anulado', { ...pago, id }, motivo, idEmpresa);
     return respuesta;
   }
 
@@ -155,6 +177,7 @@ export class PlanillaLogic {
     evento: 'registrado' | 'anulado',
     pago: PagoNotificado,
     motivo?: string,
+    idEmpresa?: number | null,
   ) {
     if (!pago) return;
     const quincena = `${pago.quincena === 1 ? '1ra' : '2da'} quincena ${pago.mes}/${pago.anio}`;
@@ -177,12 +200,16 @@ export class PlanillaLogic {
           Number(pago.quincena),
         ),
         idReferencia: pago.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
   }
 
-  async reportePeriodo(filtros: FiltroReportePeriodoDto) {
-    const result = await this.planillaModel.reportePeriodo(filtros);
+  async reportePeriodo(
+    filtros: FiltroReportePeriodoDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.planillaModel.reportePeriodo(filtros, idEmpresa);
 
     if (!result?.registro) {
       throw new NotFoundException('No se pudo generar el reporte del período');

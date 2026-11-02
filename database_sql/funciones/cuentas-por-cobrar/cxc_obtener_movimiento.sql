@@ -2,7 +2,8 @@
 -- Registrar consumo, abono y ajuste terminan llamando acá para devolver
 -- siempre el mismo shape.
 DROP FUNCTION IF EXISTS cxc_obtener_movimiento(p_id BIGINT);    
-CREATE OR REPLACE FUNCTION cxc_obtener_movimiento(p_id BIGINT)
+DROP FUNCTION IF EXISTS cxc_obtener_movimiento(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION cxc_obtener_movimiento(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -53,6 +54,7 @@ BEGIN
         LEFT JOIN cli_convenio c ON m.id_convenio = c.id
         LEFT JOIN auth_usuario_datos uc ON m.id_usuario_creacion = uc.id
         WHERE m.id = p_id
+          AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

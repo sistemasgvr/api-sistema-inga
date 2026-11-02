@@ -28,6 +28,8 @@ describe('Orquestación de pedidos', () => {
     id: 7,
     permisos: ['pedidos.estado'],
     es_super_admin: false,
+    id_empresa: 1,
+    id_sucursal: 3,
   } as AuthenticatedUser;
   beforeEach(() => jest.resetAllMocks());
 
@@ -64,9 +66,23 @@ describe('Orquestación de pedidos', () => {
       'abrir',
       null,
       null,
-      { tipo_pedido: 1, tasa_igv: 18 },
+      { tipo_pedido: 1, tasa_igv: 18, id_sucursal: 3, id_sucursal_sesion: 3 },
       7,
     );
+  });
+  it('opera solo en la sucursal de la sesión', async () => {
+    model.ejecutar.mockResolvedValue({ registro: { id: 1 } });
+    await logic.ejecutar('comandar', 1, null, { id_sucursal_sesion: 99 }, user);
+    expect(model.ejecutar).toHaveBeenCalledWith(
+      'comandar',
+      1,
+      null,
+      { id_sucursal_sesion: 3 },
+      7,
+    );
+    expect(() =>
+      logic.ejecutar('comandar', 1, null, {}, { ...user, id_sucursal: null }),
+    ).toThrow(ForbiddenException);
   });
   it.each([
     ['P0001', BadRequestException],
@@ -76,11 +92,11 @@ describe('Orquestación de pedidos', () => {
     ['40P01', ConflictException],
   ])('traduce %s a una respuesta HTTP adecuada', async (code, exception) => {
     model.obtener.mockRejectedValue({ code, message: 'Validación del pedido' });
-    await expect(logic.obtener(1)).rejects.toBeInstanceOf(exception);
+    await expect(logic.obtener(1, 3)).rejects.toBeInstanceOf(exception);
   });
   it('conserva errores imprevistos para el filtro y logs', async () => {
     const error = new Error('Connection error');
     model.obtener.mockRejectedValue(error);
-    await expect(logic.obtener(1)).rejects.toBe(error);
+    await expect(logic.obtener(1, 3)).rejects.toBe(error);
   });
 });

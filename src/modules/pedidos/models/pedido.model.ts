@@ -24,15 +24,20 @@ export type AccionPedido =
 export class PedidoModel {
   constructor(private readonly db: DatabaseService) {}
 
-  listar(filtros: FiltroPedidoDto) {
+  listar(filtros: FiltroPedidoDto, idSucursal: number) {
     return this.db.callFunctionJson<AuthListResult>('ven_listar_pedidos', [
-      JSON.stringify({ ...filtros, offset: filtros.offset }),
+      JSON.stringify({
+        ...filtros,
+        offset: filtros.offset,
+        id_sucursal: idSucursal,
+      }),
     ]);
   }
 
-  obtener(id: number) {
+  obtener(id: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>('ven_obtener_pedido', [
       id,
+      idSucursal,
     ]);
   }
 

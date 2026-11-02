@@ -21,6 +21,7 @@ import {
 } from '../dto/personas.dto';
 import { PersonasLogic } from '../logic/personas.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Personas - Clientes y proveedores')
 @Controller('personas')
@@ -30,8 +31,11 @@ export class PersonasController {
   @Get()
   @Permisos(PermisoBanderas.PERSONAS_LISTAR)
   @ApiOperation({ summary: 'Listar personas (clientes y proveedores)' })
-  listar(@Query() filtros: FiltroPersonasDto) {
-    return this.personasLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroPersonasDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.personasLogic.listar(filtros, idEmpresa);
   }
 
   // Igual que en convenios: '/personas/buscar' va antes que '/personas/:id'
@@ -43,8 +47,11 @@ export class PersonasController {
     summary:
       'Buscador rápido para autocompletar (lo usan compras y cobro a crédito)',
   })
-  buscar(@Query() dto: BuscarPersonasDto) {
-    return this.personasLogic.buscar(dto);
+  buscar(
+    @Query() dto: BuscarPersonasDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.personasLogic.buscar(dto, idEmpresa);
   }
 
   @Get(':id')
@@ -53,8 +60,11 @@ export class PersonasController {
     summary: 'Obtener persona por ID (incluye su saldo de crédito)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.personasLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.personasLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -63,8 +73,9 @@ export class PersonasController {
   crear(
     @Body() dto: CreatePersonaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.personasLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.personasLogic.crear({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch(':id')
@@ -75,8 +86,13 @@ export class PersonasController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePersonaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.personasLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.personasLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch(':id/activar')
@@ -86,8 +102,9 @@ export class PersonasController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.personasLogic.activar(id, idUsuarioAuditoria);
+    return this.personasLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete(':id')
@@ -100,7 +117,8 @@ export class PersonasController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.personasLogic.eliminar(id, idUsuarioAuditoria);
+    return this.personasLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

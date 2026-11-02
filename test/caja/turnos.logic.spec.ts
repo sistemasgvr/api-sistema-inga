@@ -18,7 +18,10 @@ describe('Cierre de caja: quién puede cerrarla', () => {
     guardarArqueo: jest.fn(),
   };
   const notificaciones = { emitir: jest.fn().mockResolvedValue(undefined) };
-  const logic = new TurnosLogic(model as unknown as TurnosModel, notificaciones as unknown as NotificacionesLogic);
+  const logic = new TurnosLogic(
+    model as unknown as TurnosModel,
+    notificaciones as unknown as NotificacionesLogic,
+  );
 
   const turnoAbierto = {
     id: 10,
@@ -41,13 +44,14 @@ describe('Cierre de caja: quién puede cerrarla', () => {
 
   it('el cajero que abrió la caja la cierra sin consultar sus roles', async () => {
     await expect(
-      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 3 }),
+      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 3 }, 5),
     ).resolves.toMatchObject({ estado_turno: 2 });
     expect(model.obtenerUsuario).not.toHaveBeenCalled();
-    expect(model.cerrar).toHaveBeenCalledWith(10, {
-      ...cierre,
-      idUsuarioAuditoria: 3,
-    });
+    expect(model.cerrar).toHaveBeenCalledWith(
+      10,
+      { ...cierre, idUsuarioAuditoria: 3 },
+      5,
+    );
   });
 
   it('un administrador cierra la caja aunque no sea su turno', async () => {
@@ -55,7 +59,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
       registro: { es_super_admin: false, roles: [{ codigo: 'ADMIN' }] },
     });
     await expect(
-      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 7 }),
+      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 7 }, 5),
     ).resolves.toMatchObject({ estado_turno: 2 });
     expect(model.obtenerUsuario).toHaveBeenCalledWith(7);
   });
@@ -65,7 +69,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
       registro: { es_super_admin: true, roles: [] },
     });
     await expect(
-      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 1 }),
+      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 1 }, 5),
     ).resolves.toBeDefined();
   });
 
@@ -73,7 +77,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
     model.obtenerUsuario.mockResolvedValue({
       registro: { es_super_admin: false, roles: [{ codigo: 'CAJERO' }] },
     });
-    const intento = logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 8 });
+    const intento = logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 8 }, 5);
     await expect(intento).rejects.toBeInstanceOf(ForbiddenException);
     await expect(intento).rejects.toThrow(
       'Solo Ana Cajera, quien abrió esta caja, o un administrador puede cerrarla.',
@@ -82,7 +86,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
   });
 
   it('sin usuario autenticado no cierra', async () => {
-    await expect(logic.cerrar(10, cierre)).rejects.toBeInstanceOf(
+    await expect(logic.cerrar(10, cierre, 5)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
     expect(model.cerrar).not.toHaveBeenCalled();
@@ -93,10 +97,14 @@ describe('Cierre de caja: quién puede cerrarla', () => {
       registro: { es_super_admin: false, roles: [{ codigo: 'MOZO' }] },
     });
     await expect(
-      logic.guardarArqueo(10, {
-        detalle: [{ denominacion: 10, cantidad: 2 }],
-        idUsuarioAuditoria: 8,
-      }),
+      logic.guardarArqueo(
+        10,
+        {
+          detalle: [{ denominacion: 10, cantidad: 2 }],
+          idUsuarioAuditoria: 8,
+        },
+        5,
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(model.guardarArqueo).not.toHaveBeenCalled();
   });
@@ -104,7 +112,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
   it('un turno inexistente responde 404 antes de cerrar', async () => {
     model.obtenerPorId.mockResolvedValue({ registro: null });
     await expect(
-      logic.cerrar(99, { ...cierre, idUsuarioAuditoria: 3 }),
+      logic.cerrar(99, { ...cierre, idUsuarioAuditoria: 3 }, 5),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(model.cerrar).not.toHaveBeenCalled();
   });
@@ -118,7 +126,7 @@ describe('Cierre de caja: quién puede cerrarla', () => {
       registro: null,
     });
     await expect(
-      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 8 }),
+      logic.cerrar(10, { ...cierre, idUsuarioAuditoria: 8 }, 5),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(model.obtenerUsuario).not.toHaveBeenCalled();
   });

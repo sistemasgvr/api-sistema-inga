@@ -20,6 +20,7 @@ import {
 } from '../dto/convenios.dto';
 import { ConveniosLogic } from '../logic/convenios.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Personas - Convenios de crédito')
 @Controller('convenios')
@@ -29,8 +30,11 @@ export class ConveniosController {
   @Get()
   @Permisos(PermisoBanderas.CONVENIOS_LISTAR)
   @ApiOperation({ summary: 'Listar convenios de crédito' })
-  listar(@Query() filtros: FiltroConveniosDto) {
-    return this.conveniosLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroConveniosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.conveniosLogic.listar(filtros, idEmpresa);
   }
 
   // OJO con el orden: esta ruta va ANTES de @Get(':id') a propósito.
@@ -40,7 +44,8 @@ export class ConveniosController {
   @Get('condiciones-pago')
   @Permisos(PermisoBanderas.CONVENIOS_LISTAR)
   @ApiOperation({
-    summary: 'Listar condiciones de pago disponibles (para el selector del formulario)',
+    summary:
+      'Listar condiciones de pago disponibles (para el selector del formulario)',
   })
   listarCondicionesPago() {
     return this.conveniosLogic.listarCondicionesPago();
@@ -50,8 +55,11 @@ export class ConveniosController {
   @Permisos(PermisoBanderas.CONVENIOS_VER)
   @ApiOperation({ summary: 'Obtener convenio por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.conveniosLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.conveniosLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -60,8 +68,9 @@ export class ConveniosController {
   crear(
     @Body() dto: CreateConvenioDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.conveniosLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.conveniosLogic.crear({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch(':id')
@@ -72,8 +81,13 @@ export class ConveniosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateConvenioDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.conveniosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.conveniosLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch(':id/activar')
@@ -83,20 +97,23 @@ export class ConveniosController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.conveniosLogic.activar(id, idUsuarioAuditoria);
+    return this.conveniosLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.CONVENIOS_ELIMINAR)
   @ApiOperation({
-    summary: 'Dar de baja convenio (baja lógica; falla si tiene clientes asignados)',
+    summary:
+      'Dar de baja convenio (baja lógica; falla si tiene clientes asignados)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.conveniosLogic.eliminar(id, idUsuarioAuditoria);
+    return this.conveniosLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

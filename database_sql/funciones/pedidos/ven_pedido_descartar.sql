@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.ven_pedido_descartar(p_id BIGINT, p_item BIGIN
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE;
 BEGIN
-  v := ven_bloquear_pedido(p_id);
+  v := ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido = 5 THEN RETURN ven_obtener_pedido(p_id); END IF;
   IF v.estado_pedido <> 1 THEN RAISE EXCEPTION 'Solo se puede descartar un pedido abierto'; END IF;
   IF v.id_usuario_creacion IS DISTINCT FROM p_usuario THEN

@@ -13,6 +13,20 @@ DROP FUNCTION IF EXISTS gad_registrar_gasto(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_registrar_gasto(
+    p_id_categoria BIGINT,
+    p_concepto VARCHAR,
+    p_monto NUMERIC,
+    p_fecha_gasto DATE,
+    p_medio_pago SMALLINT,
+    p_id_turno BIGINT,
+    p_id_persona BIGINT,
+    p_num_comprobante VARCHAR,
+    p_id_sucursal BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_registrar_gasto(
     p_id_categoria BIGINT,
     p_concepto VARCHAR,
@@ -24,7 +38,8 @@ CREATE OR REPLACE FUNCTION gad_registrar_gasto(
     p_num_comprobante VARCHAR DEFAULT NULL,
     p_id_sucursal BIGINT DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -42,6 +57,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM gad_categoria WHERE id = p_id_categoria AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'La categoría de gasto indicada no existe o está inactiva',
@@ -76,6 +92,7 @@ BEGIN
 
     IF p_id_persona IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM cli_persona WHERE id = p_id_persona AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'El proveedor indicado no existe o está inactivo',
@@ -85,6 +102,7 @@ BEGIN
 
     IF p_id_sucursal IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM gen_sucursal WHERE id = p_id_sucursal AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'La sucursal indicada no existe o está inactiva',

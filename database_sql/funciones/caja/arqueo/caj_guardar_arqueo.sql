@@ -3,10 +3,17 @@ DROP FUNCTION IF EXISTS caj_guardar_arqueo(
     p_detalle JSON,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS caj_guardar_arqueo(
+    p_id_turno BIGINT,
+    p_detalle JSON,
+    p_id_usuario_auditoria BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_guardar_arqueo(
     p_id_turno BIGINT,
     p_detalle JSON,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -20,7 +27,8 @@ BEGIN
     SET TIME ZONE 'America/Lima';
 
     SELECT estado_turno INTO v_estado_turno
-    FROM caj_turno WHERE id = p_id_turno AND estado = 1;
+    FROM caj_turno WHERE id = p_id_turno AND estado = 1
+      AND caj_turno_de_sucursal(id, p_id_sucursal);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'El turno no existe o fue anulado', 'registro', NULL);

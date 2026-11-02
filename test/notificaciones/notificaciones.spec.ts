@@ -74,11 +74,16 @@ describe('NotificacionesGateway', () => {
     );
   });
 
-  async function conectar(id: number, permisos: string[]) {
+  async function conectar(
+    id: number,
+    permisos: string[],
+    ambito: { id_empresa?: number; id_sucursal?: number } = {},
+  ) {
     auth.validate.mockResolvedValueOnce({
       id,
       es_super_admin: false,
       permisos,
+      ...ambito,
     });
     const s = socketFalso('token');
     await gateway.handleConnection(s as unknown as Socket);
@@ -100,6 +105,39 @@ describe('NotificacionesGateway', () => {
       expect.objectContaining({ canal: 'inventario' }),
     );
     expect(mozo.emit).not.toHaveBeenCalledWith(
+      'notificacion:nueva',
+      expect.anything(),
+    );
+  });
+
+  it('un aviso de una sucursal o empresa no llega a las demás', async () => {
+    const a = await conectar(1, ['pedidos.ver'], {
+      id_empresa: 1,
+      id_sucursal: 10,
+    });
+    const b = await conectar(2, ['pedidos.ver'], {
+      id_empresa: 1,
+      id_sucursal: 11,
+    });
+    const otra = await conectar(3, ['pedidos.ver'], {
+      id_empresa: 2,
+      id_sucursal: 20,
+    });
+    gateway.emitirNotificacion(notif('pedidos'), null, { idSucursal: 10 });
+    expect(a.emit).toHaveBeenCalledWith(
+      'notificacion:nueva',
+      expect.anything(),
+    );
+    expect(b.emit).not.toHaveBeenCalledWith(
+      'notificacion:nueva',
+      expect.anything(),
+    );
+    gateway.emitirNotificacion(notif('pedidos'), null, { idEmpresa: 1 });
+    expect(b.emit).toHaveBeenCalledWith(
+      'notificacion:nueva',
+      expect.anything(),
+    );
+    expect(otra.emit).not.toHaveBeenCalledWith(
       'notificacion:nueva',
       expect.anything(),
     );
@@ -206,10 +244,12 @@ describe('NotificacionesLogic', () => {
     expect(gateway.emitirNotificacion).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'a', idReferencia: 5, leida: false }),
       undefined,
+      { idEmpresa: null, idSucursal: null },
     );
     expect(gateway.emitirNotificacion).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'b' }),
       [3],
+      { idEmpresa: null, idSucursal: null },
     );
   });
 
@@ -244,6 +284,8 @@ describe('NotificacionesLogic', () => {
       9,
       expect.arrayContaining(['ventas', 'sistema']),
       undefined,
+      null,
+      null,
     );
     expect(gateway.notificarLeidas).toHaveBeenCalledWith(9, 'todas');
   });

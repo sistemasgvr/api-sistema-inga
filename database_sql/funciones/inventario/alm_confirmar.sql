@@ -1,10 +1,13 @@
 DROP FUNCTION IF EXISTS alm_confirmar(p_id BIGINT, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION alm_confirmar(p_id BIGINT,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS alm_confirmar(p_id BIGINT, p_usuario BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION alm_confirmar(p_id BIGINT,p_usuario BIGINT,p_id_sucursal BIGINT DEFAULT NULL) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE m alm_movimiento%ROWTYPE; d RECORD; s alm_producto_stock%ROWTYPE; t TEXT; motivo TEXT; motivo_tipo INTEGER; tipo_valor INTEGER;
 BEGIN
   PERFORM alm_bloquear();
   SELECT * INTO m FROM alm_movimiento WHERE id=p_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Movimiento no encontrado' USING ERRCODE='P0002'; END IF;
+  IF NOT FOUND OR NOT alm_movimiento_de_sucursal(p_id,p_id_sucursal) THEN
+    RAISE EXCEPTION 'Movimiento no encontrado' USING ERRCODE='P0002';
+  END IF;
   IF m.estado=2 THEN RETURN json_build_object('registro',to_jsonb(m)); END IF;
   IF m.estado<>1 THEN RAISE EXCEPTION 'Movimiento cancelado'; END IF;
   SELECT o.codigo,o.valor_entero INTO t,tipo_valor FROM gen_lista_opcion o JOIN gen_lista l ON l.id=o.id_lista

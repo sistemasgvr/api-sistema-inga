@@ -26,7 +26,10 @@ import {
 } from '../dto/gastos-diarios.dto';
 import { GastosDiariosLogic } from '../logic/gastos-diarios.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
-import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
+import {
+  EmpresaSesion,
+  SucursalSesion,
+} from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Gastos Diarios Operativos')
 @Controller('gastos-diarios')
@@ -54,8 +57,13 @@ export class GastosDiariosController {
       'Productos del inventario que se compran (incluye los que están en stock cero), ' +
       'con su stock por almacén, y los almacenes activos',
   })
-  listarProductosInventario(@Query() filtros: FiltroProductosInventarioDto) {
-    return this.logic.listarProductosInventario(filtros);
+  listarProductosInventario(
+    @Query() filtros: FiltroProductosInventarioDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.listarProductosInventario(
+      Object.assign(filtros, { id_sucursal: idSucursal }),
+    );
   }
 
   @Get('insumos/:id')
@@ -124,8 +132,9 @@ export class GastosDiariosController {
   listarDias(
     @Query() filtros: FiltroDiasDto,
     @EmpresaSesion() idEmpresa: number | null,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.logic.listarDias(filtros, idEmpresa);
+    return this.logic.listarDias(filtros, idEmpresa, idSucursal);
   }
 
   // Va antes de 'dias/:id' porque Nest resuelve las rutas en orden de
@@ -136,8 +145,13 @@ export class GastosDiariosController {
     summary:
       'Cuadre del día: totales por forma de pago, desglose por categoría y por proveedor a crédito',
   })
-  reporteDia(@Query() filtros: FiltroReporteDiaDto) {
-    return this.logic.reporteDia(filtros);
+  reporteDia(
+    @Query() filtros: FiltroReporteDiaDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.reporteDia(
+      Object.assign(filtros, { id_sucursal: idSucursal }),
+    );
   }
 
   @Get('dias/:id')
@@ -147,8 +161,9 @@ export class GastosDiariosController {
   obtenerDia(
     @Param('id', ParseIntPipe) id: number,
     @EmpresaSesion() idEmpresa: number | null,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.logic.obtenerDia(id, idEmpresa);
+    return this.logic.obtenerDia(id, idEmpresa, idSucursal);
   }
 
   @Post('dias/abrir')
@@ -159,8 +174,13 @@ export class GastosDiariosController {
   abrirDia(
     @Body() dto: AbrirDiaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.logic.abrirDia({ ...dto, idUsuarioAuditoria });
+    return this.logic.abrirDia({
+      ...dto,
+      id_sucursal: idSucursal,
+      idUsuarioAuditoria,
+    });
   }
 
   @Post('dias/:id/lineas')
@@ -173,8 +193,13 @@ export class GastosDiariosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateLineaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.logic.agregarLinea(id, { ...dto, idUsuarioAuditoria });
+    return this.logic.agregarLinea(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idSucursal,
+    );
   }
 
   @Delete('lineas/:id')
@@ -188,7 +213,13 @@ export class GastosDiariosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularLineaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.logic.anularLinea(id, dto.motivo, idUsuarioAuditoria);
+    return this.logic.anularLinea(
+      id,
+      dto.motivo,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
   }
 }

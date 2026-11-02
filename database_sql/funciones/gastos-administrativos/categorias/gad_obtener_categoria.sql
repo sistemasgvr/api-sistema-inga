@@ -1,7 +1,8 @@
 -- Traigo una categoría de gasto por ID.
 -- Crear y actualizar terminan llamando acá para devolver siempre el mismo shape.
 DROP FUNCTION IF EXISTS gad_obtener_categoria(p_id BIGINT);
-CREATE OR REPLACE FUNCTION gad_obtener_categoria(p_id BIGINT)
+DROP FUNCTION IF EXISTS gad_obtener_categoria(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION gad_obtener_categoria(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -36,6 +37,7 @@ BEGIN
         FROM gad_categoria c
         LEFT JOIN gad_categoria p ON c.id_categoria_padre = p.id
         WHERE c.id = p_id
+          AND (p_id_empresa IS NULL OR c.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

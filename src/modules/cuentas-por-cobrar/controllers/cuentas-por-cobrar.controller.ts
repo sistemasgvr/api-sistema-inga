@@ -38,14 +38,20 @@ export class CuentasPorCobrarController {
     summary:
       'Saldo de cada cliente del consorcio, ordenado de mayor a menor deuda',
   })
-  listarSaldos(@Query() filtros: FiltroSaldosCxcDto, @EmpresaSesion() idEmpresa: number | null) {
+  listarSaldos(
+    @Query() filtros: FiltroSaldosCxcDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
     return this.logic.listarSaldos(filtros, idEmpresa);
   }
 
   @Get('movimientos')
   @Permisos(PermisoBanderas.CXC_LISTAR)
   @ApiOperation({ summary: 'Historial de consumos y abonos con filtros' })
-  listarMovimientos(@Query() filtros: FiltroMovimientosCxcDto, @EmpresaSesion() idEmpresa: number | null) {
+  listarMovimientos(
+    @Query() filtros: FiltroMovimientosCxcDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
     return this.logic.listarMovimientos(filtros, idEmpresa);
   }
 
@@ -58,16 +64,22 @@ export class CuentasPorCobrarController {
       'Reporte de la quincena agrupado por empresa, con el detalle de cada trabajador. ' +
       'Sin período, usa la quincena en curso. Es lo que se le envía a cada empresa.',
   })
-  reportePeriodo(@Query() filtros: FiltroReporteCxcDto) {
-    return this.logic.reportePeriodo(filtros);
+  reportePeriodo(
+    @Query() filtros: FiltroReporteCxcDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.reportePeriodo(filtros, idEmpresa);
   }
 
   @Get('movimientos/:id')
   @Permisos(PermisoBanderas.CXC_LISTAR)
   @ApiOperation({ summary: 'Obtener movimiento por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerMovimiento(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerMovimiento(id);
+  obtenerMovimiento(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerMovimiento(id, idEmpresa);
   }
 
   @Get('clientes/:idPersona/detalle')
@@ -81,8 +93,9 @@ export class CuentasPorCobrarController {
   obtenerEstadoCuentaDetalle(
     @Param('idPersona', ParseIntPipe) idPersona: number,
     @Query() filtros: FiltroEstadoCuentaDetalleDto,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.obtenerEstadoCuentaDetalle(idPersona, filtros);
+    return this.logic.obtenerEstadoCuentaDetalle(idPersona, filtros, idEmpresa);
   }
 
   @Get('clientes/:idPersona')
@@ -96,8 +109,9 @@ export class CuentasPorCobrarController {
   obtenerEstadoCuenta(
     @Param('idPersona', ParseIntPipe) idPersona: number,
     @Query() filtros: FiltroEstadoCuentaDto,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.obtenerEstadoCuenta(idPersona, filtros);
+    return this.logic.obtenerEstadoCuenta(idPersona, filtros, idEmpresa);
   }
 
   @Post('consumos')
@@ -111,8 +125,12 @@ export class CuentasPorCobrarController {
   registrarConsumo(
     @Body() dto: CreateConsumoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarConsumo({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarConsumo(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Post('abonos')
@@ -126,8 +144,9 @@ export class CuentasPorCobrarController {
   registrarAbono(
     @Body() dto: CreateAbonoCxcDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarAbono({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Post('ajustes')
@@ -140,8 +159,12 @@ export class CuentasPorCobrarController {
   registrarAjuste(
     @Body() dto: CreateAjusteCxcDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarAjuste({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarAjuste(
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete('movimientos/:id')
@@ -156,7 +179,13 @@ export class CuentasPorCobrarController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularMovimientoCxcDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.anularMovimiento(id, dto.motivo, idUsuarioAuditoria);
+    return this.logic.anularMovimiento(
+      id,
+      dto.motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 }

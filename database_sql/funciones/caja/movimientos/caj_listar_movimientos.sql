@@ -1,6 +1,7 @@
 -- Listo los movimientos de un turno.
 DROP FUNCTION IF EXISTS caj_listar_movimientos(p_id_turno BIGINT);
-CREATE OR REPLACE FUNCTION caj_listar_movimientos(p_id_turno BIGINT)
+DROP FUNCTION IF EXISTS caj_listar_movimientos(p_id_turno BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION caj_listar_movimientos(p_id_turno BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -10,6 +11,10 @@ DECLARE
     v_egresos NUMERIC(12,2);
 BEGIN
     SET TIME ZONE 'America/Lima';
+
+    IF NOT caj_turno_de_sucursal(p_id_turno, p_id_sucursal) THEN
+        RETURN json_build_object('registros', '[]'::JSON, 'resumen', NULL);
+    END IF;
 
     SELECT
         COALESCE(SUM(monto) FILTER (WHERE tipo_movimiento = 1), 0),

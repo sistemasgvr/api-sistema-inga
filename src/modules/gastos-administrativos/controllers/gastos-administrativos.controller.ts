@@ -25,6 +25,7 @@ import {
 } from '../dto/gastos-administrativos.dto';
 import { GastosAdministrativosLogic } from '../logic/gastos-administrativos.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Gastos administrativos')
 @Controller('gastos-administrativos')
@@ -38,16 +39,22 @@ export class GastosAdministrativosController {
   @ApiOperation({
     summary: 'Listar categorías en árbol, con sus subcategorías anidadas',
   })
-  listarCategorias(@Query() filtros: FiltroCategoriasGastoDto) {
-    return this.logic.listarCategorias(filtros);
+  listarCategorias(
+    @Query() filtros: FiltroCategoriasGastoDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarCategorias(filtros, idEmpresa);
   }
 
   @Get('categorias/:id')
   @Permisos(PermisoBanderas.GASTOS_CATEGORIAS_LISTAR)
   @ApiOperation({ summary: 'Obtener categoría por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerCategoria(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerCategoria(id);
+  obtenerCategoria(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerCategoria(id, idEmpresa);
   }
 
   @Post('categorias')
@@ -58,8 +65,9 @@ export class GastosAdministrativosController {
   crearCategoria(
     @Body() dto: CreateCategoriaGastoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.crearCategoria({ ...dto, idUsuarioAuditoria });
+    return this.logic.crearCategoria({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch('categorias/:id')
@@ -70,8 +78,13 @@ export class GastosAdministrativosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoriaGastoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.actualizarCategoria(id, { ...dto, idUsuarioAuditoria });
+    return this.logic.actualizarCategoria(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch('categorias/:id/activar')
@@ -81,21 +94,24 @@ export class GastosAdministrativosController {
   activarCategoria(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.activarCategoria(id, idUsuarioAuditoria);
+    return this.logic.activarCategoria(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Delete('categorias/:id')
   @Permisos(PermisoBanderas.GASTOS_CATEGORIAS_GESTIONAR)
   @ApiOperation({
-    summary: 'Dar de baja categoría (falla si tiene gastos o subcategorías activas)',
+    summary:
+      'Dar de baja categoría (falla si tiene gastos o subcategorías activas)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   eliminarCategoria(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.eliminarCategoria(id, idUsuarioAuditoria);
+    return this.logic.eliminarCategoria(id, idUsuarioAuditoria, idEmpresa);
   }
 
   /* -------------------------------- Gastos -------------------------------- */
@@ -105,8 +121,11 @@ export class GastosAdministrativosController {
   @ApiOperation({
     summary: 'Listar gastos, con desglose por tipo y medio de pago',
   })
-  listarGastos(@Query() filtros: FiltroGastosDto) {
-    return this.logic.listarGastos(filtros);
+  listarGastos(
+    @Query() filtros: FiltroGastosDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.listarGastos(filtros, idEmpresa);
   }
 
   // Va antes de @Get(':id') porque Nest resuelve las rutas en orden de
@@ -118,16 +137,22 @@ export class GastosAdministrativosController {
     summary:
       'Reporte mensual: totales por tipo y medio, desglose por categoría y comparación con el mes anterior',
   })
-  reporteMensual(@Query() filtros: FiltroReporteMensualDto) {
-    return this.logic.reporteMensual(filtros);
+  reporteMensual(
+    @Query() filtros: FiltroReporteMensualDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.reporteMensual(filtros, idEmpresa);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.GASTOS_LISTAR)
   @ApiOperation({ summary: 'Obtener gasto por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerGasto(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtenerGasto(id);
+  obtenerGasto(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.obtenerGasto(id, idEmpresa);
   }
 
   @Post()
@@ -138,22 +163,29 @@ export class GastosAdministrativosController {
   registrarGasto(
     @Body() dto: CreateGastoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.registrarGasto({ ...dto, idUsuarioAuditoria });
+    return this.logic.registrarGasto({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch(':id')
   @Permisos(PermisoBanderas.GASTOS_REGISTRAR)
   @ApiOperation({
-    summary: 'Actualizar gasto (falla si fue en efectivo y su turno ya se cerró)',
+    summary:
+      'Actualizar gasto (falla si fue en efectivo y su turno ya se cerró)',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
   actualizarGasto(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGastoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.actualizarGasto(id, { ...dto, idUsuarioAuditoria });
+    return this.logic.actualizarGasto(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete(':id')
@@ -166,7 +198,13 @@ export class GastosAdministrativosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AnularGastoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.logic.anularGasto(id, dto.motivo, idUsuarioAuditoria);
+    return this.logic.anularGasto(
+      id,
+      dto.motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
   }
 }

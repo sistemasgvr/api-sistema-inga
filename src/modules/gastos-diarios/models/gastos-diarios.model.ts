@@ -17,7 +17,6 @@ import {
   UpdateInsumoDto,
 } from '../dto/gastos-diarios.dto';
 
-
 @Injectable()
 export class GastosDiariosModel {
   constructor(private readonly db: DatabaseService) {}
@@ -43,7 +42,10 @@ export class GastosDiariosModel {
   }
 
   obtenerInsumo(id: number, idEmpresa?: number | null) {
-    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_insumo', [id, idEmpresa ?? null]);
+    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_insumo', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
   crearInsumo(dto: CreateInsumoDto, idEmpresa?: number | null) {
@@ -57,7 +59,11 @@ export class GastosDiariosModel {
     ]);
   }
 
-  actualizarInsumo(id: number, dto: UpdateInsumoDto, idEmpresa?: number | null) {
+  actualizarInsumo(
+    id: number,
+    dto: UpdateInsumoDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_actualizar_insumo', [
       id,
       dto.id_categoria ?? null,
@@ -70,7 +76,11 @@ export class GastosDiariosModel {
     ]);
   }
 
-  toggleInsumo(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
+  toggleInsumo(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('gdo_toggle_insumo', [
       id,
       idUsuarioAuditoria ?? null,
@@ -89,11 +99,19 @@ export class GastosDiariosModel {
     ]);
   }
 
-  obtenerDia(id: number, idEmpresa?: number | null) {
-    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_dia', [id, idEmpresa ?? null]);
+  obtenerDia(id: number, idEmpresa: number | null, idSucursal: number) {
+    return this.db.callFunctionJson<AuthSingleResult>('gdo_obtener_dia', [
+      id,
+      idEmpresa,
+      idSucursal,
+    ]);
   }
 
-  listarDias(filtros: FiltroDiasDto, idEmpresa?: number | null) {
+  listarDias(
+    filtros: FiltroDiasDto,
+    idEmpresa: number | null,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthListResult>('gdo_listar_dias', [
       filtros.limite ?? 10,
       filtros.offset ?? 0,
@@ -101,11 +119,12 @@ export class GastosDiariosModel {
       filtros.mes ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
-      idEmpresa ?? null,
+      idEmpresa,
+      idSucursal,
     ]);
   }
 
-  agregarLinea(idGastoDia: number, dto: CreateLineaDto) {
+  agregarLinea(idGastoDia: number, dto: CreateLineaDto, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_agregar_linea', [
       idGastoDia,
       dto.id_insumo ?? null,
@@ -118,6 +137,7 @@ export class GastosDiariosModel {
       dto.idUsuarioAuditoria ?? null,
       dto.id_producto ?? null,
       dto.id_almacen ?? null,
+      idSucursal,
     ]);
   }
 
@@ -131,11 +151,17 @@ export class GastosDiariosModel {
     ]);
   }
 
-  anularLinea(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  anularLinea(
+    id: number,
+    motivo: string | undefined,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>('gdo_anular_linea', [
       id,
       motivo ?? null,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 

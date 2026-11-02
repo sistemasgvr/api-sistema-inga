@@ -6,11 +6,19 @@ DROP FUNCTION IF EXISTS cxc_reporte_periodo(
     p_quincena SMALLINT,
     p_id_convenio BIGINT
 );
+DROP FUNCTION IF EXISTS cxc_reporte_periodo(
+    p_anio SMALLINT,
+    p_mes SMALLINT,
+    p_quincena SMALLINT,
+    p_id_convenio BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_reporte_periodo(
     p_anio SMALLINT DEFAULT NULL,
     p_mes SMALLINT DEFAULT NULL,
     p_quincena SMALLINT DEFAULT NULL,
-    p_id_convenio BIGINT DEFAULT NULL
+    p_id_convenio BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -39,7 +47,8 @@ BEGIN
     FROM cxc_movimiento m
     WHERE m.estado = 1
       AND m.anio = v_anio AND m.mes = v_mes AND m.quincena = v_quincena
-      AND (p_id_convenio IS NULL OR m.id_convenio = p_id_convenio);
+      AND (p_id_convenio IS NULL OR m.id_convenio = p_id_convenio)
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa);
 
     SELECT COALESCE(json_agg(row_to_json(e) ORDER BY e.total_consumo DESC), '[]'::JSON)
     INTO v_empresas
@@ -81,6 +90,7 @@ BEGIN
             WHERE m.estado = 1
               AND m.anio = v_anio AND m.mes = v_mes AND m.quincena = v_quincena
               AND (p_id_convenio IS NULL OR m.id_convenio = p_id_convenio)
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
             GROUP BY m.id_convenio, c.nombre, m.id_persona,
                      p.nombres, p.apellido_paterno, p.razon_social, p.num_documento
         ) t

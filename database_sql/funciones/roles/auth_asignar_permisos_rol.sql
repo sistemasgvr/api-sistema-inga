@@ -3,10 +3,17 @@ DROP FUNCTION IF EXISTS auth_asignar_permisos_rol(
     p_ids_permisos BIGINT[],
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_asignar_permisos_rol(
+    p_id_rol BIGINT,
+    p_ids_permisos BIGINT[],
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_asignar_permisos_rol(
     p_id_rol BIGINT,
     p_ids_permisos BIGINT[],
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -16,7 +23,11 @@ DECLARE
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF NOT EXISTS (SELECT 1 FROM auth_rol WHERE id = p_id_rol AND estado = 1) THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM auth_rol
+        WHERE id = p_id_rol AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa IS NULL OR id_empresa = p_id_empresa)
+    ) THEN
         RETURN json_build_object('error', 'El rol especificado no existe o está inactivo', 'registro', NULL);
     END IF;
 

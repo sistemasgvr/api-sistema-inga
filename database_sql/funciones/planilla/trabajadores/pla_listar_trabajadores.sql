@@ -8,6 +8,16 @@ DROP FUNCTION IF EXISTS pla_listar_trabajadores(
     p_quincena INTEGER,
     p_estado INT
 );
+DROP FUNCTION IF EXISTS pla_listar_trabajadores(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_estado INT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_listar_trabajadores(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
@@ -15,7 +25,8 @@ CREATE OR REPLACE FUNCTION pla_listar_trabajadores(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL,
     p_quincena INTEGER DEFAULT NULL,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -39,11 +50,13 @@ BEGIN
         COUNT(*) FILTER (WHERE t.estado = 1),
         COUNT(*) FILTER (WHERE t.estado = 0)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos
-    FROM pla_trabajador t;
+    FROM pla_trabajador t
+    WHERE p_id_empresa IS NULL OR t.id_empresa = p_id_empresa;
 
     SELECT COUNT(*) INTO v_total
     FROM pla_trabajador t
     WHERE (p_estado IS NULL OR t.estado = p_estado)
+      AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR COALESCE(t.num_documento, '') LIKE '%' || p_busqueda || '%'

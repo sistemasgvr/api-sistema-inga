@@ -35,13 +35,13 @@ export class UsuariosLogic {
     return trabajador;
   }
 
-  async listar(filtros: FiltroUsuarioDto) {
-    const result = await this.usuariosModel.listar(filtros);
+  async listar(filtros: FiltroUsuarioDto, idEmpresa?: number | null) {
+    const result = await this.usuariosModel.listar(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.usuariosModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idEmpresa?: number | null) {
+    const result = await this.usuariosModel.obtenerPorId(id, idEmpresa);
     return mapSingleResult(result, `Usuario con ID ${id} no encontrado`);
   }
 
@@ -66,7 +66,11 @@ export class UsuariosLogic {
     }
   }
 
-  async actualizar(id: number, dto: UpdateUsuarioDto) {
+  async actualizar(
+    id: number,
+    dto: UpdateUsuarioDto,
+    idEmpresa?: number | null,
+  ) {
     try {
       const passwordHash = dto.password
         ? await UsuariosModel.hashPassword(dto.password)
@@ -83,6 +87,7 @@ export class UsuariosLogic {
         dto.idUsuarioAuditoria,
         dto.sucursalesIds ?? null,
         dto.idSucursalPredeterminada ?? null,
+        idEmpresa,
       );
       return mapSingleResult(result, `Usuario con ID ${id} no encontrado`);
     } catch (error: any) {
@@ -90,9 +95,17 @@ export class UsuariosLogic {
     }
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     try {
-      const result = await this.usuariosModel.eliminar(id, idUsuarioAuditoria);
+      const result = await this.usuariosModel.eliminar(
+        id,
+        idUsuarioAuditoria,
+        idEmpresa,
+      );
       return mapDeleteResult(
         result,
         `Usuario con ID ${id} no encontrado o ya desactivado`,
@@ -102,9 +115,17 @@ export class UsuariosLogic {
     }
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
+  async activar(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     try {
-      const result = await this.usuariosModel.activar(id, idUsuarioAuditoria);
+      const result = await this.usuariosModel.activar(
+        id,
+        idUsuarioAuditoria,
+        idEmpresa,
+      );
       return mapActivateResult(
         result,
         `Usuario con ID ${id} no encontrado o ya activo`,

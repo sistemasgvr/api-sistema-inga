@@ -26,6 +26,7 @@ import {
 } from '../dto/turnos.dto';
 import { TurnosLogic } from '../logic/turnos.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { SucursalSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Caja - Turnos, movimientos y arqueo')
 @Controller('caja/turnos')
@@ -35,8 +36,11 @@ export class TurnosController {
   @Get()
   @Permisos(PermisoBanderas.TURNOS_LISTAR)
   @ApiOperation({ summary: 'Historial de turnos con filtros' })
-  listar(@Query() filtros: FiltroTurnosDto) {
-    return this.turnosLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroTurnosDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.turnosLogic.listar(filtros, idSucursal);
   }
 
   // Va antes de @Get(':id') porque Nest resuelve las rutas en orden de
@@ -48,8 +52,11 @@ export class TurnosController {
     summary:
       'Turno abierto de un cajero. Devuelve registro = null si no tiene ninguno (no es error)',
   })
-  obtenerAbierto(@Param('idCajero', ParseIntPipe) idCajero: number) {
-    return this.turnosLogic.obtenerAbiertoPorCajero(idCajero);
+  obtenerAbierto(
+    @Param('idCajero', ParseIntPipe) idCajero: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.turnosLogic.obtenerAbiertoPorCajero(idCajero, idSucursal);
   }
 
   // También antes de ':id', por la misma razón.
@@ -63,37 +70,44 @@ export class TurnosController {
   })
   obtenerVigente(
     @UsuarioAuditoria() idUsuario: number,
-    @Query('id_sucursal') idSucursal?: string,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.obtenerVigente(
-      idUsuario,
-      idSucursal ? Number(idSucursal) : null,
-    );
+    return this.turnosLogic.obtenerVigente(idUsuario, idSucursal);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.TURNOS_VER)
   @ApiOperation({ summary: 'Obtener turno con sus totales calculados' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.turnosLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.turnosLogic.obtenerPorId(id, idSucursal);
   }
 
   @Get(':id/resumen')
   @Permisos(PermisoBanderas.TURNOS_VER)
   @ApiOperation({
-    summary: 'Resumen completo: totales por medio de pago, movimientos y arqueo',
+    summary:
+      'Resumen completo: totales por medio de pago, movimientos y arqueo',
   })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  resumen(@Param('id', ParseIntPipe) id: number) {
-    return this.turnosLogic.resumen(id);
+  resumen(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.turnosLogic.resumen(id, idSucursal);
   }
 
   @Get(':id/movimientos')
   @Permisos(PermisoBanderas.TURNOS_VER)
   @ApiOperation({ summary: 'Movimientos de caja del turno' })
-  listarMovimientos(@Param('id', ParseIntPipe) id: number) {
-    return this.turnosLogic.listarMovimientos(id);
+  listarMovimientos(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.turnosLogic.listarMovimientos(id, idSucursal);
   }
 
   @Post('abrir')
@@ -104,14 +118,16 @@ export class TurnosController {
   abrir(
     @Body() dto: AbrirTurnoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.abrir({ ...dto, idUsuarioAuditoria });
+    return this.turnosLogic.abrir({ ...dto, idUsuarioAuditoria }, idSucursal);
   }
 
   @Post(':id/cerrar')
   @Permisos(PermisoBanderas.TURNOS_CERRAR)
   @ApiOperation({
-    summary: 'Cerrar turno declarando el efectivo contado y guardar la diferencia',
+    summary:
+      'Cerrar turno declarando el efectivo contado y guardar la diferencia',
     description:
       'Solo el cajero que abrió la caja o un administrador (rol ADMIN o superadministrador) puede cerrarla.',
   })
@@ -124,8 +140,13 @@ export class TurnosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CerrarTurnoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.cerrar(id, { ...dto, idUsuarioAuditoria });
+    return this.turnosLogic.cerrar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idSucursal,
+    );
   }
 
   @Post(':id/movimientos')
@@ -135,11 +156,13 @@ export class TurnosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateMovimientoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.registrarMovimiento(id, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.turnosLogic.registrarMovimiento(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idSucursal,
+    );
   }
 
   @Post(':id/arqueo')
@@ -154,8 +177,13 @@ export class TurnosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: GuardarArqueoDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.guardarArqueo(id, { ...dto, idUsuarioAuditoria });
+    return this.turnosLogic.guardarArqueo(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idSucursal,
+    );
   }
 
   @Delete('movimientos/:idMovimiento')
@@ -167,7 +195,12 @@ export class TurnosController {
   anularMovimiento(
     @Param('idMovimiento', ParseIntPipe) idMovimiento: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.turnosLogic.anularMovimiento(idMovimiento, idUsuarioAuditoria);
+    return this.turnosLogic.anularMovimiento(
+      idMovimiento,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
   }
 }

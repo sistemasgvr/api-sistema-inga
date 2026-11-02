@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS public.alm_buscar_stock(p_producto BIGINT, p_almacen BIGINT, p_limite INTEGER, p_offset INTEGER, p_buscar TEXT, p_estado TEXT);
-CREATE OR REPLACE FUNCTION public.alm_buscar_stock(p_producto BIGINT,p_almacen BIGINT,p_limite INTEGER,p_offset INTEGER,p_buscar TEXT,p_estado TEXT)
+DROP FUNCTION IF EXISTS public.alm_buscar_stock(p_producto BIGINT, p_almacen BIGINT, p_limite INTEGER, p_offset INTEGER, p_buscar TEXT, p_estado TEXT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION public.alm_buscar_stock(p_producto BIGINT,p_almacen BIGINT,p_limite INTEGER,p_offset INTEGER,p_buscar TEXT,p_estado TEXT,p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE sql AS $$
  WITH base AS (
   SELECT s.*,p.nombre AS producto_nombre,p.id_unidad_medida,
@@ -10,6 +11,7 @@ RETURNS JSON LANGUAGE sql AS $$
   FROM alm_producto_stock s JOIN pro_producto p ON p.id=s.id_producto JOIN gen_almacen a ON a.id=s.id_almacen
   JOIN pro_unidad_medida u ON u.id=p.id_unidad_medida
   WHERE s.estado=1 AND p.estado=1 AND (p_producto IS NULL OR s.id_producto=p_producto) AND (p_almacen IS NULL OR s.id_almacen=p_almacen)
+    AND (p_id_sucursal IS NULL OR a.id_sucursal=p_id_sucursal)
     AND (COALESCE(p_buscar,'')='' OR concat_ws(' ',p.nombre,a.nombre) ILIKE '%'||p_buscar||'%')
  ), filtrado AS (
   SELECT * FROM base WHERE COALESCE(p_estado,'todos')='todos' OR (p_estado='alertas' AND alerta_activa) OR (p_estado='normales' AND NOT alerta_activa)

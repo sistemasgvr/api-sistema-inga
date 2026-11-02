@@ -11,13 +11,13 @@ describe('Respuestas de Ambientes', () => {
       error: 'La mesa tiene atención en curso',
     });
     await expect(
-      logic.guardar('mesa', 1, { capacidad_personas: 2 }, 7),
+      logic.guardar('mesa', 1, { capacidad_personas: 2 }, 7, 3),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('responde 404 para registros inexistentes', async () => {
     model.obtener.mockResolvedValue({ registro: null });
-    await expect(logic.obtener('salon', 999)).rejects.toBeInstanceOf(
+    await expect(logic.obtener('salon', 999, 3)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -26,7 +26,7 @@ describe('Respuestas de Ambientes', () => {
     model.estado.mockResolvedValue({
       error: 'Desactive primero las mesas del salón',
     });
-    await expect(logic.estado('salon', 1, 0, 7)).rejects.toBeInstanceOf(
+    await expect(logic.estado('salon', 1, 0, 7, 3)).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

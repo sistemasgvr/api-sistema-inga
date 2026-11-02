@@ -2,9 +2,15 @@ DROP FUNCTION IF EXISTS auth_eliminar_usuario(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_eliminar_usuario(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_eliminar_usuario(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -18,7 +24,8 @@ BEGIN
 
     SELECT es_super_admin INTO v_es_super_admin
     FROM auth_usuario_datos
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object(

@@ -17,7 +17,12 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM alm_producto_stock
         WHERE id_producto = p_id AND estado = 1 AND stock_actual <> 0
-          AND (p_id_empresa IS NULL OR id_almacen IN (SELECT id FROM gen_almacen WHERE id_empresa = p_id_empresa))
+          AND (p_id_empresa IS NULL OR id_almacen IN (
+              SELECT a.id
+              FROM gen_almacen a
+              JOIN gen_sucursal s ON s.id = a.id_sucursal
+              WHERE s.id_empresa = p_id_empresa
+          ))
     ) THEN
         RETURN json_build_object(
             'eliminado', FALSE,

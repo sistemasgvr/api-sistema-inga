@@ -43,4 +43,11 @@ export class CrearNotificacionDto {
   @IsOptional()
   @IsInt({ each: true })
   idsUsuario?: number[];
+
+  /**
+   * Ámbito: solo la ven usuarios de esa empresa / sucursal. Lo fija el backend
+   * (sin validadores, el cuerpo de una petición no puede enviarlo).
+   */
+  idEmpresa?: number | null;
+  idSucursal?: number | null;
 }

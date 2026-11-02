@@ -1,9 +1,12 @@
+-- Con p_id_sucursal (la de la sesión) un pedido de otra sucursal se trata como inexistente.
 DROP FUNCTION IF EXISTS public.ven_bloquear_pedido(p_id BIGINT);
-CREATE OR REPLACE FUNCTION public.ven_bloquear_pedido(p_id BIGINT)
+DROP FUNCTION IF EXISTS public.ven_bloquear_pedido(p_id BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION public.ven_bloquear_pedido(p_id BIGINT, p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS ven_pedido LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; v_mesa BIGINT;
 BEGIN
-  SELECT id_mesa INTO v_mesa FROM ven_pedido WHERE id = p_id AND estado = 1;
+  SELECT id_mesa INTO v_mesa FROM ven_pedido WHERE id = p_id AND estado = 1
+    AND (p_id_sucursal IS NULL OR id_sucursal = p_id_sucursal);
   IF NOT FOUND THEN RAISE EXCEPTION 'Pedido no encontrado' USING ERRCODE = 'P0002'; END IF;
   -- Mismo orden que mantenimiento de ambientes: advisory de mesa, salón, mesa, pedido.
   IF v_mesa IS NOT NULL THEN

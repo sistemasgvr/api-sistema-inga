@@ -7,12 +7,21 @@ DROP FUNCTION IF EXISTS gad_crear_categoria(
     p_orden INTEGER,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_crear_categoria(
+    p_nombre VARCHAR,
+    p_tipo_gasto SMALLINT,
+    p_id_categoria_padre BIGINT,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_crear_categoria(
     p_nombre VARCHAR,
     p_tipo_gasto SMALLINT DEFAULT 1,
     p_id_categoria_padre BIGINT DEFAULT NULL,
     p_orden INTEGER DEFAULT 0,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -39,6 +48,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM gad_categoria
         WHERE estado = 1
+          AND id_empresa IS NOT DISTINCT FROM p_id_empresa
           AND id_categoria_padre IS NOT DISTINCT FROM p_id_categoria_padre
           AND LOWER(nombre) = LOWER(v_nombre)
     ) THEN
@@ -52,7 +62,8 @@ BEGIN
         SELECT id, id_categoria_padre, tipo_gasto, nombre
         INTO v_padre
         FROM gad_categoria
-        WHERE id = p_id_categoria_padre AND estado = 1;
+        WHERE id = p_id_categoria_padre AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
         IF NOT FOUND THEN
             RETURN json_build_object(
@@ -73,15 +84,15 @@ BEGIN
     END IF;
 
     INSERT INTO gad_categoria (
-        id_categoria_padre, nombre, tipo_gasto, orden,
+        id_empresa, id_categoria_padre, nombre, tipo_gasto, orden,
         id_usuario_creacion, id_usuario_modificacion
     )
     VALUES (
-        p_id_categoria_padre, v_nombre, v_tipo, COALESCE(p_orden, 0),
+        p_id_empresa, p_id_categoria_padre, v_nombre, v_tipo, COALESCE(p_orden, 0),
         p_id_usuario_auditoria, p_id_usuario_auditoria
     )
     RETURNING id INTO v_id;
 
-    RETURN gad_obtener_categoria(v_id);
+    RETURN gad_obtener_categoria(v_id, p_id_empresa);
 END;
 $function$;

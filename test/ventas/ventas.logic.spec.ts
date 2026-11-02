@@ -34,8 +34,8 @@ describe('Ventas', () => {
   beforeEach(() => jest.resetAllMocks());
 
   it.each([
-    ['reimprimirComanda', () => logic.reimprimirComanda(1, 7)],
-    ['imprimirComprobante', () => logic.imprimirComprobante(1, 7)],
+    ['reimprimirComanda', () => logic.reimprimirComanda(1, 7, 1)],
+    ['imprimirComprobante', () => logic.imprimirComprobante(1, 7, 1)],
   ] as const)(
     '%s avisa a impresión sólo si la base confirmó el trabajo',
     async (metodo, ejecutar) => {
@@ -54,7 +54,7 @@ describe('Ventas', () => {
   it('pasa el pago, el medio y el usuario autenticado al cambiar el medio', async () => {
     model.cambiarMedioPago.mockResolvedValue({ registro: { id: 3 } });
     await logic.cambiarMedioPago(57, 2, 15, 1);
-    expect(model.cambiarMedioPago).toHaveBeenCalledWith(57, 2, 15);
+    expect(model.cambiarMedioPago).toHaveBeenCalledWith(57, 2, 15, 1);
     expect(tickets.regenerarComprobantes).toHaveBeenCalledWith(3, 1);
   });
 
@@ -67,11 +67,13 @@ describe('Ventas', () => {
       code,
       message: 'Validación de la venta',
     });
-    await expect(logic.obtener(1)).rejects.toBeInstanceOf(exception);
+    await expect(logic.obtener(1, 1)).rejects.toBeInstanceOf(exception);
   });
 
   it('devuelve 404 si la venta no existe', async () => {
     model.obtener.mockResolvedValue({ registro: null });
-    await expect(logic.obtener(99)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(logic.obtener(99, 1)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

@@ -44,7 +44,6 @@ BEGIN
                 SELECT COUNT(*)
                 FROM gad_gasto g
                 WHERE g.id_categoria = c.id AND g.estado = 1
-                  AND (p_id_empresa IS NULL OR g.id_empresa = p_id_empresa)
             ) AS gastos_registrados,
             -- Las hijas usan el mismo filtro de estado que la raíz.
             COALESCE((
@@ -62,7 +61,6 @@ BEGIN
                             SELECT COUNT(*)
                             FROM gad_gasto g2
                             WHERE g2.id_categoria = h.id AND g2.estado = 1
-                              AND (p_id_empresa IS NULL OR g2.id_empresa = p_id_empresa)
                         ) AS gastos_registrados
                     FROM gad_categoria h
                     WHERE h.id_categoria_padre = c.id

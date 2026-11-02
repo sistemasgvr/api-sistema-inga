@@ -6,5 +6,6 @@
 -- Listado/detalle de estaciones con la marca de caja principal para mostrarla en la tabla.
 \ir funciones/general/estaciones/gen_listar_estaciones.sql
 \ir funciones/general/estaciones/gen_obtener_estacion.sql
+\ir funciones/general/estaciones/gen_marcar_caja_principal.sql
 \ir migraciones/20261020_tickets_pdf.sql
 \ir migraciones/20261020_ancho_papel.sql

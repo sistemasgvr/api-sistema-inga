@@ -12,7 +12,8 @@ END $$;
 -- preparado = se usa un sub-plato ya preparado en lugar de sus ingredientes.
 -- Con p_item se arma desde lo apartado al comandar esa línea; sin reserva, con el stock del momento.
 DROP FUNCTION IF EXISTS public.prod_disponibilidad(p_receta BIGINT, p_almacen BIGINT, p_cantidad NUMERIC, p_item BIGINT);
-CREATE OR REPLACE FUNCTION public.prod_disponibilidad(p_receta BIGINT,p_almacen BIGINT,p_cantidad NUMERIC,p_item BIGINT DEFAULT NULL)
+DROP FUNCTION IF EXISTS public.prod_disponibilidad(p_receta BIGINT, p_almacen BIGINT, p_cantidad NUMERIC, p_item BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION public.prod_disponibilidad(p_receta BIGINT,p_almacen BIGINT,p_cantidad NUMERIC,p_item BIGINT DEFAULT NULL,p_id_sucursal BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE r pro_receta%ROWTYPE; pr pro_producto%ROWTYPE; d ven_pedido_detalle%ROWTYPE; necesidades JSONB:='[]'; libre JSONB:='{}';
   suc BIGINT; pendientes NUMERIC; c RECORD; reservado BOOLEAN:=FALSE; con_subplatos BOOLEAN:=FALSE; filas JSONB; posibles NUMERIC; lo NUMERIC; hi NUMERIC; mid NUMERIC;
@@ -22,7 +23,7 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Receta no encontrada' USING ERRCODE='P0002'; END IF;
  SELECT * INTO pr FROM pro_producto WHERE id=r.id_producto;
  SELECT id_sucursal INTO suc FROM gen_almacen WHERE id=p_almacen AND estado=1;
- IF suc IS NULL THEN RAISE EXCEPTION 'Almacén inválido'; END IF;
+ IF suc IS NULL OR suc IS DISTINCT FROM COALESCE(p_id_sucursal,suc) THEN RAISE EXCEPTION 'Almacén inválido'; END IF;
  IF p_item IS NOT NULL THEN
   SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_receta=p_receta AND id_producto=pr.id;
   IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM ven_pedido WHERE id=d.id_pedido AND id_sucursal=suc) THEN RAISE EXCEPTION 'Pedido y receta incompatibles'; END IF;

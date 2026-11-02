@@ -44,6 +44,7 @@ export class ImpresionGateway
       throw new Error(
         'Se requieren permisos estaciones.listar y pedidos.comandar',
       );
+    return user;
   }
 
   async handleConnection(socket: Socket) {
@@ -62,7 +63,8 @@ export class ImpresionGateway
         }
         ocupado = true;
         void (async () => {
-          await this.autorizar(socket); // Revalida expiración, logout y permisos en cada operación.
+          // Revalida expiración, logout y permisos en cada operación.
+          const user = await this.autorizar(socket);
           const estaciones = (data as { estaciones?: unknown })?.estaciones;
           if (
             !Array.isArray(estaciones) ||
@@ -71,9 +73,11 @@ export class ImpresionGateway
             !estaciones.every((id) => Number.isSafeInteger(id) && id > 0)
           )
             throw new Error('Estaciones inválidas');
+          // Solo estaciones de la sucursal en la que trabaja la sesión.
           const trabajo = await this.impresion.tomar(
             estaciones as number[],
             propietario,
+            user.id_sucursal ?? null,
           );
           responder({ ok: true, trabajo, propietario });
         })()

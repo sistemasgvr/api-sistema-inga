@@ -1,15 +1,20 @@
 -- Registra una preparación terminada: consumo y producción son atómicos.
 -- codigo es único; un reintento idéntico devuelve la orden ya registrada.
+-- p_id_sucursal (la de la sesión): el almacén destino debe ser de esa sucursal.
 DROP FUNCTION IF EXISTS prod_preparar(p_datos JSONB, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION prod_preparar(p_datos JSONB,p_usuario BIGINT) RETURNS JSON LANGUAGE plpgsql AS $$
+DROP FUNCTION IF EXISTS prod_preparar(p_datos JSONB, p_usuario BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION prod_preparar(p_datos JSONB,p_usuario BIGINT,p_id_sucursal BIGINT DEFAULT NULL) RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE pr pro_producto%ROWTYPE; rec pro_receta%ROWTYPE; pd ven_pedido_detalle%ROWTYPE;
   orden prod_orden%ROWTYPE; pedido ven_pedido%ROWTYPE; ins RECORD; partes JSONB:='[]'; libre JSONB:='{}'; salida BIGINT;
   v_cantidad NUMERIC:=(p_datos->>'cantidad')::NUMERIC; costo NUMERIC; suc BIGINT; almacen BIGINT:=(p_datos->>'id_almacen_destino')::BIGINT;
   item BIGINT:=(p_datos->>'id_pedido_detalle')::BIGINT; receta BIGINT:=(p_datos->>'id_receta')::BIGINT;
 BEGIN
+  IF p_id_sucursal IS NOT NULL AND NOT EXISTS(SELECT 1 FROM gen_almacen WHERE id=almacen AND id_sucursal=p_id_sucursal) THEN
+    RAISE EXCEPTION 'El almacén destino no pertenece a la sucursal en la que trabaja';
+  END IF;
   IF item IS NOT NULL THEN
     SELECT id_pedido INTO suc FROM ven_pedido_detalle WHERE id=item;
-    pedido:=ven_bloquear_pedido(suc);
+    pedido:=ven_bloquear_pedido(suc,p_id_sucursal);
     SELECT * INTO pd FROM ven_pedido_detalle WHERE id=item FOR UPDATE;
   END IF;
   PERFORM alm_bloquear();

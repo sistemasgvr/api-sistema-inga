@@ -2,12 +2,15 @@ DROP FUNCTION IF EXISTS ven_guardar_mesa(p_id BIGINT, p_d JSONB, p_usuario BIGIN
 CREATE OR REPLACE FUNCTION ven_guardar_mesa(p_id BIGINT, p_d JSONB, p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_mesa%ROWTYPE; v_anterior ven_mesa%ROWTYPE;
+  -- id_sucursal_sesion (la sesión): la mesa y su salón deben ser de esa sucursal.
+  v_sesion BIGINT := (p_d->>'id_sucursal_sesion')::BIGINT;
 BEGIN
   -- Serializa el mantenimiento de la misma mesa antes de leer su salón actual.
   IF p_id IS NOT NULL THEN PERFORM pg_advisory_xact_lock(505, (p_id % 2147483647)::INTEGER); END IF;
   -- Bloquea primero el salón: crear/reactivar una mesa no puede competir con su baja.
   IF p_id IS NOT NULL THEN
-    SELECT * INTO v_anterior FROM ven_mesa WHERE id = p_id AND estado = 1;
+    SELECT m.* INTO v_anterior FROM ven_mesa m JOIN ven_salon s ON s.id = m.id_salon
+    WHERE m.id = p_id AND m.estado = 1 AND (v_sesion IS NULL OR s.id_sucursal = v_sesion);
     IF NOT FOUND THEN RETURN json_build_object('registro', NULL); END IF;
   END IF;
   PERFORM 1 FROM ven_salon WHERE id IN (v_anterior.id_salon, (p_d->>'id_salon')::BIGINT) ORDER BY id FOR UPDATE;
@@ -30,7 +33,8 @@ BEGIN
   IF v.estado_mesa NOT IN (1,4) THEN
     RETURN json_build_object('error', 'Solo se puede habilitar o inhabilitar la mesa; ocupada y por cobrar se asignan desde pedidos');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM ven_salon s JOIN gen_sucursal g ON g.id = s.id_sucursal WHERE s.id = v.id_salon AND s.estado = 1 AND g.estado = 1) THEN
+  IF NOT EXISTS (SELECT 1 FROM ven_salon s JOIN gen_sucursal g ON g.id = s.id_sucursal WHERE s.id = v.id_salon AND s.estado = 1 AND g.estado = 1
+    AND (v_sesion IS NULL OR s.id_sucursal = v_sesion)) THEN
     RETURN json_build_object('error', 'El salón o su sucursal no existen o están inactivos');
   END IF;
   IF p_id IS NULL THEN

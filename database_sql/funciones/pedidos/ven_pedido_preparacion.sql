@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.ven_pedido_preparacion(p_id BIGINT,p_item BIGI
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; destino INTEGER:=(p_datos->>'estado_preparacion')::INTEGER;
 BEGIN
- v:=ven_bloquear_pedido(p_id);
+ v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
  SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Detalle no encontrado' USING ERRCODE='P0002'; END IF;
  IF v.estado_pedido NOT IN (2,3) OR d.tipo_linea=3 OR d.id_comanda IS NULL OR d.cantidad_entregada+d.cantidad_cancelada>=d.cantidad THEN RAISE EXCEPTION 'El detalle no admite preparación'; END IF;

@@ -12,21 +12,27 @@ export type RecursoSalon = 'salon' | 'mesa';
 export class SalonModel {
   constructor(private readonly db: DatabaseService) {}
 
-  sucursales() {
-    return this.db.callFunctionJson('ven_sucursales_ambientes');
+  sucursales(idSucursal: number) {
+    return this.db.callFunctionJson('ven_sucursales_ambientes', [idSucursal]);
   }
 
-  listar(recurso: RecursoSalon, filtros: FiltroSalonDto) {
+  listar(recurso: RecursoSalon, filtros: FiltroSalonDto, idSucursal: number) {
     return this.db.callFunctionJson<AuthListResult>(
       `ven_listar_${recurso === 'salon' ? 'salones' : 'mesas'}`,
-      [JSON.stringify({ ...filtros, offset: filtros.offset })],
+      [
+        JSON.stringify({
+          ...filtros,
+          offset: filtros.offset,
+          id_sucursal: idSucursal,
+        }),
+      ],
     );
   }
 
-  obtener(recurso: RecursoSalon, id: number) {
+  obtener(recurso: RecursoSalon, id: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>(
       `ven_obtener_${recurso}`,
-      [id],
+      [id, idSucursal],
     );
   }
 
@@ -35,18 +41,26 @@ export class SalonModel {
     id: number | null,
     dto: object,
     usuario: number,
+    idSucursal: number,
   ) {
     return this.db.callFunctionJson<AuthSingleResult>(
       `ven_guardar_${recurso}`,
-      [id, JSON.stringify(dto), usuario],
+      [id, JSON.stringify({ ...dto, id_sucursal_sesion: idSucursal }), usuario],
     );
   }
 
-  estado(recurso: RecursoSalon, id: number, estado: number, usuario: number) {
+  estado(
+    recurso: RecursoSalon,
+    id: number,
+    estado: number,
+    usuario: number,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthSingleResult>(`ven_estado_${recurso}`, [
       id,
       estado,
       usuario,
+      idSucursal,
     ]);
   }
 }

@@ -21,6 +21,7 @@ import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.l
 import { CrearNotificacionDto } from '../../notificaciones/dto/crear-notificacion.dto';
 import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
 import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
+import { sucursalDe } from '../../../common/decorators/sesion-empresa.decorator';
 
 // SQLSTATE de ven_reservar_insumos_pedido: faltan insumos o productos para comandar.
 const STOCK_INSUFICIENTE = 'IN001';
@@ -36,12 +37,12 @@ export class PedidoLogic {
     private readonly tickets: TicketPdfLogic,
   ) {}
 
-  async listar(filtros: FiltroPedidoDto) {
-    return mapListResult(await this.model.listar(filtros), filtros);
+  async listar(filtros: FiltroPedidoDto, idSucursal: number) {
+    return mapListResult(await this.model.listar(filtros, idSucursal), filtros);
   }
 
-  obtener(id: number) {
-    return this.resolver(() => this.model.obtener(id));
+  obtener(id: number, idSucursal: number) {
+    return this.resolver(() => this.model.obtener(id, idSucursal));
   }
 
   ejecutar(
@@ -51,9 +52,17 @@ export class PedidoLogic {
     datos: object,
     usuario: AuthenticatedUser,
   ) {
-    const payload = { ...datos } as Record<string, unknown>;
-    if (accion === 'abrir')
+    // La sucursal sale de la sesión: el pedido nuevo se abre en ella y los demás
+    // deben pertenecerle (ven_bloquear_pedido).
+    const idSucursal = sucursalDe(usuario);
+    const payload = {
+      ...datos,
+      id_sucursal_sesion: idSucursal,
+    } as Record<string, unknown>;
+    if (accion === 'abrir') {
+      payload.id_sucursal = idSucursal;
       payload.tasa_igv = this.config.get<number>('PEDIDOS_TASA_IGV', 18);
+    }
     // Cambiar estado no permite saltarse los permisos de las operaciones que producen efectos.
     // Pasar a 4 cierra el pedido ya pagado, así que es parte del cobro.
     const permiso =
@@ -84,7 +93,7 @@ export class PedidoLogic {
           detail?: string;
         };
         if (db.code === STOCK_INSUFICIENTE && id !== null)
-          await this.avisarCocina(id, db, usuario.id);
+          await this.avisarCocina(id, db, usuario.id, idSucursal);
         throw error;
       }
     }).then((result) => {
@@ -108,6 +117,7 @@ export class PedidoLogic {
           { comandado, cobrado, anulado },
           pedidoId,
           result,
+          idSucursal,
         );
       // Entregar descuenta stock: la alerta de mínimo, si la hay, sale al instante.
       if (accion === 'entregar') void this.notificaciones.despachar();
@@ -120,6 +130,7 @@ export class PedidoLogic {
     evento: { comandado: boolean; cobrado: boolean; anulado: boolean },
     pedidoId: number,
     result: unknown,
+    idSucursal: number,
   ) {
     const pedido = result as {
       codigo?: string;
@@ -174,7 +185,7 @@ export class PedidoLogic {
       };
     if (!aviso) return;
     this.notificaciones
-      .emitir({ ...aviso, idReferencia: pedidoId })
+      .emitir({ ...aviso, idReferencia: pedidoId, idSucursal })
       ?.catch((error: unknown) =>
         this.logger.warn(
           `No se notificó el pedido ${pedidoId}: ${String(error)}`,
@@ -186,6 +197,7 @@ export class PedidoLogic {
     pedido: number,
     db: { message?: string; detail?: string },
     usuario: number,
+    idSucursal: number,
   ) {
     try {
       await this.model.registrarAvisoCocina(
@@ -202,6 +214,7 @@ export class PedidoLogic {
           severidad: 'warning',
           ruta: RutasNotificacion.cocina(pedido),
           idReferencia: pedido,
+          idSucursal,
         })
         ?.catch(() => undefined);
     } catch (error: unknown) {

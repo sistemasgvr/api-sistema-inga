@@ -1,5 +1,8 @@
 DROP FUNCTION IF EXISTS ven_estado_mesa(p_id BIGINT, p_estado INTEGER, p_usuario BIGINT);
-CREATE OR REPLACE FUNCTION ven_estado_mesa(p_id BIGINT, p_estado INTEGER, p_usuario BIGINT)
+DROP FUNCTION IF EXISTS ven_estado_mesa(p_id BIGINT, p_estado INTEGER, p_usuario BIGINT, p_id_sucursal BIGINT);
+CREATE OR REPLACE FUNCTION ven_estado_mesa(
+  p_id BIGINT, p_estado INTEGER, p_usuario BIGINT, p_id_sucursal BIGINT DEFAULT NULL
+)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_mesa%ROWTYPE;
 BEGIN
@@ -7,6 +10,9 @@ BEGIN
   PERFORM 1 FROM ven_salon WHERE id = (SELECT id_salon FROM ven_mesa WHERE id = p_id) FOR UPDATE;
   SELECT * INTO v FROM ven_mesa WHERE id = p_id FOR UPDATE;
   IF NOT FOUND THEN RETURN json_build_object('registro', NULL); END IF;
+  IF p_id_sucursal IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM ven_salon WHERE id = v.id_salon AND id_sucursal = p_id_sucursal
+  ) THEN RETURN json_build_object('registro', NULL); END IF;
   IF p_estado NOT IN (0,1) THEN RETURN json_build_object('error', 'Estado inválido'); END IF;
   IF v.estado_mesa IN (2,3) OR EXISTS (
     SELECT 1 FROM ven_pedido WHERE id_mesa = p_id AND estado = 1 AND estado_pedido IN (1,2,3)

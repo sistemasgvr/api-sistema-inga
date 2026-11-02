@@ -1,13 +1,4 @@
 -- Registro un consumo a crédito: aumenta lo que una persona nos debe. Se llama desde el módulo de ventas cuando se cierra un pedido a crédito.
-drop ADD FUNCTION IF EXISTS cxc_registrar_consumo(
-    p_id_persona BIGINT,
-    p_monto NUMERIC,
-    p_fecha_movimiento DATE DEFAULT NULL,
-    p_id_pedido BIGINT DEFAULT NULL,
-    p_id_pago BIGINT DEFAULT NULL,
-    p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
-);
 DROP FUNCTION IF EXISTS cxc_registrar_consumo(
     p_id_persona BIGINT,
     p_monto NUMERIC,
@@ -17,6 +8,16 @@ DROP FUNCTION IF EXISTS cxc_registrar_consumo(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS cxc_registrar_consumo(
+    p_id_persona BIGINT,
+    p_monto NUMERIC,
+    p_fecha_movimiento DATE,
+    p_id_pedido BIGINT,
+    p_id_pago BIGINT,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxc_registrar_consumo(
     p_id_persona BIGINT,
     p_monto NUMERIC,
@@ -24,7 +25,8 @@ CREATE OR REPLACE FUNCTION cxc_registrar_consumo(
     p_id_pedido BIGINT DEFAULT NULL,
     p_id_pago BIGINT DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -50,7 +52,8 @@ BEGIN
         ) AS nombre
     INTO v_persona
     FROM cli_persona p
-    WHERE p.id = p_id_persona AND p.estado = 1;
+    WHERE p.id = p_id_persona AND p.estado = 1
+      AND (p_id_empresa IS NULL OR p.id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La persona no existe o está inactiva', 'registro', NULL);

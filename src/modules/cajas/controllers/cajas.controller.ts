@@ -16,6 +16,7 @@ import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { CreateCajaDto, FiltroCajasDto, UpdateCajaDto } from '../dto/cajas.dto';
 import { CajasLogic } from '../logic/cajas.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { SucursalSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Caja - Cajas físicas')
 @Controller('caja/cajas')
@@ -27,16 +28,24 @@ export class CajasController {
   @ApiOperation({
     summary: 'Listar cajas (incluye si tienen un turno abierto y de quién)',
   })
-  listar(@Query() filtros: FiltroCajasDto) {
-    return this.cajasLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroCajasDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.cajasLogic.listar(
+      Object.assign(filtros, { id_sucursal: idSucursal }),
+    );
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.CAJAS_VER)
   @ApiOperation({ summary: 'Obtener caja por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.cajasLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.cajasLogic.obtenerPorId(id, idSucursal);
   }
 
   @Post()
@@ -45,8 +54,13 @@ export class CajasController {
   crear(
     @Body() dto: CreateCajaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.cajasLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.cajasLogic.crear({
+      ...dto,
+      id_sucursal: idSucursal,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id')
@@ -57,8 +71,13 @@ export class CajasController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCajaDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.cajasLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.cajasLogic.actualizar(id, {
+      ...dto,
+      id_sucursal: idSucursal,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id/activar')
@@ -68,8 +87,9 @@ export class CajasController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.cajasLogic.activar(id, idUsuarioAuditoria);
+    return this.cajasLogic.activar(id, idUsuarioAuditoria, idSucursal);
   }
 
   @Delete(':id')
@@ -81,7 +101,8 @@ export class CajasController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.cajasLogic.eliminar(id, idUsuarioAuditoria);
+    return this.cajasLogic.eliminar(id, idUsuarioAuditoria, idSucursal);
   }
 }

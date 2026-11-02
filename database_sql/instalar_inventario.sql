@@ -22,6 +22,7 @@ BEGIN;
 \ir funciones/pedidos/ven_reservar_insumos_pedido.sql
 \ir funciones/inventario/alm_bloquear.sql
 \ir funciones/inventario/alm_confirmar.sql
+\ir funciones/inventario/alm_movimiento_de_sucursal.sql
 \ir funciones/inventario/alm_registrar.sql
 \ir funciones/inventario/alm_aplicar.sql
 \ir funciones/inventario/alm_proteger_historial.sql

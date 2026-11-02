@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.ven_pedido_editar_item(p_id BIGINT, p_item BIG
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; v_cantidad NUMERIC;
 BEGIN
-  v := ven_bloquear_pedido(p_id);
+  v := ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite edición'; END IF;
   PERFORM ven_turno_vigente_pedido(v.id_sucursal, v.id_turno, p_usuario);
   SELECT * INTO d FROM ven_pedido_detalle WHERE id = p_item AND id_pedido = p_id AND estado = 1 FOR UPDATE;

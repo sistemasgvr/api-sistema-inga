@@ -41,9 +41,13 @@ AS $function$
                     FROM alm_producto_stock s
                     INNER JOIN gen_almacen a ON a.id = s.id_almacen AND a.estado = 1
                     WHERE s.id_producto = pr.id AND s.estado = 1
+                      AND (p_id_sucursal IS NULL OR a.id_sucursal = p_id_sucursal)
                 ) st ON TRUE
                 WHERE pr.estado = 1
                   AND pr.controla_stock
+                  AND (p_id_sucursal IS NULL OR pr.id_empresa = (
+                      SELECT su.id_empresa FROM gen_sucursal su WHERE su.id = p_id_sucursal
+                  ))
                   AND NOT COALESCE(tp.requiere_receta AND NOT tp.permite_stock_inicial, FALSE)
                   AND (COALESCE(p_buscar, '') = ''
                        OR pr.nombre ILIKE '%' || p_buscar || '%')

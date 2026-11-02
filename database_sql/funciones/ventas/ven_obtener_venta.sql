@@ -2,10 +2,14 @@
 -- caja y el turno donde entraron, el historial de comprobantes (incluidos los
 -- anulados al reemitir) y las comandas con el estado de su impresión.
 DROP FUNCTION IF EXISTS ven_obtener_venta(p_id BIGINT);
-CREATE OR REPLACE FUNCTION ven_obtener_venta(p_id BIGINT)
+DROP FUNCTION IF EXISTS ven_obtener_venta(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION ven_obtener_venta(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON LANGUAGE plpgsql STABLE AS $$
 DECLARE pedido JSONB;
 BEGIN
+  IF NOT ven_pedido_de_empresa(p_id, p_id_empresa) THEN
+    RETURN json_build_object('registro', NULL);
+  END IF;
   pedido := (ven_obtener_pedido(p_id)::JSONB)->'registro';
   IF pedido IS NULL THEN RETURN json_build_object('registro', NULL); END IF;
 

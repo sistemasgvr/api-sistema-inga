@@ -5,10 +5,17 @@ DROP FUNCTION IF EXISTS pla_reporte_periodo(
     p_mes INTEGER,
     p_quincena INTEGER
 );
+DROP FUNCTION IF EXISTS pla_reporte_periodo(
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_quincena INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION pla_reporte_periodo(
     p_anio INTEGER DEFAULT NULL,
     p_mes INTEGER DEFAULT NULL,
-    p_quincena INTEGER DEFAULT NULL
+    p_quincena INTEGER DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -41,6 +48,9 @@ BEGIN
     FROM pla_pago p
     WHERE p.estado = 1
       AND p.anio = v_anio AND p.mes = v_mes
+      AND (p_id_empresa IS NULL OR p.id_trabajador IN (
+          SELECT id FROM pla_trabajador WHERE id_empresa = p_id_empresa
+      ))
       AND (p_quincena IS NULL OR p.quincena = p_quincena);
 
     SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.nombre_trabajador), '[]'::JSON)
@@ -57,6 +67,7 @@ BEGIN
         FROM pla_pago p
         INNER JOIN pla_trabajador t ON p.id_trabajador = t.id
         WHERE p.estado = 1
+          AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
           AND p.anio = v_anio AND p.mes = v_mes
           AND (p_quincena IS NULL OR p.quincena = p_quincena)
         GROUP BY t.id, t.nombres, t.apellidos, t.puesto, t.sueldo_referencial
@@ -81,6 +92,7 @@ BEGIN
                 t.sueldo_referencial
             FROM pla_trabajador t
             WHERE t.estado = 1
+              AND (p_id_empresa IS NULL OR t.id_empresa = p_id_empresa)
               AND NOT EXISTS (
                   SELECT 1 FROM pla_pago p
                   WHERE p.id_trabajador = t.id

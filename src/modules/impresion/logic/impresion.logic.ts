@@ -9,12 +9,12 @@ import { ImpresionModel } from '../models/impresion.model';
 export class ImpresionLogic {
   constructor(private readonly model: ImpresionModel) {}
 
-  tomar(estaciones: number[], propietario: string) {
-    return this.model.tomar(estaciones, propietario);
+  tomar(estaciones: number[], propietario: string, idSucursal: number | null) {
+    return this.model.tomar(estaciones, propietario, idSucursal);
   }
 
-  pendientes(estaciones: number[]) {
-    return this.model.pendientes(estaciones);
+  pendientes(estaciones: number[], idSucursal: number) {
+    return this.model.pendientes(estaciones, idSucursal);
   }
 
   async confirmar(

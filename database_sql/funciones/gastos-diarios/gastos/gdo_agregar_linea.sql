@@ -1,6 +1,7 @@
 -- Agrego una compra al gasto del día. Si es a crédito genera el cargo en CxP (exige proveedor);
 -- si es en efectivo exige turno abierto. Un producto de inventario además ingresa stock (ENTRADA por COMPRA).
 DROP FUNCTION IF EXISTS gdo_agregar_linea(BIGINT, BIGINT, NUMERIC, NUMERIC, SMALLINT, BIGINT, BIGINT, VARCHAR, BIGINT);
+DROP FUNCTION IF EXISTS gdo_agregar_linea(BIGINT, BIGINT, NUMERIC, NUMERIC, SMALLINT, BIGINT, BIGINT, VARCHAR, BIGINT, p_id_sucursal BIGINT);
 CREATE OR REPLACE FUNCTION gdo_agregar_linea(
     p_id_gasto_dia BIGINT,
     p_id_insumo BIGINT,
@@ -12,7 +13,8 @@ CREATE OR REPLACE FUNCTION gdo_agregar_linea(
     p_observacion VARCHAR DEFAULT NULL,
     p_id_usuario_auditoria BIGINT DEFAULT NULL,
     p_id_producto BIGINT DEFAULT NULL,
-    p_id_almacen BIGINT DEFAULT NULL
+    p_id_almacen BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -30,16 +32,21 @@ DECLARE
     v_id_unidad BIGINT;
     v_id_almacen BIGINT;
     v_id_mov BIGINT;
+    v_id_empresa BIGINT;
 BEGIN
     SET TIME ZONE 'America/Lima';
 
     SELECT id, id_sucursal, id_turno, fecha_gasto, estado
     INTO v_dia
-    FROM gdo_gasto_dia WHERE id = p_id_gasto_dia AND estado = 1;
+    FROM gdo_gasto_dia WHERE id = p_id_gasto_dia AND estado = 1
+      AND (p_id_sucursal IS NULL OR id_sucursal = p_id_sucursal);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'El gasto del día no existe o fue anulado', 'registro', NULL);
     END IF;
+
+    -- Insumos, productos y proveedores son de la empresa de la sucursal del día.
+    SELECT id_empresa INTO v_id_empresa FROM gen_sucursal WHERE id = v_dia.id_sucursal;
 
     IF (p_id_insumo IS NULL) = (p_id_producto IS NULL) THEN
         RETURN json_build_object(
@@ -52,7 +59,8 @@ BEGIN
 
     IF p_id_insumo IS NOT NULL THEN
         SELECT nombre INTO v_nombre_insumo
-        FROM gdo_insumo WHERE id = p_id_insumo AND estado = 1;
+        FROM gdo_insumo WHERE id = p_id_insumo AND estado = 1
+          AND (v_id_empresa IS NULL OR id_empresa = v_id_empresa);
 
         IF v_nombre_insumo IS NULL THEN
             RETURN json_build_object('error', 'El insumo indicado no existe o está inactivo', 'registro', NULL);
@@ -63,7 +71,8 @@ BEGIN
         INTO v_producto
         FROM pro_producto pr
         LEFT JOIN pro_tipo_producto tp ON tp.id = pr.tipo_producto
-        WHERE pr.id = p_id_producto AND pr.estado = 1;
+        WHERE pr.id = p_id_producto AND pr.estado = 1
+          AND (v_id_empresa IS NULL OR pr.id_empresa = v_id_empresa);
 
         IF NOT FOUND THEN
             RETURN json_build_object('error', 'El producto indicado no existe o está inactivo', 'registro', NULL);
@@ -103,6 +112,7 @@ BEGIN
 
         IF v_id_almacen IS NULL OR NOT EXISTS (
             SELECT 1 FROM gen_almacen WHERE id = v_id_almacen AND estado = 1
+              AND (v_dia.id_sucursal IS NULL OR id_sucursal = v_dia.id_sucursal)
         ) THEN
             RETURN json_build_object('error', 'Indique un almacén activo donde ingresar la compra', 'registro', NULL);
         END IF;
@@ -142,6 +152,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM cli_persona
             WHERE id = p_id_proveedor AND estado = 1 AND es_proveedor = TRUE
+              AND (v_id_empresa IS NULL OR id_empresa = v_id_empresa)
         ) THEN
             RETURN json_build_object(
                 'error', 'El proveedor indicado no existe o no está marcado como proveedor',

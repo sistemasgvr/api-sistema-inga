@@ -48,13 +48,13 @@ export class TurnosLogic {
     private readonly notificaciones: NotificacionesLogic,
   ) {}
 
-  async listar(filtros: FiltroTurnosDto) {
-    const result = await this.turnosModel.listar(filtros);
+  async listar(filtros: FiltroTurnosDto, idSucursal: number) {
+    const result = await this.turnosModel.listar(filtros, idSucursal);
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.turnosModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idSucursal: number) {
+    const result = await this.turnosModel.obtenerPorId(id, idSucursal);
     return mapSingleResult(result, `Turno con ID ${id} no encontrado`);
   }
 
@@ -67,8 +67,11 @@ export class TurnosLogic {
    * distinguir las dos cosas para saber si muestra el panel del turno o el
    * formulario de apertura.
    */
-  async obtenerAbiertoPorCajero(idCajero: number) {
-    const result = await this.turnosModel.obtenerAbiertoPorCajero(idCajero);
+  async obtenerAbiertoPorCajero(idCajero: number, idSucursal: number) {
+    const result = await this.turnosModel.obtenerAbiertoPorCajero(
+      idCajero,
+      idSucursal,
+    );
     return { registro: result?.registro ?? null };
   }
 
@@ -77,13 +80,13 @@ export class TurnosLogic {
    * abierta, no hace falta que la haya abierto el usuario. Igual que arriba,
    * `null` no es un error: significa que no hay caja abierta.
    */
-  async obtenerVigente(idUsuario: number, idSucursal: number | null) {
+  async obtenerVigente(idUsuario: number, idSucursal: number) {
     const result = await this.turnosModel.obtenerVigente(idUsuario, idSucursal);
     return { registro: result?.registro ?? null };
   }
 
-  async resumen(id: number) {
-    const result = await this.turnosModel.resumen(id);
+  async resumen(id: number, idSucursal: number) {
+    const result = await this.turnosModel.resumen(id, idSucursal);
 
     if (!result?.registro) {
       throw new NotFoundException(`Turno con ID ${id} no encontrado`);
@@ -92,13 +95,14 @@ export class TurnosLogic {
     return result.registro;
   }
 
-  async abrir(dto: AbrirTurnoDto) {
+  async abrir(dto: AbrirTurnoDto, idSucursal: number) {
     const result = await this.turnosModel.abrir(
       dto.id_caja,
       dto.id_cajero,
       dto.monto_apertura ?? 0,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria,
+      idSucursal,
     );
     return mapSingleResult(result, 'No se pudo abrir el turno');
   }
@@ -109,8 +113,12 @@ export class TurnosLogic {
    * cierre: si no, otro usuario podría pisar el conteo antes de recibir el 403.
    * Un turno ya cerrado pasa: la función SQL responde que ya fue cerrado.
    */
-  private async validarCierre(idTurno: number, idUsuario?: number) {
-    const result = await this.turnosModel.obtenerPorId(idTurno);
+  private async validarCierre(
+    idTurno: number,
+    idUsuario: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.turnosModel.obtenerPorId(idTurno, idSucursal);
     const turno = result?.registro as {
       id_cajero: number;
       nombre_cajero?: string | null;
@@ -140,10 +148,13 @@ export class TurnosLogic {
     }
   }
 
-  async cerrar(id: number, dto: CerrarTurnoDto) {
-    await this.validarCierre(id, dto.idUsuarioAuditoria);
-    const result = await this.turnosModel.cerrar(id, dto);
-    const registro = mapSingleResult(result, `Turno con ID ${id} no encontrado`);
+  async cerrar(id: number, dto: CerrarTurnoDto, idSucursal: number) {
+    await this.validarCierre(id, dto.idUsuarioAuditoria, idSucursal);
+    const result = await this.turnosModel.cerrar(id, dto, idSucursal);
+    const registro = mapSingleResult(
+      result,
+      `Turno con ID ${id} no encontrado`,
+    );
     const turno = registro as {
       nombre_caja?: string;
       nombre_cajero?: string;
@@ -165,6 +176,7 @@ export class TurnosLogic {
               severidad: 'warning',
               ruta: RutasNotificacion.turno(id),
               idReferencia: id,
+              idSucursal,
             }
           : {
               canal: 'caja',
@@ -173,25 +185,39 @@ export class TurnosLogic {
               severidad: 'info',
               ruta: RutasNotificacion.turno(id),
               idReferencia: id,
+              idSucursal,
             },
       )
       ?.catch(() => undefined);
     return registro;
   }
 
-  async registrarMovimiento(idTurno: number, dto: CreateMovimientoDto) {
-    const result = await this.turnosModel.registrarMovimiento(idTurno, dto);
+  async registrarMovimiento(
+    idTurno: number,
+    dto: CreateMovimientoDto,
+    idSucursal: number,
+  ) {
+    const result = await this.turnosModel.registrarMovimiento(
+      idTurno,
+      dto,
+      idSucursal,
+    );
     return mapSingleResult(result, 'No se pudo registrar el movimiento');
   }
 
-  async listarMovimientos(idTurno: number) {
-    return await this.turnosModel.listarMovimientos(idTurno);
+  async listarMovimientos(idTurno: number, idSucursal: number) {
+    return await this.turnosModel.listarMovimientos(idTurno, idSucursal);
   }
 
-  async anularMovimiento(id: number, idUsuarioAuditoria?: number) {
+  async anularMovimiento(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     const result = await this.turnosModel.anularMovimiento(
       id,
       idUsuarioAuditoria,
+      idSucursal,
     );
     return mapDeleteResult(
       result,
@@ -199,12 +225,17 @@ export class TurnosLogic {
     );
   }
 
-  async guardarArqueo(idTurno: number, dto: GuardarArqueoDto) {
-    await this.validarCierre(idTurno, dto.idUsuarioAuditoria);
+  async guardarArqueo(
+    idTurno: number,
+    dto: GuardarArqueoDto,
+    idSucursal: number,
+  ) {
+    await this.validarCierre(idTurno, dto.idUsuarioAuditoria, idSucursal);
     const result = await this.turnosModel.guardarArqueo(
       idTurno,
       dto.detalle,
       dto.idUsuarioAuditoria,
+      idSucursal,
     );
     return mapSingleResult(result, `Turno con ID ${idTurno} no encontrado`);
   }

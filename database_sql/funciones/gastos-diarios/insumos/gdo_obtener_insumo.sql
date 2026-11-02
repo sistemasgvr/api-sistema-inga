@@ -26,7 +26,6 @@ BEGIN
                 SELECT COUNT(*)
                 FROM gdo_gasto_detalle d
                 WHERE d.id_insumo = i.id AND d.estado = 1
-                  AND (p_id_empresa IS NULL OR d.id_empresa = p_id_empresa)
             ) AS veces_comprado,
             i.fecha_creacion,
             i.fecha_modificacion

@@ -31,7 +31,8 @@ BEGIN
 
     SELECT COALESCE(p_id_sucursal, id_sucursal) INTO v_id_sucursal
     FROM gen_estacion
-    WHERE id = p_id AND estado = 1;
+    WHERE id = p_id AND estado = 1
+      AND (p_id_sucursal IS NULL OR id_sucursal = p_id_sucursal);
 
     IF v_id_sucursal IS NULL THEN
         RETURN json_build_object('error', 'La estación no existe o está inactiva', 'registro', NULL);

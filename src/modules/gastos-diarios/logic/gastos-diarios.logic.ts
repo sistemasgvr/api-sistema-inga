@@ -31,7 +31,6 @@ export class GastosDiariosLogic {
     return await this.model.listarInsumos(filtros, idEmpresa);
   }
 
-
   async listarProductosInventario(filtros: FiltroProductosInventarioDto) {
     return await this.model.listarProductosInventario(filtros);
   }
@@ -46,13 +45,25 @@ export class GastosDiariosLogic {
     return mapSingleResult(result, 'No se pudo crear el insumo');
   }
 
-  async actualizarInsumo(id: number, dto: UpdateInsumoDto, idEmpresa?: number | null) {
+  async actualizarInsumo(
+    id: number,
+    dto: UpdateInsumoDto,
+    idEmpresa?: number | null,
+  ) {
     const result = await this.model.actualizarInsumo(id, dto, idEmpresa);
     return mapSingleResult(result, `Insumo con ID ${id} no encontrado`);
   }
 
-  async toggleInsumo(id: number, idUsuarioAuditoria?: number, idEmpresa?: number | null) {
-    const result = await this.model.toggleInsumo(id, idUsuarioAuditoria, idEmpresa);
+  async toggleInsumo(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.toggleInsumo(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapDeleteResult(result, `Insumo con ID ${id} no encontrado`);
   }
 
@@ -63,18 +74,26 @@ export class GastosDiariosLogic {
     return mapSingleResult(result, 'No se pudo abrir el gasto del día');
   }
 
-  async obtenerDia(id: number, idEmpresa?: number | null) {
-    const result = await this.model.obtenerDia(id, idEmpresa);
+  async obtenerDia(id: number, idEmpresa: number | null, idSucursal: number) {
+    const result = await this.model.obtenerDia(id, idEmpresa, idSucursal);
     return mapSingleResult(result, `Gasto del día con ID ${id} no encontrado`);
   }
 
-  async listarDias(filtros: FiltroDiasDto, idEmpresa?: number | null) {
-    const result = await this.model.listarDias(filtros, idEmpresa);
+  async listarDias(
+    filtros: FiltroDiasDto,
+    idEmpresa: number | null,
+    idSucursal: number,
+  ) {
+    const result = await this.model.listarDias(filtros, idEmpresa, idSucursal);
     return mapListResult(result, filtros);
   }
 
-  async agregarLinea(idGastoDia: number, dto: CreateLineaDto) {
-    const result = await this.model.agregarLinea(idGastoDia, dto);
+  async agregarLinea(
+    idGastoDia: number,
+    dto: CreateLineaDto,
+    idSucursal: number,
+  ) {
+    const result = await this.model.agregarLinea(idGastoDia, dto, idSucursal);
     const registro = mapSingleResult(result, 'No se pudo agregar la compra');
     this.notificaciones
       .emitir({
@@ -84,6 +103,7 @@ export class GastosDiariosLogic {
         severidad: 'info',
         ruta: RutasNotificacion.gastosDiarios(),
         idReferencia: (registro as { id?: number })?.id ?? null,
+        idSucursal,
       })
       ?.catch(() => undefined);
     // Una compra con inventario mueve stock: la alerta de mínimo sale al instante.
@@ -91,11 +111,20 @@ export class GastosDiariosLogic {
     return registro;
   }
 
-  async anularLinea(id: number, motivo?: string, idUsuarioAuditoria?: number) {
-    const result = await this.model.anularLinea(id, motivo, idUsuarioAuditoria);
+  async anularLinea(
+    id: number,
+    motivo: string | undefined,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.model.anularLinea(
+      id,
+      motivo,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
     return mapSingleResult(result, `Línea con ID ${id} no encontrada`);
   }
-
 
   async reporteDia(filtros: FiltroReporteDiaDto) {
     const result = await this.model.reporteDia(filtros);

@@ -46,15 +46,15 @@ BEGIN
   IF tipo = 3 THEN documento := ''; END IF;
 
   IF tipo = 2 THEN
-    SELECT * INTO persona FROM cli_persona WHERE num_documento = documento AND estado = 1 AND es_cliente;
+    SELECT * INTO persona FROM cli_persona WHERE id_empresa = anterior.id_empresa AND num_documento = documento AND estado = 1 AND es_cliente;
     IF NOT FOUND OR NULLIF(btrim(persona.razon_social), '') IS NULL THEN
       RAISE EXCEPTION 'Registre al cliente con su RUC y razón social para facturar';
     END IF;
   ELSIF documento = '' THEN
-    SELECT * INTO persona FROM cli_persona WHERE tipo_documento = 1 AND num_documento = '00000000' AND estado = 1;
+    SELECT * INTO persona FROM cli_persona WHERE id_empresa = anterior.id_empresa AND tipo_documento = 1 AND num_documento = '00000000' AND estado = 1;
     IF NOT FOUND THEN RAISE EXCEPTION 'Registre el cliente "Clientes varios" (DNI 00000000) para emitir sin documento'; END IF;
   ELSE
-    SELECT * INTO persona FROM cli_persona WHERE tipo_documento = 1 AND num_documento = documento AND estado = 1 AND es_cliente;
+    SELECT * INTO persona FROM cli_persona WHERE id_empresa = anterior.id_empresa AND tipo_documento = 1 AND num_documento = documento AND estado = 1 AND es_cliente;
   END IF;
 
   SELECT * INTO correlativo FROM gen_correlativo WHERE id_empresa = anterior.id_empresa AND tipo_documento = tipo AND estado = 1

@@ -7,13 +7,23 @@ DROP FUNCTION IF EXISTS caj_registrar_movimiento(
     p_id_usuario_autoriza BIGINT,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS caj_registrar_movimiento(
+    p_id_turno BIGINT,
+    p_tipo_movimiento SMALLINT,
+    p_monto NUMERIC,
+    p_motivo VARCHAR,
+    p_id_usuario_autoriza BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_id_sucursal BIGINT
+);
 CREATE OR REPLACE FUNCTION caj_registrar_movimiento(
     p_id_turno BIGINT,
     p_tipo_movimiento SMALLINT,
     p_monto NUMERIC,
     p_motivo VARCHAR,
     p_id_usuario_autoriza BIGINT DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_sucursal BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -29,7 +39,8 @@ BEGIN
     v_motivo := NULLIF(TRIM(p_motivo), '');
 
     SELECT estado_turno INTO v_estado_turno
-    FROM caj_turno WHERE id = p_id_turno AND estado = 1;
+    FROM caj_turno WHERE id = p_id_turno AND estado = 1
+      AND caj_turno_de_sucursal(id, p_id_sucursal);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'El turno no existe o fue anulado', 'registro', NULL);

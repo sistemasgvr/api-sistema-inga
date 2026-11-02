@@ -26,7 +26,8 @@ IF v_tipo IS NULL OR v_tipo NOT IN (1,2,3) THEN RAISE EXCEPTION 'Tipo de pedido 
   IF NOT EXISTS(SELECT 1 FROM gen_sucursal WHERE id = v_sucursal AND estado = 1) THEN RAISE EXCEPTION 'Seleccione una sucursal activa'; END IF;
   IF NOT EXISTS(SELECT 1 FROM auth_usuario_datos WHERE id = v_mozo AND estado = 1) THEN RAISE EXCEPTION 'Seleccione un mozo activo'; END IF;
   IF COALESCE((p_datos->>'num_comensales')::INTEGER,1) <= 0 THEN RAISE EXCEPTION 'Número de comensales inválido'; END IF;
-  IF v_persona IS NOT NULL AND NOT EXISTS(SELECT 1 FROM cli_persona WHERE id = v_persona AND estado = 1 AND es_cliente) THEN
+  IF v_persona IS NOT NULL AND NOT EXISTS(SELECT 1 FROM cli_persona WHERE id = v_persona AND estado = 1 AND es_cliente
+    AND id_empresa = (SELECT id_empresa FROM gen_sucursal WHERE id = v_sucursal)) THEN
     RAISE EXCEPTION 'El cliente no existe, está inactivo o no está marcado como cliente';
   END IF;
   -- El mozo no abre caja: basta un turno abierto de la sucursal. Si se envía

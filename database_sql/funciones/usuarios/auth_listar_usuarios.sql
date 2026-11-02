@@ -4,11 +4,19 @@ DROP FUNCTION IF EXISTS auth_listar_usuarios(
     p_offset INTEGER,
     p_estado INT
 );
+DROP FUNCTION IF EXISTS auth_listar_usuarios(
+    p_busqueda VARCHAR,
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_estado INT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_listar_usuarios(
     p_busqueda VARCHAR DEFAULT '',
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
-    p_estado INT DEFAULT NULL
+    p_estado INT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -28,7 +36,8 @@ BEGIN
         COUNT(*) FILTER (WHERE u.estado = 0)
     INTO v_cant_total, v_cant_activos, v_cant_inactivos
     FROM auth_usuario_datos u
-    WHERE (
+    WHERE (p_id_empresa IS NULL OR u.id_empresa = p_id_empresa)
+      AND (
         p_busqueda = ''
         OR LOWER(u.username) LIKE LOWER('%' || p_busqueda || '%')
         OR LOWER(u.email) LIKE LOWER('%' || p_busqueda || '%')
@@ -39,6 +48,7 @@ BEGIN
     SELECT COUNT(*) INTO v_total
     FROM auth_usuario_datos u
     WHERE (p_estado IS NULL OR u.estado = p_estado)
+      AND (p_id_empresa IS NULL OR u.id_empresa = p_id_empresa)
       AND (
           p_busqueda = ''
           OR LOWER(u.username) LIKE LOWER('%' || p_busqueda || '%')
@@ -76,6 +86,7 @@ BEGIN
             ) AS roles
         FROM auth_usuario_datos u
         WHERE (p_estado IS NULL OR u.estado = p_estado)
+          AND (p_id_empresa IS NULL OR u.id_empresa = p_id_empresa)
           AND (
               p_busqueda = ''
               OR LOWER(u.username) LIKE LOWER('%' || p_busqueda || '%')

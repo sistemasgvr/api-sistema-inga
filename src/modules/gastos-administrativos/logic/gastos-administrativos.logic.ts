@@ -34,35 +34,61 @@ export class GastosAdministrativosLogic {
    * (las que el cliente configure) y el formulario de gasto necesita el árbol
    * entero para armar su selector agrupado.
    */
-  async listarCategorias(filtros: FiltroCategoriasGastoDto) {
-    return await this.model.listarCategorias(filtros);
+  async listarCategorias(
+    filtros: FiltroCategoriasGastoDto,
+    idEmpresa?: number | null,
+  ) {
+    return await this.model.listarCategorias(filtros, idEmpresa);
   }
 
-  async obtenerCategoria(id: number) {
-    const result = await this.model.obtenerCategoria(id);
+  async obtenerCategoria(id: number, idEmpresa?: number | null) {
+    const result = await this.model.obtenerCategoria(id, idEmpresa);
     return mapSingleResult(result, `Categoría con ID ${id} no encontrada`);
   }
 
-  async crearCategoria(dto: CreateCategoriaGastoDto) {
-    const result = await this.model.crearCategoria(dto);
+  async crearCategoria(
+    dto: CreateCategoriaGastoDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.crearCategoria(dto, idEmpresa);
     return mapSingleResult(result, 'No se pudo crear la categoría');
   }
 
-  async actualizarCategoria(id: number, dto: UpdateCategoriaGastoDto) {
-    const result = await this.model.actualizarCategoria(id, dto);
+  async actualizarCategoria(
+    id: number,
+    dto: UpdateCategoriaGastoDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.actualizarCategoria(id, dto, idEmpresa);
     return mapSingleResult(result, `Categoría con ID ${id} no encontrada`);
   }
 
-  async eliminarCategoria(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.model.eliminarCategoria(id, idUsuarioAuditoria);
+  async eliminarCategoria(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.eliminarCategoria(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapDeleteResult(
       result,
       `Categoría con ID ${id} no encontrada o ya inactiva`,
     );
   }
 
-  async activarCategoria(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.model.activarCategoria(id, idUsuarioAuditoria);
+  async activarCategoria(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.activarCategoria(
+      id,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
     return mapActivateResult(
       result,
       `Categoría con ID ${id} no encontrada o ya activa`,
@@ -71,18 +97,18 @@ export class GastosAdministrativosLogic {
 
   /* -------------------------------- Gastos -------------------------------- */
 
-  async listarGastos(filtros: FiltroGastosDto) {
-    const result = await this.model.listarGastos(filtros);
+  async listarGastos(filtros: FiltroGastosDto, idEmpresa?: number | null) {
+    const result = await this.model.listarGastos(filtros, idEmpresa);
     return mapListResult(result, filtros);
   }
 
-  async obtenerGasto(id: number) {
-    const result = await this.model.obtenerGasto(id);
+  async obtenerGasto(id: number, idEmpresa?: number | null) {
+    const result = await this.model.obtenerGasto(id, idEmpresa);
     return mapSingleResult(result, `Gasto con ID ${id} no encontrado`);
   }
 
-  async registrarGasto(dto: CreateGastoDto) {
-    const result = await this.model.registrarGasto(dto);
+  async registrarGasto(dto: CreateGastoDto, idEmpresa?: number | null) {
+    const result = await this.model.registrarGasto(dto, idEmpresa);
     const registro = mapSingleResult(result, 'No se pudo registrar el gasto');
     const gasto = registro as {
       id?: number;
@@ -99,19 +125,37 @@ export class GastosAdministrativosLogic {
         severidad: 'info',
         ruta: RutasNotificacion.gastos(),
         idReferencia: gasto?.id ?? null,
+        idEmpresa,
       })
       ?.catch(() => undefined);
     return registro;
   }
 
-  async actualizarGasto(id: number, dto: UpdateGastoDto) {
-    const result = await this.model.actualizarGasto(id, dto);
+  async actualizarGasto(
+    id: number,
+    dto: UpdateGastoDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.actualizarGasto(id, dto, idEmpresa);
     return mapSingleResult(result, `Gasto con ID ${id} no encontrado`);
   }
 
-  async anularGasto(id: number, motivo?: string, idUsuarioAuditoria?: number) {
-    const result = await this.model.anularGasto(id, motivo, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Gasto con ID ${id} no encontrado o ya anulado`);
+  async anularGasto(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.anularGasto(
+      id,
+      motivo,
+      idUsuarioAuditoria,
+      idEmpresa,
+    );
+    return mapDeleteResult(
+      result,
+      `Gasto con ID ${id} no encontrado o ya anulado`,
+    );
   }
 
   /**
@@ -119,8 +163,11 @@ export class GastosAdministrativosLogic {
    * totales en cero. Por eso no uso `mapSingleResult`, que lanzaría un 404
    * donde la respuesta correcta es "cero".
    */
-  async reporteMensual(filtros: FiltroReporteMensualDto) {
-    const result = await this.model.reporteMensual(filtros);
+  async reporteMensual(
+    filtros: FiltroReporteMensualDto,
+    idEmpresa?: number | null,
+  ) {
+    const result = await this.model.reporteMensual(filtros, idEmpresa);
 
     if (!result?.registro) {
       throw new NotFoundException('No se pudo generar el reporte del mes');

@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.alm_alerta_stock()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
   v_actual NUMERIC; v_minimo NUMERIC; v_nivel SMALLINT; v_previo SMALLINT;
-  v_nombre TEXT; v_simbolo TEXT;
+  v_nombre TEXT; v_simbolo TEXT; v_empresa BIGINT;
 BEGIN
   IF NEW.stock_actual IS NOT DISTINCT FROM OLD.stock_actual
      AND NEW.stock_minimo IS NOT DISTINCT FROM OLD.stock_minimo
@@ -39,7 +39,7 @@ BEGIN
 
   IF v_nivel < v_previo THEN RETURN NULL; END IF;
 
-  SELECT p.nombre, um.simbolo INTO v_nombre, v_simbolo
+  SELECT p.nombre, um.simbolo, p.id_empresa INTO v_nombre, v_simbolo, v_empresa
   FROM pro_producto p
   LEFT JOIN pro_unidad_medida um ON um.id = p.id_unidad_medida
   WHERE p.id = NEW.id_producto AND p.estado = 1;
@@ -60,7 +60,8 @@ BEGIN
     NULL,
     NULL,
     jsonb_build_object('id_producto', NEW.id_producto, 'stock_actual', v_actual, 'stock_minimo', v_minimo),
-    FALSE
+    FALSE,
+    v_empresa
   );
   RETURN NULL;
 END; $$;

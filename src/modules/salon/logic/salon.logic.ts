@@ -10,17 +10,24 @@ import { RecursoSalon, SalonModel } from '../models/salon.model';
 export class SalonLogic {
   constructor(private readonly model: SalonModel) {}
 
-  sucursales() {
-    return this.model.sucursales();
+  sucursales(idSucursal: number) {
+    return this.model.sucursales(idSucursal);
   }
 
-  async listar(recurso: RecursoSalon, filtros: FiltroSalonDto) {
-    return mapListResult(await this.model.listar(recurso, filtros), filtros);
+  async listar(
+    recurso: RecursoSalon,
+    filtros: FiltroSalonDto,
+    idSucursal: number,
+  ) {
+    return mapListResult(
+      await this.model.listar(recurso, filtros, idSucursal),
+      filtros,
+    );
   }
 
-  async obtener(recurso: RecursoSalon, id: number) {
+  async obtener(recurso: RecursoSalon, id: number, idSucursal: number) {
     return mapSingleResult(
-      await this.model.obtener(recurso, id),
+      await this.model.obtener(recurso, id, idSucursal),
       'Registro no encontrado',
     );
   }
@@ -30,9 +37,10 @@ export class SalonLogic {
     id: number | null,
     dto: object,
     usuario: number,
+    idSucursal: number,
   ) {
     return mapSingleResult(
-      await this.model.guardar(recurso, id, dto, usuario),
+      await this.model.guardar(recurso, id, dto, usuario, idSucursal),
       'Registro no encontrado o inactivo',
     );
   }
@@ -42,9 +50,10 @@ export class SalonLogic {
     id: number,
     estado: number,
     usuario: number,
+    idSucursal: number,
   ) {
     return mapSingleResult(
-      await this.model.estado(recurso, id, estado, usuario),
+      await this.model.estado(recurso, id, estado, usuario, idSucursal),
       'Registro no encontrado',
     );
   }

@@ -26,6 +26,12 @@ export interface NotificacionEmitida {
   leida: boolean;
 }
 
+/** Empresa y sucursal a las que pertenece un aviso (null = sin restricción). */
+export interface AmbitoNotificacion {
+  idEmpresa?: number | null;
+  idSucursal?: number | null;
+}
+
 interface ClienteInfo {
   user: AuthenticatedUser;
   canales: Set<string>;
@@ -99,12 +105,22 @@ export class NotificacionesGateway
   /**
    * Con destinatarios, solo les llega a ellos; si no, a los suscritos al canal.
    */
-  emitirNotificacion(notif: NotificacionEmitida, idsUsuario?: number[] | null) {
+  emitirNotificacion(
+    notif: NotificacionEmitida,
+    idsUsuario?: number[] | null,
+    ambito: AmbitoNotificacion = {},
+  ) {
     const dirigida = Boolean(idsUsuario?.length);
     for (const [socket, info] of this.clients) {
-      const llega = dirigida
-        ? idsUsuario!.includes(info.user.id)
-        : info.canales.has(notif.canal);
+      // Un aviso de otra empresa o de otra sucursal no se envía.
+      const enAmbito =
+        (!ambito.idEmpresa || info.user.id_empresa === ambito.idEmpresa) &&
+        (!ambito.idSucursal || info.user.id_sucursal === ambito.idSucursal);
+      const llega =
+        enAmbito &&
+        (dirigida
+          ? idsUsuario!.includes(info.user.id)
+          : info.canales.has(notif.canal));
       if (llega) socket.emit('notificacion:nueva', notif);
     }
   }

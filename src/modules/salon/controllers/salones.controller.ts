@@ -21,6 +21,10 @@ import {
   FiltroSalonDto,
 } from '../dto/salon.dto';
 import { SalonLogic } from '../logic/salon.logic';
+import {
+  SucursalSesion,
+  sucursalDe,
+} from '../../../common/decorators/sesion-empresa.decorator';
 
 type AuthRequest = Request & { user: AuthenticatedUser };
 
@@ -32,29 +36,41 @@ export class SalonesController {
   @Get('sucursales')
   @Permisos(PermisoBanderas.AMBIENTES_LISTAR)
   @ApiOperation({ summary: 'Sucursales activas para el selector de ambientes' })
-  sucursales() {
-    return this.logic.sucursales();
+  sucursales(@SucursalSesion() idSucursal: number) {
+    return this.logic.sucursales(idSucursal);
   }
 
   @Get()
   @Permisos(PermisoBanderas.AMBIENTES_LISTAR)
   @ApiOperation({ summary: 'Listar salones con filtros y paginación' })
-  listar(@Query() filtros: FiltroSalonDto) {
-    return this.logic.listar('salon', filtros);
+  listar(
+    @Query() filtros: FiltroSalonDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.listar('salon', filtros, idSucursal);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.AMBIENTES_LISTAR)
   @ApiOperation({ summary: 'Obtener salon' })
-  obtener(@Param('id', ParseIntPipe) id: number) {
-    return this.logic.obtener('salon', id);
+  obtener(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.logic.obtener('salon', id, idSucursal);
   }
 
   @Post()
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Crear salon' })
   crear(@Body() dto: CreateSalonDto, @Req() req: AuthRequest) {
-    return this.logic.guardar('salon', null, dto, req.user.id);
+    return this.logic.guardar(
+      'salon',
+      null,
+      dto,
+      req.user.id,
+      sucursalDe(req.user),
+    );
   }
 
   @Patch(':id')
@@ -65,20 +81,26 @@ export class SalonesController {
     @Body() dto: UpdateSalonDto,
     @Req() req: AuthRequest,
   ) {
-    return this.logic.guardar('salon', id, dto, req.user.id);
+    return this.logic.guardar(
+      'salon',
+      id,
+      dto,
+      req.user.id,
+      sucursalDe(req.user),
+    );
   }
 
   @Delete(':id')
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Desactivar salon (baja lógica)' })
   eliminar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
-    return this.logic.estado('salon', id, 0, req.user.id);
+    return this.logic.estado('salon', id, 0, req.user.id, sucursalDe(req.user));
   }
 
   @Patch(':id/activar')
   @Permisos(PermisoBanderas.AMBIENTES_GESTIONAR)
   @ApiOperation({ summary: 'Reactivar salon' })
   activar(@Param('id', ParseIntPipe) id: number, @Req() req: AuthRequest) {
-    return this.logic.estado('salon', id, 1, req.user.id);
+    return this.logic.estado('salon', id, 1, req.user.id, sucursalDe(req.user));
   }
 }

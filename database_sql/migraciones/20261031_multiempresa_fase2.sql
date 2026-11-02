@@ -200,6 +200,17 @@ BEGIN
 END $mig$;
 
 -- Cliente genérico para boletas sin DNI y notas de venta.
+-- Desde la fase 3 (cli_persona.id_empresa) lo crea por empresa esa migración.
 INSERT INTO cli_persona (tipo_persona, tipo_documento, num_documento, razon_social, nombres, es_cliente)
-VALUES (1, 1, '00000000', 'CLIENTES VARIOS', 'CLIENTES VARIOS', TRUE)
-ON CONFLICT ON CONSTRAINT uq_cli_persona_doc DO UPDATE SET es_cliente = TRUE, estado = 1;
+SELECT 1, 1, '00000000', 'CLIENTES VARIOS', 'CLIENTES VARIOS', TRUE
+WHERE NOT EXISTS (
+    SELECT 1 FROM cli_persona
+    WHERE tipo_documento = 1 AND num_documento = '00000000'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'cli_persona' AND column_name = 'id_empresa'
+);
+UPDATE cli_persona
+SET es_cliente = TRUE, estado = 1
+WHERE tipo_documento = 1 AND num_documento = '00000000';

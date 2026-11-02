@@ -3,10 +3,17 @@ DROP FUNCTION IF EXISTS auth_asignar_roles_usuario(
     p_ids_roles BIGINT[],
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_asignar_roles_usuario(
+    p_id_usuario BIGINT,
+    p_ids_roles BIGINT[],
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_asignar_roles_usuario(
     p_id_usuario BIGINT,
     p_ids_roles BIGINT[],
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -16,8 +23,22 @@ DECLARE
 BEGIN
     PERFORM set_config('timezone', 'America/Lima', true);
 
-    IF NOT EXISTS (SELECT 1 FROM auth_usuario_datos WHERE id = p_id_usuario AND estado = 1) THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM auth_usuario_datos
+        WHERE id = p_id_usuario AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
+    ) THEN
         RETURN json_build_object('error', 'El usuario especificado no existe o está inactivo', 'registro', NULL);
+    END IF;
+
+    -- Solo roles globales o de la empresa de la sesión.
+    IF p_id_empresa IS NOT NULL AND EXISTS (
+        SELECT 1
+        FROM unnest(p_ids_roles) AS x(id_rol)
+        LEFT JOIN auth_rol r ON r.id = x.id_rol
+        WHERE r.id IS NULL OR (r.id_empresa IS NOT NULL AND r.id_empresa <> p_id_empresa)
+    ) THEN
+        RETURN json_build_object('error', 'Alguno de los roles no existe o pertenece a otra empresa', 'registro', NULL);
     END IF;
 
     UPDATE auth_usuario_rol

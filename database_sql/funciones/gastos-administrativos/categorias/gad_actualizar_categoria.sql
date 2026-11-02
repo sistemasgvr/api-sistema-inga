@@ -7,12 +7,21 @@ DROP FUNCTION IF EXISTS gad_actualizar_categoria(
     p_orden INTEGER,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_actualizar_categoria(
+    p_id BIGINT,
+    p_nombre VARCHAR,
+    p_tipo_gasto SMALLINT,
+    p_orden INTEGER,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_actualizar_categoria(
     p_id BIGINT,
     p_nombre VARCHAR DEFAULT NULL,
     p_tipo_gasto SMALLINT DEFAULT NULL,
     p_orden INTEGER DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -26,9 +35,10 @@ BEGIN
 
     v_nombre := NULLIF(TRIM(p_nombre), '');
 
-    SELECT id, id_categoria_padre, tipo_gasto
+    SELECT id, id_empresa, id_categoria_padre, tipo_gasto
     INTO v_actual
-    FROM gad_categoria WHERE id = p_id AND estado = 1;
+    FROM gad_categoria WHERE id = p_id AND estado = 1
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'La categoría no existe o está inactiva', 'registro', NULL);
@@ -37,6 +47,7 @@ BEGIN
     IF v_nombre IS NOT NULL AND EXISTS (
         SELECT 1 FROM gad_categoria
         WHERE estado = 1
+          AND id_empresa IS NOT DISTINCT FROM v_actual.id_empresa
           AND id_categoria_padre IS NOT DISTINCT FROM v_actual.id_categoria_padre
           AND LOWER(nombre) = LOWER(v_nombre)
           AND id <> p_id

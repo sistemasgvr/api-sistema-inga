@@ -7,7 +7,7 @@ DECLARE v ven_pedido%ROWTYPE; t BIGINT; persona cli_persona%ROWTYPE; convenio cl
   pago BIGINT; comprobante BIGINT; correlativo gen_correlativo%ROWTYPE; resultado JSON; v_empresa BIGINT;
   credito BOOLEAN:=COALESCE((p_datos->>'credito')::BOOLEAN,FALSE); monto_credito NUMERIC; excedente NUMERIC:=0; disponible NUMERIC;
 BEGIN
-  v:=ven_bloquear_pedido(p_id);
+  v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
   IF v.estado_pedido=4 THEN RETURN ven_obtener_pedido(p_id); END IF;
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite cobros'; END IF;
   IF EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido=p_id AND estado=1 AND tipo_linea<>3
@@ -26,11 +26,14 @@ BEGIN
     WHERE ct.estado=1 AND ct.estado_turno=1 AND c.estado=1 AND c.id_sucursal=v.id_sucursal
     ORDER BY (ct.id_cajero=p_usuario) DESC, ct.id DESC LIMIT 1 FOR SHARE OF ct,c;
   IF t IS NULL THEN RAISE EXCEPTION 'No hay una caja abierta en esta sucursal para cobrar'; END IF;
+  -- Clientes y series son de la empresa dueña de la sucursal del pedido.
+  SELECT s.id_empresa INTO v_empresa FROM gen_sucursal s WHERE s.id=v.id_sucursal;
+  IF v_empresa IS NULL THEN RAISE EXCEPTION 'La sucursal del pedido no tiene empresa'; END IF;
   IF credito THEN
     IF COALESCE(p_datos->>'documento','') !~ '^[0-9]{8}$' THEN RAISE EXCEPTION 'Ingrese el DNI de ocho dígitos del cliente'; END IF;
-    SELECT * INTO persona FROM cli_persona WHERE num_documento=p_datos->>'documento' AND tipo_documento=1 AND estado=1 AND es_cliente FOR UPDATE;
+    SELECT * INTO persona FROM cli_persona WHERE id_empresa=v_empresa AND num_documento=p_datos->>'documento' AND tipo_documento=1 AND estado=1 AND es_cliente FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'El DNI no corresponde a un cliente registrado'; END IF;
-    SELECT * INTO convenio FROM cli_convenio WHERE id=persona.id_convenio AND estado=1 FOR SHARE;
+    SELECT * INTO convenio FROM cli_convenio WHERE id=persona.id_convenio AND id_empresa=v_empresa AND estado=1 FOR SHARE;
     IF NOT FOUND THEN RAISE EXCEPTION 'El cliente necesita un convenio activo'; END IF;
     -- limite_credito es el techo de la DEUDA: a crédito entra solo lo que falta para el tope y el resto
     -- se cobra en efectivo. Un límite 0/NULL es SIN TOPE (cuenta de consorcio). La persona ya está
@@ -54,18 +57,16 @@ BEGIN
     IF tipo=2 AND COALESCE(p_datos->>'documento','') !~ '^[0-9]{11}$' THEN RAISE EXCEPTION 'La factura requiere RUC de once dígitos'; END IF;
     IF tipo=1 AND COALESCE(p_datos->>'documento','') !~ '^([0-9]{8})?$' THEN RAISE EXCEPTION 'El DNI debe tener ocho dígitos'; END IF;
     IF tipo=2 THEN
-      SELECT * INTO persona FROM cli_persona WHERE num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
+      SELECT * INTO persona FROM cli_persona WHERE id_empresa=v_empresa AND num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
       IF NOT FOUND OR NULLIF(btrim(persona.razon_social),'') IS NULL THEN RAISE EXCEPTION 'Registre al cliente con su RUC y razón social para facturar'; END IF;
     ELSIF COALESCE(p_datos->>'documento','')='' THEN
       -- Boleta sin DNI y nota de venta se emiten a "Clientes varios" (DNI 00000000).
-      SELECT * INTO persona FROM cli_persona WHERE tipo_documento=1 AND num_documento='00000000' AND estado=1;
+      SELECT * INTO persona FROM cli_persona WHERE id_empresa=v_empresa AND tipo_documento=1 AND num_documento='00000000' AND estado=1;
       IF NOT FOUND THEN RAISE EXCEPTION 'Registre el cliente "Clientes varios" (DNI 00000000) para cobrar sin documento'; END IF;
     ELSE
       -- Boleta con DNI: se vincula al cliente si está registrado; si no, queda solo el DNI.
-      SELECT * INTO persona FROM cli_persona WHERE tipo_documento=1 AND num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
+      SELECT * INTO persona FROM cli_persona WHERE id_empresa=v_empresa AND tipo_documento=1 AND num_documento=p_datos->>'documento' AND estado=1 AND es_cliente;
     END IF;
-    SELECT s.id_empresa INTO v_empresa FROM gen_sucursal s WHERE s.id=v.id_sucursal;
-    IF v_empresa IS NULL THEN RAISE EXCEPTION 'La sucursal del pedido no tiene empresa'; END IF;
     SELECT * INTO correlativo FROM gen_correlativo WHERE id_empresa=v_empresa AND tipo_documento=tipo AND estado=1
       ORDER BY id LIMIT 1 FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Configure la serie del comprobante de la empresa antes de cobrar'; END IF;

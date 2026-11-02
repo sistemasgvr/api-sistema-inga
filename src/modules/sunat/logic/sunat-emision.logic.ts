@@ -270,10 +270,11 @@ export class SunatEmisionLogic {
 
   /** Aviso en el canal de ventas; un fallo de notificación no afecta al envío. */
   async avisar(
-    c: Pick<ComprobanteEstado, 'id' | 'idPedido'> | null,
+    c: Pick<ComprobanteEstado, 'id' | 'idPedido' | 'idEmpresa'> | null,
     titulo: string,
     mensaje: string,
     severidad: SeveridadNotificacion,
+    idEmpresa?: number | null,
   ) {
     try {
       await this.notificaciones.emitir({
@@ -283,6 +284,7 @@ export class SunatEmisionLogic {
         severidad,
         ruta: c ? RutasNotificacion.venta(c.idPedido) : '/ventas',
         idReferencia: c?.id ?? null,
+        idEmpresa: c?.idEmpresa ?? idEmpresa ?? null,
       });
     } catch (error) {
       this.logger.warn(

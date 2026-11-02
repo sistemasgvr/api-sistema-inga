@@ -34,56 +34,83 @@ export class GastosAdministrativosModel {
 
   /* ------------------------------ Categorías ------------------------------ */
 
-  listarCategorias(filtros: FiltroCategoriasGastoDto) {
+  listarCategorias(
+    filtros: FiltroCategoriasGastoDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<{ registros: unknown[]; resumen: unknown }>(
       'gad_listar_categorias',
-      [filtros.tipo_gasto ?? null, this.resolveEstadoFiltro(filtros.estado)],
+      [
+        filtros.tipo_gasto ?? null,
+        this.resolveEstadoFiltro(filtros.estado),
+        idEmpresa ?? null,
+      ],
     );
   }
 
-  obtenerCategoria(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gad_obtener_categoria', [id]);
+  obtenerCategoria(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('gad_obtener_categoria', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
-  crearCategoria(dto: CreateCategoriaGastoDto) {
+  crearCategoria(dto: CreateCategoriaGastoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_crear_categoria', [
       dto.nombre,
       dto.tipo_gasto ?? 1,
       dto.id_categoria_padre ?? null,
       dto.orden ?? 0,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  actualizarCategoria(id: number, dto: UpdateCategoriaGastoDto) {
-    return this.db.callFunctionJson<AuthSingleResult>('gad_actualizar_categoria', [
-      id,
-      dto.nombre ?? null,
-      dto.tipo_gasto ?? null,
-      // `?? null` y no `|| null`: un orden de 0 es válido y con `||` se
-      // convertiría en null, dejando el valor anterior sin cambiar.
-      dto.orden ?? null,
-      dto.idUsuarioAuditoria ?? null,
-    ]);
+  actualizarCategoria(
+    id: number,
+    dto: UpdateCategoriaGastoDto,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gad_actualizar_categoria',
+      [
+        id,
+        dto.nombre ?? null,
+        dto.tipo_gasto ?? null,
+        // `?? null` y no `|| null`: un orden de 0 es válido y con `||` se
+        // convertiría en null, dejando el valor anterior sin cambiar.
+        dto.orden ?? null,
+        dto.idUsuarioAuditoria ?? null,
+        idEmpresa ?? null,
+      ],
+    );
   }
 
-  eliminarCategoria(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthDeleteResult>('gad_eliminar_categoria', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+  eliminarCategoria(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthDeleteResult>(
+      'gad_eliminar_categoria',
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 
-  activarCategoria(id: number, idUsuarioAuditoria?: number) {
-    return this.db.callFunctionJson<AuthActivateResult>('gad_activar_categoria', [
-      id,
-      idUsuarioAuditoria ?? null,
-    ]);
+  activarCategoria(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
+    return this.db.callFunctionJson<AuthActivateResult>(
+      'gad_activar_categoria',
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
+    );
   }
 
   /* -------------------------------- Gastos -------------------------------- */
 
-  listarGastos(filtros: FiltroGastosDto) {
+  listarGastos(filtros: FiltroGastosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('gad_listar_gastos', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
@@ -95,14 +122,18 @@ export class GastosAdministrativosModel {
       filtros.medio_pago ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerGasto(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gad_obtener_gasto', [id]);
+  obtenerGasto(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('gad_obtener_gasto', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
-  registrarGasto(dto: CreateGastoDto) {
+  registrarGasto(dto: CreateGastoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_registrar_gasto', [
       dto.id_categoria,
       dto.concepto,
@@ -115,10 +146,11 @@ export class GastosAdministrativosModel {
       dto.id_sucursal ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  actualizarGasto(id: number, dto: UpdateGastoDto) {
+  actualizarGasto(id: number, dto: UpdateGastoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_actualizar_gasto', [
       id,
       dto.id_categoria ?? null,
@@ -130,21 +162,29 @@ export class GastosAdministrativosModel {
       dto.num_comprobante ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  anularGasto(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  anularGasto(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('gad_anular_gasto', [
       id,
       motivo ?? null,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  reporteMensual(filtros: FiltroReporteMensualDto) {
+  reporteMensual(filtros: FiltroReporteMensualDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gad_reporte_mensual', [
       filtros.anio ?? null,
       filtros.mes ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

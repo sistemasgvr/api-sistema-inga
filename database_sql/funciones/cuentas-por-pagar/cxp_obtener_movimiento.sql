@@ -1,7 +1,8 @@
 -- Traigo un movimiento de CxP por ID.
 -- Registrar cargo, abono y anular terminan llamando acá para devolver siempre el mismo shape.
 DROP FUNCTION IF EXISTS cxp_obtener_movimiento(p_id BIGINT);
-CREATE OR REPLACE FUNCTION cxp_obtener_movimiento(p_id BIGINT)
+DROP FUNCTION IF EXISTS cxp_obtener_movimiento(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION cxp_obtener_movimiento(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -50,6 +51,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = m.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE m.id = p_id
+          AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
     ) x;
 
     RETURN json_build_object('registro', v_registro);

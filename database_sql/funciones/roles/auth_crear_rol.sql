@@ -5,10 +5,17 @@ DROP FUNCTION IF EXISTS auth_crear_rol(
     p_descripcion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS auth_crear_rol(
+    p_nombre VARCHAR,
+    p_descripcion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION auth_crear_rol(
     p_nombre VARCHAR,
     p_descripcion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -28,7 +35,12 @@ BEGIN
         RETURN json_build_object('error', 'El nombre del rol es obligatorio', 'registro', NULL);
     END IF;
 
-    IF EXISTS (SELECT 1 FROM auth_rol WHERE LOWER(nombre) = LOWER(v_nombre) AND estado = 1) THEN
+    -- Los roles globales (id_empresa NULL) son visibles para todas las empresas.
+    IF EXISTS (
+        SELECT 1 FROM auth_rol
+        WHERE LOWER(nombre) = LOWER(v_nombre) AND estado = 1
+          AND (id_empresa IS NULL OR id_empresa IS NOT DISTINCT FROM p_id_empresa)
+    ) THEN
         RETURN json_build_object('error', 'Ya existe un rol con el nombre ' || v_nombre, 'registro', NULL);
     END IF;
 
@@ -42,12 +54,17 @@ BEGIN
 
     -- El UNIQUE de codigo no mira el estado: un rol dado de baja también lo ocupa.
     v_codigo := v_base;
-    WHILE EXISTS (SELECT 1 FROM auth_rol WHERE codigo = v_codigo) LOOP
+    WHILE EXISTS (
+        SELECT 1 FROM auth_rol
+        WHERE codigo = v_codigo
+          AND (id_empresa IS NULL OR id_empresa IS NOT DISTINCT FROM p_id_empresa)
+    ) LOOP
         v_sufijo := v_sufijo + 1;
         v_codigo := v_base || '_' || v_sufijo;
     END LOOP;
 
     INSERT INTO auth_rol (
+        id_empresa,
         codigo,
         nombre,
         descripcion,
@@ -55,6 +72,7 @@ BEGIN
         id_usuario_creacion
     )
     VALUES (
+        p_id_empresa,
         v_codigo,
         v_nombre,
         p_descripcion,

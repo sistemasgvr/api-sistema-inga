@@ -27,8 +27,11 @@ export class UsuariosController {
   @Get()
   @Permisos(PermisoBanderas.USUARIOS_LISTAR)
   @ApiOperation({ summary: 'Listar usuarios' })
-  listar(@Query() filtros: FiltroUsuarioDto) {
-    return this.usuariosLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroUsuarioDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.usuariosLogic.listar(filtros, idEmpresa);
   }
 
   @Get('trabajadores-disponibles')
@@ -53,8 +56,11 @@ export class UsuariosController {
   @Permisos(PermisoBanderas.USUARIOS_VER)
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.usuariosLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.usuariosLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -74,8 +80,9 @@ export class UsuariosController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.usuariosLogic.activar(id, idUsuarioAuditoria);
+    return this.usuariosLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Patch(':id')
@@ -86,8 +93,13 @@ export class UsuariosController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUsuarioDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.usuariosLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.usuariosLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete(':id')
@@ -97,7 +109,8 @@ export class UsuariosController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.usuariosLogic.eliminar(id, idUsuarioAuditoria);
+    return this.usuariosLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

@@ -25,12 +25,12 @@ export class VentasLogic {
     private readonly sunat: SunatLotesLogic,
   ) {}
 
-  async listar(filtros: FiltroVentasDto) {
-    return mapListResult(await this.model.listar(filtros), filtros);
+  async listar(filtros: FiltroVentasDto, idEmpresa: number | null) {
+    return mapListResult(await this.model.listar(filtros, idEmpresa), filtros);
   }
 
-  obtener(id: number) {
-    return this.resolver(() => this.model.obtener(id));
+  obtener(id: number, idEmpresa: number | null) {
+    return this.resolver(() => this.model.obtener(id, idEmpresa));
   }
 
   async cambiarMedioPago(
@@ -40,7 +40,7 @@ export class VentasLogic {
     idEmpresa: number | null,
   ) {
     const venta = await this.resolver(() =>
-      this.model.cambiarMedioPago(idPago, medio, usuario),
+      this.model.cambiarMedioPago(idPago, medio, usuario, idEmpresa),
     );
     // El comprobante archivado muestra los medios de pago: se vuelve a generar.
     const idPedido = (venta as { id?: number } | null)?.id;
@@ -78,18 +78,26 @@ export class VentasLogic {
     return this.tickets.comprobante(idComprobante, idEmpresa);
   }
 
-  async reimprimirComanda(idComanda: number, usuario: number) {
+  async reimprimirComanda(
+    idComanda: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     const venta = await this.resolver(() =>
-      this.model.reimprimirComanda(idComanda, usuario),
+      this.model.reimprimirComanda(idComanda, usuario, idEmpresa),
     );
     // Igual que al comandar: se avisa después de confirmar el trabajo en la base.
     this.impresion.notificar();
     return venta;
   }
 
-  async imprimirComprobante(idComprobante: number, usuario: number) {
+  async imprimirComprobante(
+    idComprobante: number,
+    usuario: number,
+    idEmpresa: number | null,
+  ) {
     const venta = await this.resolver(() =>
-      this.model.imprimirComprobante(idComprobante, usuario),
+      this.model.imprimirComprobante(idComprobante, usuario, idEmpresa),
     );
     this.impresion.notificar();
     return venta;

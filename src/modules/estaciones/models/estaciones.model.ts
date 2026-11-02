@@ -14,10 +14,10 @@ import {
 @Injectable()
 export class EstacionesModel {
   constructor(private readonly db: DatabaseService) {}
-  principal(id: number) {
+  principal(id: number, idSucursal: number) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'gen_marcar_caja_principal',
-      [id],
+      [id, idSucursal],
     );
   }
 
@@ -37,9 +37,10 @@ export class EstacionesModel {
     ]);
   }
 
-  obtenerPorId(id: number) {
+  obtenerPorId(id: number, idSucursal: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_estacion', [
       id,
+      idSucursal,
     ]);
   }
 
@@ -96,17 +97,26 @@ export class EstacionesModel {
     );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('gen_eliminar_estacion', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthActivateResult>(
       'gen_activar_estacion',
-      [id, idUsuarioAuditoria ?? null],
+      [id, idUsuarioAuditoria ?? null, idSucursal],
     );
   }
 }

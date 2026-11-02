@@ -20,8 +20,8 @@ export class AlmacenesLogic {
     return mapListResult(result, filtros);
   }
 
-  async obtenerPorId(id: number) {
-    const result = await this.almacenModel.obtenerPorId(id);
+  async obtenerPorId(id: number, idSucursal: number) {
+    const result = await this.almacenModel.obtenerPorId(id, idSucursal);
     return mapSingleResult(result, `Almacén con ID ${id} no encontrado`);
   }
 
@@ -50,16 +50,38 @@ export class AlmacenesLogic {
     return mapSingleResult(result, `Almacén con ID ${id} no encontrado`);
   }
 
-  async eliminar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.almacenModel.eliminar(id, idUsuarioAuditoria);
-    return mapDeleteResult(result, `Almacén con ID ${id} no encontrado o ya inactivo`);
+  async eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.almacenModel.eliminar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
+    return mapDeleteResult(
+      result,
+      `Almacén con ID ${id} no encontrado o ya inactivo`,
+    );
   }
 
-  async activar(id: number, idUsuarioAuditoria?: number) {
-    const result = await this.almacenModel.activar(id, idUsuarioAuditoria);
-    
+  async activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
+    const result = await this.almacenModel.activar(
+      id,
+      idUsuarioAuditoria,
+      idSucursal,
+    );
+
     if (!result || (result as any).activado === false) {
-      return { message: "El almacén ya se encontraba activo o fue actualizado", data: { id } };
+      return {
+        message: 'El almacén ya se encontraba activo o fue actualizado',
+        data: { id },
+      };
     }
 
     return result;

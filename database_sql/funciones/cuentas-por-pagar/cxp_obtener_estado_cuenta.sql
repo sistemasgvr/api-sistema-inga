@@ -3,9 +3,15 @@ DROP FUNCTION IF EXISTS cxp_obtener_estado_cuenta(
     p_id_persona BIGINT,
     p_limite_movimientos INTEGER
 );
+DROP FUNCTION IF EXISTS cxp_obtener_estado_cuenta(
+    p_id_persona BIGINT,
+    p_limite_movimientos INTEGER,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_obtener_estado_cuenta(
     p_id_persona BIGINT,
-    p_limite_movimientos INTEGER DEFAULT 20
+    p_limite_movimientos INTEGER DEFAULT 20,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -35,6 +41,7 @@ BEGIN
         FROM vw_cxp_saldo_proveedor v
         INNER JOIN cli_persona p ON p.id = v.id_persona
         WHERE v.id_persona = p_id_persona
+          AND (p_id_empresa IS NULL OR v.id_empresa = p_id_empresa)
     ) x;
 
     IF v_proveedor IS NULL THEN

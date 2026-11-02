@@ -4,6 +4,7 @@ import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { FiltroReporteDto } from '../dto/reportes.dto';
 import { ReportesLogic } from '../logic/reportes.logic';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Reportes')
 @Controller('reportes')
@@ -16,8 +17,11 @@ export class ReportesController {
     summary:
       'Indicadores del dashboard: ventas por día, hora, canal, medio y mozo; platos vendidos con su costo; gastos y planilla',
   })
-  dashboard(@Query() filtros: FiltroReporteDto) {
-    return this.logic.dashboard(filtros);
+  dashboard(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.dashboard(filtros, idEmpresa);
   }
 
   @Get('ventas')
@@ -26,8 +30,11 @@ export class ReportesController {
     summary:
       'Platos vendidos, ventas por medio, canal y mozo, y listado de ventas',
   })
-  ventas(@Query() filtros: FiltroReporteDto) {
-    return this.logic.ventas(filtros);
+  ventas(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.ventas(filtros, idEmpresa);
   }
 
   @Get('gastos')
@@ -36,8 +43,11 @@ export class ReportesController {
     summary:
       'Compras del día por fecha e ítem y gastos administrativos del período',
   })
-  gastos(@Query() filtros: FiltroReporteDto) {
-    return this.logic.gastos(filtros);
+  gastos(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.gastos(filtros, idEmpresa);
   }
 
   @Get('caja')
@@ -46,8 +56,11 @@ export class ReportesController {
     summary:
       'Turnos de caja con sus totales y diferencias, y movimientos manuales',
   })
-  caja(@Query() filtros: FiltroReporteDto) {
-    return this.logic.caja(filtros);
+  caja(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.caja(filtros, idEmpresa);
   }
 
   @Get('cuentas')
@@ -56,15 +69,21 @@ export class ReportesController {
     summary:
       'Saldos de cuentas por cobrar y por pagar con lo movido en el período',
   })
-  cuentas(@Query() filtros: FiltroReporteDto) {
-    return this.logic.cuentas(filtros);
+  cuentas(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.cuentas(filtros, idEmpresa);
   }
 
   @Get('planilla')
   @Permisos(PermisoBanderas.REPORTES_PLANILLA)
   @ApiOperation({ summary: 'Pagos de planilla del período' })
-  planilla(@Query() filtros: FiltroReporteDto) {
-    return this.logic.planilla(filtros);
+  planilla(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.planilla(filtros, idEmpresa);
   }
 
   @Get('inventario')
@@ -72,8 +91,11 @@ export class ReportesController {
   @ApiOperation({
     summary: 'Stock valorizado actual y movimientos de almacén del período',
   })
-  inventario(@Query() filtros: FiltroReporteDto) {
-    return this.logic.inventario(filtros);
+  inventario(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.inventario(filtros, idEmpresa);
   }
 
   @Get('general')
@@ -82,7 +104,10 @@ export class ReportesController {
     summary:
       'Reporte consolidado: estado de resultados, cobros, caja, cuentas e inventario',
   })
-  general(@Query() filtros: FiltroReporteDto) {
-    return this.logic.general(filtros);
+  general(
+    @Query() filtros: FiltroReporteDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.general(filtros, idEmpresa);
   }
 }

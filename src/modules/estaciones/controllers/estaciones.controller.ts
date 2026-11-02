@@ -20,6 +20,7 @@ import {
 } from '../dto/estaciones.dto';
 import { EstacionesLogic } from '../logic/estaciones.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { SucursalSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('General - Estaciones')
 @Controller('estaciones')
@@ -29,22 +30,33 @@ export class EstacionesController {
   @Get()
   @Permisos(PermisoBanderas.ESTACIONES_LISTAR)
   @ApiOperation({ summary: 'Listar estaciones' })
-  listar(@Query() filtros: FiltroEstacionesDto) {
-    return this.estacionesLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroEstacionesDto,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.estacionesLogic.listar(
+      Object.assign(filtros, { id_sucursal: idSucursal }),
+    );
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.ESTACIONES_VER)
   @ApiOperation({ summary: 'Obtener estación por ID' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.estacionesLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.estacionesLogic.obtenerPorId(id, idSucursal);
   }
 
   @Post(':id/caja-principal')
   @Permisos(PermisoBanderas.ESTACIONES_EDITAR)
-  principal(@Param('id', ParseIntPipe) id: number) {
-    return this.estacionesLogic.principal(id);
+  principal(
+    @Param('id', ParseIntPipe) id: number,
+    @SucursalSesion() idSucursal: number,
+  ) {
+    return this.estacionesLogic.principal(id, idSucursal);
   }
 
   @Post()
@@ -53,8 +65,13 @@ export class EstacionesController {
   crear(
     @Body() dto: CreateEstacionDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.estacionesLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.estacionesLogic.crear({
+      ...dto,
+      id_sucursal: idSucursal,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id')
@@ -65,8 +82,13 @@ export class EstacionesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEstacionDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.estacionesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.estacionesLogic.actualizar(id, {
+      ...dto,
+      id_sucursal: idSucursal,
+      idUsuarioAuditoria,
+    });
   }
 
   @Patch(':id/activar')
@@ -76,8 +98,9 @@ export class EstacionesController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.estacionesLogic.activar(id, idUsuarioAuditoria);
+    return this.estacionesLogic.activar(id, idUsuarioAuditoria, idSucursal);
   }
 
   @Delete(':id')
@@ -87,7 +110,8 @@ export class EstacionesController {
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @SucursalSesion() idSucursal: number,
   ) {
-    return this.estacionesLogic.eliminar(id, idUsuarioAuditoria);
+    return this.estacionesLogic.eliminar(id, idUsuarioAuditoria, idSucursal);
   }
 }

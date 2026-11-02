@@ -28,8 +28,11 @@ export class AlmacenesModel {
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_almacen', [id]);
+  obtenerPorId(id: number, idSucursal: number) {
+    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_almacen', [
+      id,
+      idSucursal,
+    ]);
   }
 
   crear(
@@ -59,28 +62,41 @@ export class AlmacenesModel {
     esPrincipal: boolean | null,
     idUsuarioAuditoria?: number,
   ) {
-    return this.db.callFunctionJson<AuthSingleResult>('gen_actualizar_almacen', [
-      id,
-      idSucursal,
-      nombre,
-      descripcion,
-      tipoAlmacen,
-      esPrincipal,
-      idUsuarioAuditoria ?? null,
-    ]);
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gen_actualizar_almacen',
+      [
+        id,
+        idSucursal,
+        nombre,
+        descripcion,
+        tipoAlmacen,
+        esPrincipal,
+        idUsuarioAuditoria ?? null,
+      ],
+    );
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('gen_eliminar_almacen', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthActivateResult>('gen_activar_almacen', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 }

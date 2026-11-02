@@ -10,7 +10,12 @@ import {
 } from '../models/inventario.model';
 import { mapSingleResult } from '../../../common/helpers/auth-response.helper';
 import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.logic';
-import { FiltroInventarioDto, DisponibilidadDto, CocinaFiltroDto, AvisosCocinaFiltroDto } from '../dto/inventario.dto';
+import {
+  FiltroInventarioDto,
+  DisponibilidadDto,
+  CocinaFiltroDto,
+  AvisosCocinaFiltroDto,
+} from '../dto/inventario.dto';
 
 @Injectable()
 export class InventarioLogic {
@@ -23,10 +28,11 @@ export class InventarioLogic {
     funcion: OperacionInventario,
     datos: object | number,
     usuario: number,
+    idSucursal: number,
   ) {
     try {
       const registro = mapSingleResult(
-        await this.model.ejecutar(funcion, datos, usuario),
+        await this.model.ejecutar(funcion, datos, usuario, idSucursal),
         'Registro no encontrado',
       );
       // Movimientos, ajustes y preparaciones cambian stock: la alerta de mínimo sale al instante.
@@ -46,30 +52,50 @@ export class InventarioLogic {
     }
   }
 
-  async disponibilidad(f: DisponibilidadDto) {
-    try { return mapSingleResult(await this.model.disponibilidad(f), 'Receta no encontrada'); }
-    catch(e) { const error=e as {code?:string;message?:string};
-      if(error.code==='P0001') throw new BadRequestException(error.message);
-      if(error.code==='P0002') throw new NotFoundException(error.message);
+  async disponibilidad(f: DisponibilidadDto, idSucursal: number) {
+    try {
+      return mapSingleResult(
+        await this.model.disponibilidad(f, idSucursal),
+        'Receta no encontrada',
+      );
+    } catch (e) {
+      const error = e as { code?: string; message?: string };
+      if (error.code === 'P0001') throw new BadRequestException(error.message);
+      if (error.code === 'P0002') throw new NotFoundException(error.message);
       throw e;
     }
   }
-  productosPreparables(sucursal:number) { return this.model.productosPreparables(sucursal); }
-  cocina(f: CocinaFiltroDto) { return this.model.cocina(f); }
-  avisos(f: AvisosCocinaFiltroDto) { return this.model.avisos(f); }
-  async atenderAviso(id: number, usuario: number) {
-    try { return mapSingleResult(await this.model.atenderAviso(id, usuario), 'Aviso no encontrado'); }
-    catch(e) { const error=e as {code?:string;message?:string};
-      if(error.code==='P0002') throw new NotFoundException(error.message);
+  productosPreparables(sucursal: number) {
+    return this.model.productosPreparables(sucursal);
+  }
+  cocina(f: CocinaFiltroDto, idSucursal: number) {
+    return this.model.cocina(f, idSucursal);
+  }
+  avisos(f: AvisosCocinaFiltroDto, idSucursal: number) {
+    return this.model.avisos(f, idSucursal);
+  }
+  async atenderAviso(id: number, usuario: number, idSucursal: number) {
+    try {
+      return mapSingleResult(
+        await this.model.atenderAviso(id, usuario, idSucursal),
+        'Aviso no encontrado',
+      );
+    } catch (e) {
+      const error = e as { code?: string; message?: string };
+      if (error.code === 'P0002') throw new NotFoundException(error.message);
       throw e;
     }
   }
-  listar(tipo: 'stock' | 'kardex', filtros: FiltroInventarioDto) {
-    return this.model.listar(tipo, filtros);
+  listar(
+    tipo: 'stock' | 'kardex',
+    filtros: FiltroInventarioDto,
+    idSucursal: number,
+  ) {
+    return this.model.listar(tipo, filtros, idSucursal);
   }
 
-  async movimiento(id: number) {
-    const result = await this.model.obtener(id);
+  async movimiento(id: number, idSucursal: number) {
+    const result = await this.model.obtener(id, idSucursal);
     if (!result.registro)
       throw new NotFoundException('Movimiento no encontrado');
     return result;

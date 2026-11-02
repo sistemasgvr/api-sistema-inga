@@ -4,6 +4,7 @@
 BEGIN;
 \ir funciones/caja/turnos/caj_recalcular_cierre_turno.sql
 \ir funciones/ventas/ven_obtener_venta.sql
+\ir funciones/ventas/ven_pedido_de_empresa.sql
 \ir funciones/ventas/ven_listar_ventas.sql
 \ir funciones/ventas/ven_cambiar_medio_pago.sql
 \ir funciones/ventas/ven_reemitir_comprobante.sql

@@ -10,6 +10,18 @@ DROP FUNCTION IF EXISTS cxp_listar_movimientos(
     p_fecha_desde DATE,
     p_fecha_hasta DATE
 );
+DROP FUNCTION IF EXISTS cxp_listar_movimientos(
+    p_limite INTEGER,
+    p_offset INTEGER,
+    p_id_persona BIGINT,
+    p_tipo_movimiento INT,
+    p_anio INTEGER,
+    p_mes INTEGER,
+    p_semana INTEGER,
+    p_fecha_desde DATE,
+    p_fecha_hasta DATE,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION cxp_listar_movimientos(
     p_limite INTEGER DEFAULT 10,
     p_offset INTEGER DEFAULT 0,
@@ -19,7 +31,8 @@ CREATE OR REPLACE FUNCTION cxp_listar_movimientos(
     p_mes INTEGER DEFAULT NULL,
     p_semana INTEGER DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -41,6 +54,7 @@ BEGIN
     INTO v_total, v_cargos, v_abonos, v_efectivo
     FROM cxp_movimiento m
     WHERE m.estado = 1
+      AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
       AND (p_id_persona IS NULL OR m.id_persona = p_id_persona)
       AND (p_tipo_movimiento IS NULL OR m.tipo_movimiento = p_tipo_movimiento)
       AND (p_anio IS NULL OR m.anio = p_anio)
@@ -83,6 +97,7 @@ BEGIN
         LEFT JOIN gen_lista_opcion lo ON lo.valor_entero = m.medio_pago
             AND lo.id_lista = (SELECT id FROM gen_lista WHERE codigo = 'MEDIO_PAGO')
         WHERE m.estado = 1
+          AND (p_id_empresa IS NULL OR m.id_empresa = p_id_empresa)
           AND (p_id_persona IS NULL OR m.id_persona = p_id_persona)
           AND (p_tipo_movimiento IS NULL OR m.tipo_movimiento = p_tipo_movimiento)
           AND (p_anio IS NULL OR m.anio = p_anio)

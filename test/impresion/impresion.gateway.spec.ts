@@ -27,6 +27,7 @@ describe('Autenticación del receptor WebSocket', () => {
     auth.validate.mockResolvedValue({
       es_super_admin: false,
       permisos: ['estaciones.listar', 'pedidos.comandar'],
+      id_sucursal: 4,
     });
     service.tomar.mockResolvedValue(null);
     socket = {
@@ -84,6 +85,7 @@ describe('Autenticación del receptor WebSocket', () => {
     expect(service.tomar).toHaveBeenCalledWith(
       [1, 2],
       expect.stringMatching(/^[0-9a-f-]{36}$/),
+      4,
     );
   });
 });

@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS auth_obtener_usuario(p_id BIGINT);
-CREATE OR REPLACE FUNCTION auth_obtener_usuario(p_id BIGINT)
+DROP FUNCTION IF EXISTS auth_obtener_usuario(p_id BIGINT, p_id_empresa BIGINT);
+CREATE OR REPLACE FUNCTION auth_obtener_usuario(p_id BIGINT, p_id_empresa BIGINT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql
 AS $function$
@@ -37,6 +38,7 @@ BEGIN
             ) AS roles
         FROM auth_usuario_datos u
         WHERE u.id = p_id
+          AND (p_id_empresa IS NULL OR u.id_empresa = p_id_empresa)
     ) t;
 
     RETURN json_build_object('registro', v_registro);

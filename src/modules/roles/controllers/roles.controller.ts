@@ -14,9 +14,15 @@ import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { FiltroRolDto } from '../dto/filtros-rol.dto';
-import { AsignarPermisosRolDto, AsignarRolesUsuarioDto, CreateRolDto, UpdateRolDto } from '../dto/roles.dto';
+import {
+  AsignarPermisosRolDto,
+  AsignarRolesUsuarioDto,
+  CreateRolDto,
+  UpdateRolDto,
+} from '../dto/roles.dto';
 import { RolesLogic } from '../logic/roles.logic';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
+import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
 
 @ApiTags('Auth - Roles')
 @Controller('auth/roles')
@@ -26,16 +32,22 @@ export class RolesController {
   @Get()
   @Permisos(PermisoBanderas.ROLES_LISTAR)
   @ApiOperation({ summary: 'Listar roles' })
-  listar(@Query() filtros: FiltroRolDto) {
-    return this.rolesLogic.listar(filtros);
+  listar(
+    @Query() filtros: FiltroRolDto,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.rolesLogic.listar(filtros, idEmpresa);
   }
 
   @Get(':id')
   @Permisos(PermisoBanderas.ROLES_VER)
   @ApiOperation({ summary: 'Obtener rol por ID con sus permisos' })
   @ApiNotFoundResponse({ type: () => ApiErrorResponseDto })
-  obtenerPorId(@Param('id', ParseIntPipe) id: number) {
-    return this.rolesLogic.obtenerPorId(id);
+  obtenerPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.rolesLogic.obtenerPorId(id, idEmpresa);
   }
 
   @Post()
@@ -44,8 +56,9 @@ export class RolesController {
   crear(
     @Body() dto: CreateRolDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.crear({ ...dto, idUsuarioAuditoria });
+    return this.rolesLogic.crear({ ...dto, idUsuarioAuditoria }, idEmpresa);
   }
 
   @Patch(':id/activar')
@@ -55,8 +68,9 @@ export class RolesController {
   activar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.activar(id, idUsuarioAuditoria);
+    return this.rolesLogic.activar(id, idUsuarioAuditoria, idEmpresa);
   }
 
   @Patch(':id/permisos')
@@ -66,8 +80,13 @@ export class RolesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AsignarPermisosRolDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.asignarPermisos(id, { ...dto, idUsuarioAuditoria });
+    return this.rolesLogic.asignarPermisos(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Patch('usuario/:idUsuario')
@@ -77,11 +96,16 @@ export class RolesController {
     @Param('idUsuario', ParseIntPipe) idUsuario: number,
     @Body() dto: AsignarRolesUsuarioDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.asignarRolesAUsuario(idUsuario, {
-      ...dto,
-      idUsuarioAuditoria,
-    });
+    return this.rolesLogic.asignarRolesAUsuario(
+      idUsuario,
+      {
+        ...dto,
+        idUsuarioAuditoria,
+      },
+      idEmpresa,
+    );
   }
 
   @Patch(':id')
@@ -91,8 +115,13 @@ export class RolesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRolDto,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.actualizar(id, { ...dto, idUsuarioAuditoria });
+    return this.rolesLogic.actualizar(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Delete(':id')
@@ -101,7 +130,8 @@ export class RolesController {
   desactivar(
     @Param('id', ParseIntPipe) id: number,
     @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
   ) {
-    return this.rolesLogic.eliminar(id, idUsuarioAuditoria);
+    return this.rolesLogic.eliminar(id, idUsuarioAuditoria, idEmpresa);
   }
 }

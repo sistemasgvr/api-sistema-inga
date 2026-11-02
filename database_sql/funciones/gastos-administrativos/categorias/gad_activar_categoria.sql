@@ -3,9 +3,15 @@ DROP FUNCTION IF EXISTS gad_activar_categoria(
     p_id BIGINT,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_activar_categoria(
+    p_id BIGINT,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_activar_categoria(
     p_id BIGINT,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -17,7 +23,8 @@ BEGIN
 
     SELECT id_categoria_padre INTO v_padre
     FROM gad_categoria
-    WHERE id = p_id AND estado = 0;
+    WHERE id = p_id AND estado = 0
+      AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa);
 
     IF NOT FOUND THEN
         RETURN json_build_object('activado', FALSE, 'id', p_id);

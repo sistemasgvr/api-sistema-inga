@@ -18,14 +18,21 @@
 
 BEGIN;
 
-INSERT INTO auth_rol (codigo, nombre, descripcion, estado) VALUES
-('ADMIN',    'Administración',     'Acceso a todos los módulos del sistema', 1),
-('CAJERO',   'Caja',               'Abre y cierra turno, cobra pedidos y registra compras del día', 1),
-('MOZO',     'Mozo',               'Abre pedidos, comanda, pide precuenta y entrega', 1),
-('CHEF',     'Cocina',             'Prepara y despacha los productos comandados', 1),
-('BARMAN',   'Barra',              'Prepara y despacha las bebidas comandadas', 1),
-('OPERARIO', 'Operario Principal', 'Supervisa el salón, autoriza anulaciones y consulta caja', 1)
-ON CONFLICT (codigo) DO NOTHING;
+-- Roles globales del sistema (id_empresa NULL).
+INSERT INTO auth_rol (codigo, nombre, descripcion, estado)
+SELECT v.codigo, v.nombre, v.descripcion, 1
+FROM (VALUES
+    ('ADMIN',    'Administración',     'Acceso a todos los módulos del sistema'),
+    ('CAJERO',   'Caja',               'Abre y cierra turno, cobra pedidos y registra compras del día'),
+    ('MOZO',     'Mozo',               'Abre pedidos, comanda, pide precuenta y entrega'),
+    ('CHEF',     'Cocina',             'Prepara y despacha los productos comandados'),
+    ('BARMAN',   'Barra',              'Prepara y despacha las bebidas comandadas'),
+    ('OPERARIO', 'Operario Principal', 'Supervisa el salón, autoriza anulaciones y consulta caja')
+) AS v(codigo, nombre, descripcion)
+WHERE NOT EXISTS (
+    SELECT 1 FROM auth_rol r
+    WHERE r.codigo = v.codigo AND r.id_empresa IS NULL
+);
 
 CREATE TEMP TABLE tmp_rol_proceso (rol VARCHAR(50), permiso VARCHAR(80)) ON COMMIT DROP;
 
@@ -75,7 +82,7 @@ SELECT 'ADMIN', codigo FROM auth_permiso WHERE estado = 1;
 INSERT INTO auth_rol_permiso (id_rol, id_permiso, estado)
 SELECT r.id, p.id, 1
 FROM tmp_rol_proceso t
-JOIN auth_rol r     ON r.codigo = t.rol
+JOIN auth_rol r     ON r.codigo = t.rol AND r.id_empresa IS NULL
 JOIN auth_permiso p ON p.codigo = t.permiso AND p.estado = 1
 ON CONFLICT (id_rol, id_permiso) DO UPDATE
 SET estado = 1, fecha_modificacion = CURRENT_TIMESTAMP;
@@ -87,6 +94,7 @@ WHERE rp.id_rol = r.id
   AND rp.id_permiso = p.id
   AND rp.estado = 1
   AND r.codigo IN ('CAJERO','MOZO','CHEF','BARMAN','OPERARIO')
+  AND r.id_empresa IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM tmp_rol_proceso t WHERE t.rol = r.codigo AND t.permiso = p.codigo
   );

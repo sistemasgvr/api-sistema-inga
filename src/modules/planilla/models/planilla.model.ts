@@ -26,7 +26,10 @@ export class PlanillaModel {
     return 1;
   }
 
-  listarTrabajadores(filtros: FiltroTrabajadoresDto) {
+  listarTrabajadores(
+    filtros: FiltroTrabajadoresDto,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthListResult>('pla_listar_trabajadores', [
       filtros.buscar ?? '',
       filtros.limite ?? 10,
@@ -35,13 +38,14 @@ export class PlanillaModel {
       filtros.mes ?? null,
       filtros.quincena ?? null,
       this.resolveEstadoFiltro(filtros.estado),
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerTrabajador(id: number) {
+  obtenerTrabajador(id: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>(
       'pla_obtener_trabajador',
-      [id],
+      [id, idEmpresa ?? null],
     );
   }
 
@@ -83,21 +87,29 @@ export class PlanillaModel {
     );
   }
 
-  eliminarTrabajador(id: number, idUsuarioAuditoria?: number) {
+  eliminarTrabajador(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>(
       'pla_eliminar_trabajador',
-      [id, idUsuarioAuditoria ?? null],
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
     );
   }
 
-  activarTrabajador(id: number, idUsuarioAuditoria?: number) {
+  activarTrabajador(
+    id: number,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthActivateResult>(
       'pla_activar_trabajador',
-      [id, idUsuarioAuditoria ?? null],
+      [id, idUsuarioAuditoria ?? null, idEmpresa ?? null],
     );
   }
 
-  listarPagos(filtros: FiltroPagosDto) {
+  listarPagos(filtros: FiltroPagosDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthListResult>('pla_listar_pagos', [
       filtros.limite ?? 10,
       filtros.offset ?? 0,
@@ -108,14 +120,18 @@ export class PlanillaModel {
       filtros.medio_pago ?? null,
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  obtenerPago(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('pla_obtener_pago', [id]);
+  obtenerPago(id: number, idEmpresa?: number | null) {
+    return this.db.callFunctionJson<AuthSingleResult>('pla_obtener_pago', [
+      id,
+      idEmpresa ?? null,
+    ]);
   }
 
-  registrarPago(dto: CreatePagoDto) {
+  registrarPago(dto: CreatePagoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('pla_registrar_pago', [
       dto.id_trabajador,
       dto.monto,
@@ -127,22 +143,30 @@ export class PlanillaModel {
       dto.quincena ?? null,
       dto.observacion ?? null,
       dto.idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  anularPago(id: number, motivo?: string, idUsuarioAuditoria?: number) {
+  anularPago(
+    id: number,
+    motivo?: string,
+    idUsuarioAuditoria?: number,
+    idEmpresa?: number | null,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('pla_anular_pago', [
       id,
       motivo ?? null,
       idUsuarioAuditoria ?? null,
+      idEmpresa ?? null,
     ]);
   }
 
-  reportePeriodo(filtros: FiltroReportePeriodoDto) {
+  reportePeriodo(filtros: FiltroReportePeriodoDto, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('pla_reporte_periodo', [
       filtros.anio ?? null,
       filtros.mes ?? null,
       filtros.quincena ?? null,
+      idEmpresa ?? null,
     ]);
   }
 }

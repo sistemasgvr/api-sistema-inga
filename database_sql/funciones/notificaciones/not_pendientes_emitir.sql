@@ -16,7 +16,7 @@ BEGIN
     UPDATE notificaciones n SET emitida_en = now()
     FROM sel WHERE n.id = sel.id
     RETURNING n.id, n.canal, n.titulo, n.mensaje, n.severidad, n.ruta, n.id_referencia,
-              n.creada_en, n.ids_usuario_destino
+              n.creada_en, n.ids_usuario_destino, n.id_empresa, n.id_sucursal
   )
   SELECT COALESCE(json_agg(upd ORDER BY upd.creada_en), '[]'::JSON) INTO v_registros FROM upd;
   RETURN json_build_object('registros', v_registros);

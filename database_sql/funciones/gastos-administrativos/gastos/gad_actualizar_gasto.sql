@@ -12,6 +12,19 @@ DROP FUNCTION IF EXISTS gad_actualizar_gasto(
     p_observacion VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_actualizar_gasto(
+    p_id BIGINT,
+    p_id_categoria BIGINT,
+    p_concepto VARCHAR,
+    p_monto NUMERIC,
+    p_fecha_gasto DATE,
+    p_medio_pago SMALLINT,
+    p_id_persona BIGINT,
+    p_num_comprobante VARCHAR,
+    p_observacion VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_actualizar_gasto(
     p_id BIGINT,
     p_id_categoria BIGINT DEFAULT NULL,
@@ -22,7 +35,8 @@ CREATE OR REPLACE FUNCTION gad_actualizar_gasto(
     p_id_persona BIGINT DEFAULT NULL,
     p_num_comprobante VARCHAR DEFAULT NULL,
     p_observacion VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -39,7 +53,10 @@ BEGIN
 
     SELECT g.medio_pago, g.id_turno, g.fecha_gasto
     INTO v_actual
-    FROM gad_gasto g WHERE g.id = p_id AND g.estado = 1;
+    FROM gad_gasto g WHERE g.id = p_id AND g.estado = 1
+      AND (p_id_empresa IS NULL OR g.id_categoria IN (
+          SELECT id FROM gad_categoria WHERE id_empresa = p_id_empresa
+      ));
 
     IF NOT FOUND THEN
         RETURN json_build_object('error', 'El gasto no existe o fue anulado', 'registro', NULL);
@@ -69,6 +86,7 @@ BEGIN
 
     IF p_id_categoria IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM gad_categoria WHERE id = p_id_categoria AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'La categoría indicada no existe o está inactiva',
@@ -85,6 +103,7 @@ BEGIN
 
     IF p_id_persona IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM cli_persona WHERE id = p_id_persona AND estado = 1
+          AND (p_id_empresa IS NULL OR id_empresa = p_id_empresa)
     ) THEN
         RETURN json_build_object(
             'error', 'El proveedor indicado no existe o está inactivo',

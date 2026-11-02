@@ -4,10 +4,17 @@ DROP FUNCTION IF EXISTS gad_anular_gasto(
     p_motivo VARCHAR,
     p_id_usuario_auditoria BIGINT
 );
+DROP FUNCTION IF EXISTS gad_anular_gasto(
+    p_id BIGINT,
+    p_motivo VARCHAR,
+    p_id_usuario_auditoria BIGINT,
+    p_id_empresa BIGINT
+);
 CREATE OR REPLACE FUNCTION gad_anular_gasto(
     p_id BIGINT,
     p_motivo VARCHAR DEFAULT NULL,
-    p_id_usuario_auditoria BIGINT DEFAULT NULL
+    p_id_usuario_auditoria BIGINT DEFAULT NULL,
+    p_id_empresa BIGINT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -22,7 +29,10 @@ BEGIN
     SELECT g.medio_pago, g.id_turno
     INTO v_medio, v_id_turno
     FROM gad_gasto g
-    WHERE g.id = p_id AND g.estado = 1;
+    WHERE g.id = p_id AND g.estado = 1
+      AND (p_id_empresa IS NULL OR g.id_categoria IN (
+          SELECT id FROM gad_categoria WHERE id_empresa = p_id_empresa
+      ));
 
     IF NOT FOUND THEN
         RETURN json_build_object('eliminado', FALSE, 'id', p_id);

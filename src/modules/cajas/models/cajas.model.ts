@@ -28,15 +28,14 @@ export class CajasModel {
     ]);
   }
 
-  obtenerPorId(id: number) {
-    return this.db.callFunctionJson<AuthSingleResult>('caj_obtener_caja', [id]);
+  obtenerPorId(id: number, idSucursal: number) {
+    return this.db.callFunctionJson<AuthSingleResult>('caj_obtener_caja', [
+      id,
+      idSucursal,
+    ]);
   }
 
-  crear(
-    idSucursal: number,
-    nombre: string,
-    idUsuarioAuditoria?: number,
-  ) {
+  crear(idSucursal: number, nombre: string, idUsuarioAuditoria?: number) {
     return this.db.callFunctionJson<AuthSingleResult>('caj_crear_caja', [
       idSucursal,
       nombre,
@@ -58,17 +57,27 @@ export class CajasModel {
     ]);
   }
 
-  eliminar(id: number, idUsuarioAuditoria?: number) {
+  eliminar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthDeleteResult>('caj_eliminar_caja', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 
-  activar(id: number, idUsuarioAuditoria?: number) {
+  activar(
+    id: number,
+    idUsuarioAuditoria: number | undefined,
+    idSucursal: number,
+  ) {
     return this.db.callFunctionJson<AuthActivateResult>('caj_activar_caja', [
       id,
       idUsuarioAuditoria ?? null,
+      idSucursal,
     ]);
   }
 }
