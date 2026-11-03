@@ -11,9 +11,18 @@ export class ListasModel {
     return this.db.callFunctionJson<ListaItem[]>('gen_listar_listas');
   }
 
+  obtenerOpcionesPorCodigo(codigo: string, tipo?: number) {
+    return this.db.callFunctionJson<AuthSingleResult<ListaConOpciones>>(
+      'gen_obtener_opciones_lista_por_codigo',
+      [codigo, tipo ?? null],
+    );
+  }
+
   obtenerOpciones(id: number, tipo?: number) {
     return this.db.callFunctionJson<AuthSingleResult<ListaConOpciones>>(
-      tipo === undefined ? 'gen_obtener_opciones_lista' : 'gen_filtrar_opciones_lista',
+      tipo === undefined
+        ? 'gen_obtener_opciones_lista'
+        : 'gen_filtrar_opciones_lista',
       tipo === undefined ? [id] : [id, tipo],
     );
   }

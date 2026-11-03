@@ -54,6 +54,17 @@ export class FiltroPersonasDto extends FiltroPaginacionDto {
   id_convenio?: number;
 }
 
+export class ConsultaDocumentoDto {
+  @ApiProperty({
+    example: '20131312955',
+    description: 'DNI (8 dígitos) o RUC (11 dígitos)',
+  })
+  @Matches(/^(\d{8}|\d{11})$/, {
+    message: 'Ingresa un DNI de 8 dígitos o un RUC de 11 dígitos',
+  })
+  numero!: string;
+}
+
 export class BuscarPersonasDto {
   @ApiPropertyOptional({
     example: '4561',

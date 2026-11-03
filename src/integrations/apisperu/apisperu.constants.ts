@@ -10,3 +10,9 @@ export const RUTAS_APISPERU = {
   bajaEstado: 'voided/status',
 } as const;
 export type OperacionApisPeru = keyof typeof RUTAS_APISPERU;
+
+/** Rutas de la API de consultas DNI/RUC, relativas a APISPERU_CONSULTAS_URL (.env). */
+export const RUTAS_CONSULTAS_APISPERU = {
+  dni: 'dni',
+  ruc: 'ruc',
+} as const;

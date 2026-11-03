@@ -59,6 +59,16 @@ export const envValidationSchema = Joi.object({
     .uri({ scheme: ['https', 'http'] })
     .optional(),
   APISPERU_TIMEOUT_MS: Joi.number().integer().min(1000).default(60_000),
+  /** Consulta de DNI (RENIEC) y RUC (SUNAT): otro servicio de APIsPERU, con token de la cuenta. */
+  APISPERU_CONSULTAS_URL: Joi.string()
+    .uri({ scheme: ['https', 'http'] })
+    .allow('')
+    .optional(),
+  APISPERU_CONSULTAS_TOKEN: Joi.string().allow('').optional(),
+  APISPERU_CONSULTAS_TIMEOUT_MS: Joi.number()
+    .integer()
+    .min(1000)
+    .default(15_000),
   /** false desactiva el envío automático al vencer el plazo y la consulta de tickets. */
   SUNAT_PROGRAMADOR: Joi.boolean().truthy('true').falsy('false').default(true),
 })

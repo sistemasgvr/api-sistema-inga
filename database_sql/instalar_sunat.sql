@@ -13,6 +13,7 @@ BEGIN;
 \ir funciones/general/empresa/gen_guardar_logo_empresa.sql
 \ir funciones/general/distritos/gen_obtener_distrito.sql
 \ir funciones/general/distritos/gen_buscar_distritos.sql
+\ir funciones/general/distritos/gen_obtener_distrito_por_ubigeo.sql
 
 -- Configuración SUNAT y emisor.
 \ir funciones/sunat/configuracion/gen_obtener_configuracion_sunat.sql

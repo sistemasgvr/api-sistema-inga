@@ -123,6 +123,7 @@ export class GastosAdministrativosModel {
       filtros.fecha_desde ?? null,
       filtros.fecha_hasta ?? null,
       idEmpresa ?? null,
+      filtros.id_sucursal ?? null,
     ]);
   }
 
@@ -185,6 +186,7 @@ export class GastosAdministrativosModel {
       filtros.anio ?? null,
       filtros.mes ?? null,
       idEmpresa ?? null,
+      filtros.id_sucursal ?? null,
     ]);
   }
 }

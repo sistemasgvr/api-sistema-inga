@@ -1,6 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, Matches, Max, Min } from 'class-validator';
+
+export class ListaCodigoParamDto {
+  @ApiProperty({
+    example: 'MEDIO_PAGO',
+    description:
+      'Código de gen_lista: referencia estable entre instalaciones (el id no lo es)',
+  })
+  @Matches(/^[A-Za-z0-9_]{2,60}$/, { message: 'Código de lista inválido' })
+  codigo!: string;
+}
 
 export class ListaIdParamDto {
   @ApiProperty({ example: 7, description: 'ID real de gen_lista' })

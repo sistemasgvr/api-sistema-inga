@@ -4,4 +4,5 @@
 BEGIN;
 \ir funciones/general/listas/gen_listar_listas.sql
 \ir funciones/general/listas/gen_obtener_opciones_lista.sql
+\ir funciones/general/listas/gen_obtener_opciones_lista_por_codigo.sql
 COMMIT;

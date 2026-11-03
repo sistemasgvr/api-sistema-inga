@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { PersonasController } from './controllers/personas.controller';
 import { PersonasLogic } from './logic/personas.logic';
 import { PersonasModel } from './models/personas.model';
+import { ConsultaDocumentoLogic } from './logic/consulta-documento.logic';
+import { ApisPeruModule } from '../../integrations/apisperu/apisperu.module';
 
 /**
  * Exporto PersonasLogic porque tres módulos que vienen después lo van a usar
@@ -11,8 +13,9 @@ import { PersonasModel } from './models/personas.model';
  *   M14 CxC      → resolver el nombre de la persona en los reportes
  */
 @Module({
+  imports: [ApisPeruModule],
   controllers: [PersonasController],
-  providers: [PersonasLogic, PersonasModel],
+  providers: [PersonasLogic, PersonasModel, ConsultaDocumentoLogic],
   exports: [PersonasLogic],
 })
 export class PersonasModule {}

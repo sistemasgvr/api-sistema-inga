@@ -73,6 +73,18 @@ export class PersonasModel {
       ],
     );
   }
+  distritoPorUbigeo(ubigeo: string) {
+    return this.db.callFunctionJson<AuthSingleResult>(
+      'gen_obtener_distrito_por_ubigeo',
+      [ubigeo],
+    );
+  }
+
+  distrito(id: number) {
+    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_distrito', [
+      id,
+    ]);
+  }
 
   obtenerPorId(id: number, idEmpresa?: number | null) {
     return this.db.callFunctionJson<AuthSingleResult>('cli_obtener_persona', [

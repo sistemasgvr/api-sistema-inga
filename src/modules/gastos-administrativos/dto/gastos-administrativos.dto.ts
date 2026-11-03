@@ -56,7 +56,8 @@ export class CreateCategoriaGastoDto extends AuditoriaDto {
   @ApiPropertyOptional({
     enum: [1, 2],
     default: 1,
-    description: 'Se ignora si se indica categoría padre: hereda el tipo del padre.',
+    description:
+      'Se ignora si se indica categoría padre: hereda el tipo del padre.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -65,7 +66,8 @@ export class CreateCategoriaGastoDto extends AuditoriaDto {
   tipo_gasto?: number;
 
   @ApiPropertyOptional({
-    description: 'Para crear una subcategoría. Solo se admite un nivel de anidación.',
+    description:
+      'Para crear una subcategoría. Solo se admite un nivel de anidación.',
   })
   @IsOptional()
   @IsInt()
@@ -147,6 +149,16 @@ export class FiltroGastosDto extends FiltroPaginacionDto {
   @IsOptional()
   @IsDateString()
   fecha_hasta?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Sucursal de la empresa; sin ella, todas (los gastos sin sucursal siempre entran)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
 }
 
 export class CreateGastoDto extends AuditoriaDto {
@@ -170,7 +182,8 @@ export class CreateGastoDto extends AuditoriaDto {
 
   @ApiPropertyOptional({
     example: '2026-09-05',
-    description: 'Por defecto, hoy. De ella se derivan el año y el mes del reporte.',
+    description:
+      'Por defecto, hoy. De ella se derivan el año y el mes del reporte.',
   })
   @IsOptional()
   @IsDateString()
@@ -179,7 +192,8 @@ export class CreateGastoDto extends AuditoriaDto {
   @ApiPropertyOptional({
     enum: [1, 2, 3],
     default: 1,
-    description: '1 efectivo (exige turno abierto), 2 yape, 3 tarjeta/transferencia',
+    description:
+      '1 efectivo (exige turno abierto), 2 yape, 3 tarjeta/transferencia',
   })
   @IsOptional()
   @Type(() => Number)
@@ -294,4 +308,13 @@ export class FiltroReporteMensualDto {
   @Min(1)
   @Max(12)
   mes?: number;
+
+  @ApiPropertyOptional({
+    description: 'Sucursal de la empresa; sin ella, todas',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
 }

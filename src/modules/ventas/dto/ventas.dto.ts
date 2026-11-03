@@ -53,6 +53,16 @@ export class FiltroVentasDto extends FiltroPaginacionDto {
   @IsInt()
   @Min(1)
   id_caja?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Sucursal de la empresa de la sesión; sin ella, todas las sucursales',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id_sucursal?: number;
 }
 
 export class CambiarMedioPagoDto {

@@ -10,9 +10,18 @@ export class ListasLogic {
     return this.model.listar();
   }
 
+  async obtenerOpcionesPorCodigo(codigo: string, tipo?: number) {
+    return mapSingleResult(
+      await this.model.obtenerOpcionesPorCodigo(codigo, tipo),
+      `La lista ${codigo} no existe o está inactiva`,
+    );
+  }
+
   async obtenerOpciones(id: number, tipo?: number) {
     return mapSingleResult(
-      await (tipo === undefined ? this.model.obtenerOpciones(id) : this.model.obtenerOpciones(id,tipo)),
+      await (tipo === undefined
+        ? this.model.obtenerOpciones(id)
+        : this.model.obtenerOpciones(id, tipo)),
       'La lista no existe o está inactiva',
     );
   }

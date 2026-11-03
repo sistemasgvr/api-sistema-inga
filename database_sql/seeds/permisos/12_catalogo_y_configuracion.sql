@@ -39,13 +39,13 @@ INSERT INTO public.auth_permiso (codigo, nombre, descripcion, modulo, estado) VA
 ('estaciones.eliminar', 'Desactivar estación',      'Permite dar de baja lógica a una estación', 'Estaciones', 1),
 ('estaciones.activar',  'Activar estación',         'Permite reactivar una estación inactiva', 'Estaciones', 1),
 
--- MÓDULO: Sucursales
+-- MÓDULO: Sucursales (se administran en la base: crear, editar y dar de baja quedan inactivos)
 ('sucursales.listar',   'Listar sucursales',        'Permite consultar el listado general de sucursales', 'Sucursales', 1),
 ('sucursales.ver',      'Ver detalle de sucursal',  'Permite consultar la información detallada de una sucursal', 'Sucursales', 1),
-('sucursales.crear',    'Crear sucursal',           'Permite registrar nuevas sucursales en el sistema', 'Sucursales', 1),
-('sucursales.editar',   'Editar sucursal',          'Permite modificar los datos de una sucursal existente', 'Sucursales', 1),
-('sucursales.eliminar', 'Desactivar sucursal',      'Permite dar de baja lógica a una sucursal', 'Sucursales', 1),
-('sucursales.activar',  'Activar sucursal',         'Permite reactivar una sucursal inactiva', 'Sucursales', 1),
+('sucursales.crear',    'Crear sucursal',           'Permite registrar nuevas sucursales en el sistema', 'Sucursales', 0),
+('sucursales.editar',   'Editar sucursal',          'Permite modificar los datos de una sucursal existente', 'Sucursales', 0),
+('sucursales.eliminar', 'Desactivar sucursal',      'Permite dar de baja lógica a una sucursal', 'Sucursales', 0),
+('sucursales.activar',  'Activar sucursal',         'Permite reactivar una sucursal inactiva', 'Sucursales', 0),
 
 -- MÓDULO: SUNAT (facturación electrónica vía APIsPERU)
 ('sunat.listar',   'Consultar comprobantes electrónicos', 'Permite ver el estado SUNAT de boletas y facturas, el resumen del día y descargar XML, CDR y PDF A4', 'SUNAT', 1),
