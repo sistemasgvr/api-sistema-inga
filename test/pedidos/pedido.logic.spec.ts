@@ -11,18 +11,21 @@ import { PedidoModel } from '../../src/modules/pedidos/models/pedido.model';
 import { ImpresionGateway } from '../../src/modules/impresion/gateways/impresion.gateway';
 import { NotificacionesLogic } from '../../src/modules/notificaciones/logic/notificaciones.logic';
 import { TicketPdfLogic } from '../../src/modules/impresion/logic/ticket-pdf.logic';
+import { PersonasLogic } from '../../src/modules/personas/logic/personas.logic';
 
 describe('Orquestación de pedidos', () => {
   const model = { obtener: jest.fn(), ejecutar: jest.fn() };
   const impresion = { notificar: jest.fn() };
   const notificaciones = { emitir: jest.fn().mockResolvedValue(undefined) };
   const tickets = { archivarComprobantes: jest.fn() };
+  const personas = { asegurarClientePorDocumento: jest.fn() };
   const logic = new PedidoLogic(
     model as unknown as PedidoModel,
     new ConfigService({ PEDIDOS_TASA_IGV: 18 }),
     impresion as unknown as ImpresionGateway,
     notificaciones as unknown as NotificacionesLogic,
     tickets as unknown as TicketPdfLogic,
+    personas as unknown as PersonasLogic,
   );
   const user = {
     id: 7,
@@ -94,6 +97,34 @@ describe('Orquestación de pedidos', () => {
     model.obtener.mockRejectedValue({ code, message: 'Validación del pedido' });
     await expect(logic.obtener(1, 3)).rejects.toBeInstanceOf(exception);
   });
+  it('asegura la ficha del cliente del documento antes de cobrar', async () => {
+    model.ejecutar.mockResolvedValue({ registro: { id: 1 } });
+    await logic.ejecutar(
+      'cobrar',
+      1,
+      null,
+      { tipo_comprobante: 1, medio_pago: 1, documento: '76961302' },
+      user,
+    );
+    expect(personas.asegurarClientePorDocumento).toHaveBeenCalledWith(
+      '76961302',
+      1,
+      7,
+    );
+  });
+
+  it('no toca clientes cuando la nota de venta no lleva documento', async () => {
+    model.ejecutar.mockResolvedValue({ registro: { id: 1 } });
+    await logic.ejecutar(
+      'cobrar',
+      1,
+      null,
+      { tipo_comprobante: 3, medio_pago: 1, documento: '' },
+      user,
+    );
+    expect(personas.asegurarClientePorDocumento).not.toHaveBeenCalled();
+  });
+
   it('conserva errores imprevistos para el filtro y logs', async () => {
     const error = new Error('Connection error');
     model.obtener.mockRejectedValue(error);

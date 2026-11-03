@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   mapActivateResult,
   mapDeleteResult,
@@ -13,23 +13,17 @@ import {
   UpdatePersonaDto,
 } from '../dto/personas.dto';
 import { PersonaDbParams, PersonasModel } from '../models/personas.model';
+import { ConsultaDocumentoLogic } from './consulta-documento.logic';
 
 @Injectable()
 export class PersonasLogic {
-  constructor(private readonly personasModel: PersonasModel) {}
+  private readonly logger = new Logger(PersonasLogic.name);
 
-  /**
-   * Limpia los campos según el tipo de persona antes de mandarlos a la base.
-   *
-   * Lo hago porque el formulario del front muestra unos campos u otros según se
-   * elija natural o jurídica, pero si el usuario llena "nombres", se arrepiente
-   * y cambia a jurídica, el valor viejo igual viaja en el request. Sin esta
-   * limpieza terminaría guardando una empresa con nombre de persona, y la ficha
-   * quedaría mostrando datos contradictorios.
-   *
-   * Es una decisión de presentación, no una regla de negocio: por eso va acá y
-   * no en la función SQL, que se limita a validar y guardar.
-   */
+  constructor(
+    private readonly personasModel: PersonasModel,
+    private readonly consulta: ConsultaDocumentoLogic,
+  ) {}
+
   private normalizarPorTipo(
     tipoPersona: number | null,
     datos: PersonaDbParams,
@@ -59,6 +53,90 @@ export class PersonasLogic {
 
   async buscar(dto: BuscarPersonasDto, idEmpresa?: number | null) {
     return await this.personasModel.buscar(dto, idEmpresa);
+  } 
+  async asegurarClientePorDocumento(
+    numero: string | null | undefined,
+    idEmpresa?: number | null,
+    idUsuarioAuditoria?: number,
+  ): Promise<number | null> {
+    const documento = (numero ?? '').trim();
+    // Solo DNI o RUC. «00000000» es el genérico de Clientes varios: ya existe.
+    if (!/^\d{8}$/.test(documento) && !/^\d{11}$/.test(documento)) return null;
+    if (documento === '00000000') return null;
+
+    const existente = await this.buscarPorDocumento(documento, idEmpresa);
+    if (existente) return existente.es_cliente ? existente.id : null;
+
+    try {
+      const consulta = await this.consulta.consultar(
+        documento,
+        idEmpresa ?? null,
+      );
+      if (consulta.origen === 'registrado') return consulta.id_persona;
+
+      // El tipo sale del documento, no de SUNAT: un RUC que empieza en 10 es una
+      // persona natural con negocio, pero para el comprobante es una jurídica y
+      // sus datos vienen como razón social (sin nombres, que es lo que exige la
+      // validación de persona natural).
+      const esRuc = documento.length === 11;
+
+      const creada = (await this.crear(
+        {
+          tipo_persona: esRuc ? TIPO_PERSONA.JURIDICA : TIPO_PERSONA.NATURAL,
+          tipo_documento: consulta.tipo_documento,
+          num_documento: documento,
+          razon_social: esRuc
+            ? (consulta.razon_social ?? consulta.nombre)
+            : undefined,
+          nombres: consulta.nombres ?? undefined,
+          apellido_paterno: consulta.apellido_paterno ?? undefined,
+          apellido_materno: consulta.apellido_materno ?? undefined,
+          direccion: consulta.direccion ?? undefined,
+          id_distrito: consulta.distrito?.id,
+          es_cliente: true,
+          es_proveedor: false,
+          idUsuarioAuditoria,
+        },
+        idEmpresa,
+      )) as { id?: number } | null;
+
+      return creada?.id ?? null;
+    } catch (error) {
+      // Dos cobros simultáneos del mismo documento: el otro ya la creó.
+      if ((error as { code?: string }).code === '23505') {
+        const otra = await this.buscarPorDocumento(documento, idEmpresa);
+        if (otra) return otra.es_cliente ? otra.id : null;
+      }
+      this.logger.warn(
+        `No se pudo crear el cliente ${documento} al cobrar: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
+  private async buscarPorDocumento(
+    documento: string,
+    idEmpresa?: number | null,
+  ): Promise<{ id: number; es_cliente: boolean } | null> {
+    const { registros = [] } =
+      (await this.personasModel.buscar(
+        { buscar: documento, limite: 10 },
+        idEmpresa,
+      )) ?? {};
+
+    const encontrada = (
+      registros as {
+        id: number;
+        num_documento: string | null;
+        es_cliente: boolean;
+      }[]
+    ).find((p) => p.num_documento === documento);
+
+    return encontrada
+      ? { id: encontrada.id, es_cliente: encontrada.es_cliente }
+      : null;
   }
 
   async obtenerPorId(id: number, idEmpresa?: number | null) {

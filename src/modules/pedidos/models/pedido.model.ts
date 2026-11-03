@@ -41,6 +41,13 @@ export class PedidoModel {
     ]);
   }
 
+  /** Empresa dueña de una sucursal: el cliente del comprobante debe ser de ella. */
+  empresaDeSucursal(idSucursal: number) {
+    return this.db.callFunctionJson<AuthSingleResult>('gen_obtener_sucursal', [
+      idSucursal,
+    ]);
+  }
+
   ejecutar(
     accion: AccionPedido,
     id: number | null,

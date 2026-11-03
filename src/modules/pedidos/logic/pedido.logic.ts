@@ -21,6 +21,7 @@ import { NotificacionesLogic } from '../../notificaciones/logic/notificaciones.l
 import { CrearNotificacionDto } from '../../notificaciones/dto/crear-notificacion.dto';
 import { RutasNotificacion } from '../../notificaciones/constants/rutas-notificacion';
 import { TicketPdfLogic } from '../../impresion/logic/ticket-pdf.logic';
+import { PersonasLogic } from '../../personas/logic/personas.logic';
 import { sucursalDe } from '../../../common/decorators/sesion-empresa.decorator';
 
 // SQLSTATE de ven_reservar_insumos_pedido: faltan insumos o productos para comandar.
@@ -35,6 +36,7 @@ export class PedidoLogic {
     private readonly impresion: ImpresionGateway,
     private readonly notificaciones: NotificacionesLogic,
     private readonly tickets: TicketPdfLogic,
+    private readonly personas: PersonasLogic,
   ) {}
 
   async listar(filtros: FiltroPedidoDto, idSucursal: number) {
@@ -82,47 +84,102 @@ export class PedidoLogic {
     ) {
       throw new ForbiddenException(`Se requiere el permiso ${permiso}`);
     }
-    return this.resolver(async () => {
-      try {
-        return await this.model.ejecutar(accion, id, item, payload, usuario.id);
-      } catch (error: unknown) {
-        // La comanda ya se revirtió; el aviso se guarda en una transacción aparte.
-        const db = error as {
-          code?: string;
-          message?: string;
-          detail?: string;
-        };
-        if (db.code === STOCK_INSUFICIENTE && id !== null)
-          await this.avisarCocina(id, db, usuario.id, idSucursal);
-        throw error;
-      }
-    }).then((result) => {
-      const pedidoId = (id ?? (result as { id?: number } | null)?.id) as
-        number | null;
-      const comandado =
-        accion === 'comandar' ||
-        (accion === 'estado' && payload.estado_pedido === 2);
-      const cobrado =
-        accion === 'cobrar' ||
-        (accion === 'estado' && payload.estado_pedido === 4);
-      const anulado =
-        accion === 'anular' ||
-        (accion === 'estado' && payload.estado_pedido === 5);
-      if (comandado || accion === 'precuenta') this.impresion.notificar();
-      // El comprobante emitido se archiva en PDF (Storage) sin demorar la respuesta del cobro.
-      if (cobrado && pedidoId) this.tickets.archivarComprobantes(pedidoId);
-      if (pedidoId)
-        this.notificarPedido(
-          accion,
-          { comandado, cobrado, anulado },
-          pedidoId,
-          result,
-          idSucursal,
-        );
-      // Entregar descuenta stock: la alerta de mínimo, si la hay, sale al instante.
-      if (accion === 'entregar') void this.notificaciones.despachar();
-      return result;
-    });
+    return this.prepararCliente(accion, payload, usuario, idSucursal)
+      .then(() =>
+        this.resolver(async () => {
+          try {
+            return await this.model.ejecutar(
+              accion,
+              id,
+              item,
+              payload,
+              usuario.id,
+            );
+          } catch (error: unknown) {
+            // La comanda ya se revirtió; el aviso se guarda en una transacción aparte.
+            const db = error as {
+              code?: string;
+              message?: string;
+              detail?: string;
+            };
+            if (db.code === STOCK_INSUFICIENTE && id !== null)
+              await this.avisarCocina(id, db, usuario.id, idSucursal);
+            throw error;
+          }
+        }),
+      )
+      .then((result) => {
+        const pedidoId = (id ?? (result as { id?: number } | null)?.id) as
+          number | null;
+        const comandado =
+          accion === 'comandar' ||
+          (accion === 'estado' && payload.estado_pedido === 2);
+        const cobrado =
+          accion === 'cobrar' ||
+          (accion === 'estado' && payload.estado_pedido === 4);
+        const anulado =
+          accion === 'anular' ||
+          (accion === 'estado' && payload.estado_pedido === 5);
+        if (comandado || accion === 'precuenta') this.impresion.notificar();
+        // El comprobante emitido se archiva en PDF (Storage) sin demorar la respuesta del cobro.
+        if (cobrado && pedidoId) this.tickets.archivarComprobantes(pedidoId);
+        if (pedidoId)
+          this.notificarPedido(
+            accion,
+            { comandado, cobrado, anulado },
+            pedidoId,
+            result,
+            idSucursal,
+          );
+        // Entregar descuenta stock: la alerta de mínimo, si la hay, sale al instante.
+        if (accion === 'entregar') void this.notificaciones.despachar();
+        return result;
+      });
+  }
+
+  private async prepararCliente(
+    accion: AccionPedido,
+    payload: Record<string, unknown>,
+    usuario: AuthenticatedUser,
+    idSucursal: number,
+  ) {
+    if (accion !== 'cobrar') return;
+
+    // La nota de venta (3) no lleva cliente; boleta (1) y factura (2) sí.
+    const tipo = Number(payload.tipo_comprobante);
+    if (tipo !== 1 && tipo !== 2) return;
+
+    const documento =
+      typeof payload.documento === 'string' ? payload.documento : '';
+    if (!documento) return;
+
+    try {
+      const idEmpresa =
+        usuario.id_empresa ?? (await this.empresaDeSucursal(idSucursal));
+      if (!idEmpresa) return;
+
+      await this.personas.asegurarClientePorDocumento(
+        documento,
+        idEmpresa,
+        usuario.id,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `No se preparó el cliente del comprobante (${documento}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private async empresaDeSucursal(idSucursal: number): Promise<number | null> {
+    try {
+      const resultado = await this.model.empresaDeSucursal(idSucursal);
+      const registro = resultado?.registro as { id_empresa?: number } | null;
+      return registro?.id_empresa ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private notificarPedido(
