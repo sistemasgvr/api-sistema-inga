@@ -1,7 +1,8 @@
 -- Actualiza los datos de la empresa de la sesión: RUC, razón social, nombre
 -- comercial, dirección, distrito (ubigeo para SUNAT) y tasa de IGV del régimen
 -- vigente. Las empresas se crean en la base de datos, no desde esta función.
--- p_datos: ruc, razon_social, nombre_comercial, direccion, id_distrito, tasa_igv.
+-- p_datos: ruc, razon_social, nombre_comercial, direccion, id_distrito, tasa_igv,
+-- modo_entrega_directa (0/1; si no viene se conserva el valor actual).
 DROP FUNCTION IF EXISTS gen_guardar_empresa(p_datos JSONB, p_id_usuario_auditoria BIGINT);
 DROP FUNCTION IF EXISTS gen_guardar_empresa(
     p_datos JSONB,
@@ -64,6 +65,8 @@ BEGIN
         direccion = NULLIF(TRIM(p_datos->>'direccion'), ''),
         id_distrito = v_id_distrito,
         tasa_igv = v_tasa_igv,
+        -- Si el front no manda el modo, se conserva el que ya tenía.
+        modo_entrega_directa = COALESCE((p_datos->>'modo_entrega_directa')::SMALLINT, modo_entrega_directa),
         id_usuario_modificacion = p_id_usuario_auditoria,
         fecha_modificacion = CURRENT_TIMESTAMP
     WHERE id = p_id_empresa;

@@ -177,6 +177,7 @@ CREATE TABLE IF NOT EXISTS gen_empresa (
     logo_url                TEXT,
     logo_ticket             TEXT,
     tasa_igv                NUMERIC(5, 2) NOT NULL DEFAULT 18,
+    modo_entrega_directa    SMALLINT     NOT NULL DEFAULT 0,
     estado                  SMALLINT     NOT NULL DEFAULT 1,
     id_usuario_creacion     BIGINT,
     id_usuario_modificacion BIGINT,
@@ -184,8 +185,17 @@ CREATE TABLE IF NOT EXISTS gen_empresa (
     fecha_modificacion      TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_gen_empresa_ruc UNIQUE (ruc),
     CONSTRAINT ck_gen_empresa_tasa_igv CHECK (tasa_igv BETWEEN 0 AND 100),
+    CONSTRAINT ck_gen_empresa_modo_entrega CHECK (modo_entrega_directa IN (0, 1)),
     CONSTRAINT fk_empresa_distrito FOREIGN KEY (id_distrito) REFERENCES gen_distrito (id)
 );
+ALTER TABLE gen_empresa
+    ADD COLUMN IF NOT EXISTS modo_entrega_directa SMALLINT NOT NULL DEFAULT 0;
+DO $mig$ BEGIN
+    ALTER TABLE gen_empresa
+        ADD CONSTRAINT ck_gen_empresa_modo_entrega
+        CHECK (modo_entrega_directa IN (0, 1));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $mig$;
 
 -- Utilidad: local físico; hoy uno, preparado para más sedes.
 CREATE TABLE IF NOT EXISTS gen_sucursal (

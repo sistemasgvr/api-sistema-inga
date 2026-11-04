@@ -13,6 +13,7 @@ export interface EmpresaRegistro {
   direccion: string | null;
   id_distrito: number | null;
   tasa_igv: number;
+  modo_entrega_directa: number;
   logo_url: string | null;
   logo_ticket: string | null;
 }
@@ -32,6 +33,7 @@ export interface DatosEmpresa {
   direccion: string | null;
   idDistrito: number | null;
   tasaIgv: number;
+  modoEntregaDirecta: number;
 }
 
 /** Las validaciones de gen_guardar_* llegan como { error }: se devuelven como 400. */
@@ -73,6 +75,7 @@ export class EmpresaModel {
             direccion: datos.direccion,
             id_distrito: datos.idDistrito,
             tasa_igv: datos.tasaIgv,
+            modo_entrega_directa: datos.modoEntregaDirecta,
           }),
           usuario,
           idEmpresa,

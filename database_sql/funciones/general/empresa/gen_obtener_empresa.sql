@@ -18,6 +18,8 @@ BEGIN
         'direccion', e.direccion,
         'id_distrito', e.id_distrito,
         'tasa_igv', e.tasa_igv,
+        -- 0 = cocina con comandas, 1 = los platos pasan a por entregar al comandar.
+        'modo_entrega_directa', e.modo_entrega_directa,
         'logo_url', e.logo_url,
         'logo_ticket', e.logo_ticket
     )

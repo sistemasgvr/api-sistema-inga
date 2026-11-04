@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -63,6 +64,15 @@ export class GuardarEmpresaDto {
   @Min(0)
   @Max(100)
   tasaIgv?: number;
+
+  @ApiPropertyOptional({
+    example: false,
+    description:
+      'Entrega directa: al comandar los platos quedan "por entregar" y cocina solo los ve. La entrega descuenta primero el plato preparado y, si falta, los insumos apartados',
+  })
+  @IsOptional()
+  @IsBoolean()
+  modoEntregaDirecta?: boolean;
 }
 
 export class BuscarDistritoDto {

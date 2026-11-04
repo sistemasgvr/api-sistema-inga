@@ -1,16 +1,21 @@
 DROP FUNCTION IF EXISTS public.ven_pedido_anular_item(p_id BIGINT, p_item BIGINT, p_datos JSONB, p_usuario BIGINT);
 CREATE OR REPLACE FUNCTION public.ven_pedido_anular_item(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
-DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE;
+DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; v_directo BOOLEAN := FALSE;
 BEGIN
   PERFORM ven_autorizar_anulacion(p_usuario,(p_datos->>'id_usuario_autoriza')::BIGINT,p_datos->>'motivo');
   v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
+  SELECT COALESCE(e.modo_entrega_directa,0)=1 INTO v_directo
+    FROM gen_sucursal s JOIN gen_empresa e ON e.id=s.id_empresa WHERE s.id=v.id_sucursal;
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'El pedido no admite anulación de ítems'; END IF;
   IF EXISTS(SELECT 1 FROM ven_pago WHERE id_pedido=p_id AND estado=1) OR EXISTS(SELECT 1 FROM ven_comprobante WHERE id_pedido=p_id AND estado=1) THEN
     RAISE EXCEPTION 'El pedido tiene pagos o comprobantes; requiere reverso de cobro'; END IF;
   SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Ítem no encontrado' USING ERRCODE='P0002'; END IF;
-  IF COALESCE((p_datos->>'solo_sin_preparar')::BOOLEAN,FALSE) AND d.estado_preparacion NOT IN (1,2,3) THEN
+  -- Con entrega directa el plato queda "por entregar" al comandar, pero nada se
+  -- produjo: el mozo todavía puede cancelarlo mientras no se haya entregado.
+  IF COALESCE((p_datos->>'solo_sin_preparar')::BOOLEAN,FALSE) AND d.estado_preparacion NOT IN (1,2,3)
+     AND NOT (v_directo AND d.estado_preparacion=4) THEN
     RAISE EXCEPTION 'El plato ya inició su preparación. Actualice el pedido';
   END IF;
   PERFORM ven_cancelar_stock_item(d.id,COALESCE((p_datos->>'cantidad_cancelada')::NUMERIC,d.cantidad-d.cantidad_entregada),

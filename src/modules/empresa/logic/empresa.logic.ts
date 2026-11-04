@@ -37,7 +37,6 @@ export class EmpresaLogic {
     usuario: number,
     idEmpresa: number | null,
   ) {
-    // Los campos nuevos son opcionales: si el front no los envía se conservan.
     const actual = await this.model.obtener(idEmpresa);
     const empresa = await this.model.guardar(
       {
@@ -52,6 +51,12 @@ export class EmpresaLogic {
           dto.idDistrito ??
           (actual?.id_distrito ? Number(actual.id_distrito) : null),
         tasaIgv: dto.tasaIgv ?? Number(actual?.tasa_igv ?? 18),
+        modoEntregaDirecta:
+          dto.modoEntregaDirecta === undefined
+            ? Number(actual?.modo_entrega_directa ?? 0)
+            : dto.modoEntregaDirecta
+              ? 1
+              : 0,
       },
       usuario,
       idEmpresa,
@@ -207,6 +212,7 @@ export class EmpresaLogic {
       idDistrito: empresa.id_distrito ? Number(empresa.id_distrito) : null,
       distrito: distrito ? this.distritoRespuesta(distrito) : null,
       tasaIgv: Number(empresa.tasa_igv),
+      modoEntregaDirecta: Number(empresa.modo_entrega_directa ?? 0) === 1,
       logoUrl: empresa.logo_url,
       logoTicket: empresa.logo_ticket
         ? `data:image/png;base64,${empresa.logo_ticket}`

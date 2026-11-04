@@ -4,8 +4,14 @@ RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d RECORD;
   v_pendientes JSONB := '[]'::JSONB;
   v_comanda BIGINT; v_numero INTEGER; v_estacion BIGINT;
+  -- Entrega directa (gen_empresa.modo_entrega_directa): el plato nace "por
+  -- entregar" y cocina lo ve solo como pantalla informativa.
+  v_directo BOOLEAN := FALSE;
 BEGIN
   v := ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
+  SELECT COALESCE(e.modo_entrega_directa, 0) = 1 INTO v_directo
+    FROM gen_sucursal s JOIN gen_empresa e ON e.id = s.id_empresa
+    WHERE s.id = v.id_sucursal;
   IF v.estado_pedido NOT IN (1,2,3) THEN RAISE EXCEPTION 'Solo se comandan pedidos abiertos o comandados'; END IF;
   PERFORM ven_turno_vigente_pedido(v.id_sucursal,v.id_turno,p_usuario);
   IF NOT EXISTS(SELECT 1 FROM ven_pedido_detalle WHERE id_pedido = p_id AND estado = 1 AND tipo_linea <> 3) THEN RAISE EXCEPTION 'No se puede comandar un pedido sin ítems'; END IF;
@@ -31,7 +37,8 @@ BEGIN
     SELECT COALESCE(max(numero),0)+1 INTO v_numero FROM ven_comanda WHERE id_pedido = p_id AND id_estacion = v_estacion;
     INSERT INTO ven_comanda(id_pedido,id_estacion,numero,id_usuario_creacion,id_usuario_modificacion)
       VALUES(p_id,v_estacion,v_numero,p_usuario,p_usuario) RETURNING id INTO v_comanda;
-    UPDATE ven_pedido_detalle SET id_comanda = v_comanda,estado_preparacion = 2,stock_descontado = FALSE,
+    -- Con entrega directa el plato no espera a cocina: queda listo para entregar.
+    UPDATE ven_pedido_detalle SET id_comanda = v_comanda,estado_preparacion = CASE WHEN v_directo THEN 4 ELSE 2 END,stock_descontado = FALSE,
       id_usuario_modificacion = p_usuario,fecha_modificacion = CURRENT_TIMESTAMP
       WHERE id IN (SELECT x.id FROM jsonb_to_recordset(v_pendientes) AS x(id BIGINT,id_estacion BIGINT) WHERE x.id_estacion = v_estacion);
   END LOOP;

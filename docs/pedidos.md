@@ -94,6 +94,21 @@ Reserva productos terminados disponibles y aparta los ingredientes del resto, si
 
 La entrega se registra con POST /pedidos/:id/items/:item_id/entregar y un total acumulado cantidad_entregada. Ver los ejemplos y reglas de cancelación parcial en inventario.md.
 
+### Modo entrega directa
+
+`gen_empresa.modo_entrega_directa` (0/1, se cambia en Configuración → Empresa) elige cómo llega el plato al mozo:
+
+| | 0 · con comandas (por defecto) | 1 · entrega directa |
+|---|---|---|
+| Al comandar | el plato queda *enviado* (2) | queda *por entregar* (4) |
+| Cocina | inicia preparación y marca *plato listo* | solo mira: es pantalla informativa |
+| Entregar | exige el plato preparado (reserva del terminado) | consume el terminado reservado y, por lo que falte, los insumos apartados al comandar |
+| Cancelar un plato comandado | mientras no haya empezado la preparación | mientras no se haya entregado |
+
+El stock se sigue validando **al comandar**: `ven_reservar_insumos_pedido` rechaza la comanda completa (IN001 / HTTP 409) si falta algún insumo, así que cocina nunca recibe un pedido que no se pueda producir. En modo directo la entrega descuenta insumos por la parte no producida (backflush) en vez de exigir `prod_preparar`; el kardex queda con la salida de ingredientes, no del plato terminado.
+
+Instalación: ejecutar `migraciones/20261107_modo_entrega_directa.sql` y volver a crear `gen_obtener_empresa`, `gen_guardar_empresa`, `ven_obtener_pedido`, `ven_pedido_comandar`, `ven_pedido_entregar`, `ven_pedido_preparacion` y `ven_pedido_anular_item`.
+
 ### Cambiar estado
 
 ```json

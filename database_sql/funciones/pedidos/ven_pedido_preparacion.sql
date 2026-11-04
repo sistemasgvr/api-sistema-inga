@@ -2,8 +2,14 @@ DROP FUNCTION IF EXISTS public.ven_pedido_preparacion(p_id BIGINT, p_item BIGINT
 CREATE OR REPLACE FUNCTION public.ven_pedido_preparacion(p_id BIGINT,p_item BIGINT,p_datos JSONB,p_usuario BIGINT)
 RETURNS JSON LANGUAGE plpgsql AS $$
 DECLARE v ven_pedido%ROWTYPE; d ven_pedido_detalle%ROWTYPE; destino INTEGER:=(p_datos->>'estado_preparacion')::INTEGER;
+  v_directo BOOLEAN := FALSE;
 BEGIN
  v:=ven_bloquear_pedido(p_id, (p_datos->>'id_sucursal_sesion')::BIGINT);
+ -- Entrega directa: el plato ya quedó "por entregar" al comandar. Cocina solo
+ -- mira; no se cambia el estado desde acá (idempotente para clientes viejos).
+ SELECT COALESCE(e.modo_entrega_directa,0)=1 INTO v_directo
+   FROM gen_sucursal s JOIN gen_empresa e ON e.id=s.id_empresa WHERE s.id=v.id_sucursal;
+ IF v_directo THEN RETURN ven_obtener_pedido(p_id); END IF;
  SELECT * INTO d FROM ven_pedido_detalle WHERE id=p_item AND id_pedido=p_id AND estado=1 FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Detalle no encontrado' USING ERRCODE='P0002'; END IF;
  IF v.estado_pedido NOT IN (2,3) OR d.tipo_linea=3 OR d.id_comanda IS NULL OR d.cantidad_entregada+d.cantidad_cancelada>=d.cantidad THEN RAISE EXCEPTION 'El detalle no admite preparación'; END IF;

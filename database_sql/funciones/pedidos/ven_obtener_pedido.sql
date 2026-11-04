@@ -9,6 +9,9 @@ RETURNS JSON LANGUAGE sql AS $$
       'nombre_cliente', (SELECT COALESCE(NULLIF(trim(concat_ws(' ', c.nombres, c.apellido_paterno, c.apellido_materno)), ''), c.razon_social)
         FROM cli_persona c WHERE c.id = p.id_persona),
       'telefono_cliente', (SELECT c.telefono FROM cli_persona c WHERE c.id = p.id_persona),
+      -- La UI cambia con el modo: en entrega directa los platos nacen "por entregar".
+      'modo_entrega_directa', COALESCE((SELECT e.modo_entrega_directa FROM gen_sucursal s
+        JOIN gen_empresa e ON e.id = s.id_empresa WHERE s.id = p.id_sucursal), 0) = 1,
       'nombre_mozo', (SELECT trim(concat_ws(' ', u.nombres, u.apellidos)) FROM auth_usuario_datos u WHERE u.id = p.id_mozo),
       'items', COALESCE((SELECT jsonb_agg(to_jsonb(d) || jsonb_build_object(
         'nombre_producto', pr.nombre,
