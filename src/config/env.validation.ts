@@ -51,6 +51,8 @@ export const envValidationSchema = Joi.object({
 
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('24h'),
+  /** Duración de la sesión cuando el usuario marca "Recordarme". */
+  JWT_REMEMBER_EXPIRES_IN: Joi.string().default('30d'),
 
   /** Llave para cifrar credenciales SUNAT (token APIsPERU, clave SOL, certificado). No cambiarla luego. */
   SUNAT_CRYPTO_KEY: Joi.string().min(32).optional(),

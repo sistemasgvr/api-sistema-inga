@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEmail,
   IsInt,
   IsNotEmpty,
@@ -24,6 +25,14 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Mantiene la sesión abierta por más tiempo (JWT_REMEMBER_EXPIRES_IN)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 
   @ApiPropertyOptional({ example: '192.168.1.1' })
   @IsOptional()

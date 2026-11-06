@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { AuthCloseResult } from '../../../common/interfaces/auth-db.interface';
@@ -13,6 +14,7 @@ export class LoginLogic {
   constructor(
     private readonly loginModel: LoginModel,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -32,18 +34,31 @@ export class LoginLogic {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const token = await this.jwtService.signAsync({
-      sub: usuario.id,
-      email: usuario.email,
-      username: usuario.username,
-      jti: randomUUID(),
-    });
+    const token = await this.jwtService.signAsync(
+      {
+        sub: usuario.id,
+        email: usuario.email,
+        username: usuario.username,
+        jti: randomUUID(),
+      },
+      dto.rememberMe
+        ? {
+            expiresIn: this.configService.get<string>(
+              'jwt.rememberExpiresIn',
+            ) as JwtSignOptions['expiresIn'],
+          }
+        : undefined,
+    );
+
+    // La sesión en BD vence junto con el token; si no, cortaría antes a "Recordarme".
+    const { exp } = this.jwtService.decode<{ exp: number }>(token);
 
     const sesionResult = await this.loginModel.crearSesion(
       usuario.id,
       token,
       dto.ip ?? null,
       dto.userAgent ?? null,
+      new Date(exp * 1000).toISOString(),
     );
 
     const permisosResult = await this.loginModel.obtenerPermisosUsuario(

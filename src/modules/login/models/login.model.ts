@@ -41,11 +41,18 @@ export class LoginModel {
     tokenHash: string,
     ip: string | null,
     userAgent: string | null,
+    fechaExpiracion: string,
   ) {
     return this.db.callFunctionJson<{
       id_sesion: number;
       id_sucursal_activa: number | null;
-    }>('auth_crear_sesion', [idUsuario, tokenHash, ip, userAgent]);
+    }>('auth_crear_sesion', [
+      idUsuario,
+      tokenHash,
+      ip,
+      userAgent,
+      fechaExpiracion,
+    ]);
   }
 
   cerrarSesion(idSesion: number, idUsuario: number) {
