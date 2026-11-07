@@ -1,10 +1,21 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Permisos } from '../../../common/decorators/permisos.decorator';
 import { PermisoBanderas } from '../../../common/constants/permiso-banderas';
 import { UsuarioAuditoria } from '../../../common/decorators/usuario-auditoria.decorator';
 import { EmpresaSesion } from '../../../common/decorators/sesion-empresa.decorator';
-import { CreateTipoProductoDto } from '../dto/tipos-producto.dto';
+import {
+  CreateTipoProductoDto,
+  UpdatePermisosTipoProductoDto,
+} from '../dto/tipos-producto.dto';
 import { TiposProductoLogic } from '../logic/tipos-producto.logic';
 
 @ApiTags('Tipos de producto')
@@ -14,6 +25,30 @@ export class TiposProductoController {
   @Get()
   listar(@EmpresaSesion() idEmpresa: number | null) {
     return this.logic.listar(idEmpresa);
+  }
+
+  @Get(':id/impacto')
+  @Permisos(PermisoBanderas.PRODUCTOS_EDITAR)
+  impacto(
+    @Param('id', ParseIntPipe) id: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.impacto(id, idEmpresa);
+  }
+
+  @Patch(':id/permisos')
+  @Permisos(PermisoBanderas.PRODUCTOS_EDITAR)
+  actualizarPermisos(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePermisosTipoProductoDto,
+    @UsuarioAuditoria() idUsuarioAuditoria: number,
+    @EmpresaSesion() idEmpresa: number | null,
+  ) {
+    return this.logic.actualizarPermisos(
+      id,
+      { ...dto, idUsuarioAuditoria },
+      idEmpresa,
+    );
   }
 
   @Post()

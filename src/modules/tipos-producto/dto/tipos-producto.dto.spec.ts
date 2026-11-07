@@ -1,6 +1,9 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { CreateTipoProductoDto } from './tipos-producto.dto';
+import {
+  CreateTipoProductoDto,
+  UpdatePermisosTipoProductoDto,
+} from './tipos-producto.dto';
 
 const valid = {
   nombre: '  Plato nuevo  ',
@@ -25,6 +28,30 @@ describe('CreateTipoProductoDto', () => {
     ]) {
       expect(
         (await validate(plainToInstance(CreateTipoProductoDto, input))).length,
+      ).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('UpdatePermisosTipoProductoDto', () => {
+  const permisos = {
+    permite_venta: true,
+    requiere_receta: false,
+    requiere_estacion: true,
+    permite_stock_inicial: true,
+  };
+  it('acepta los cuatro indicadores sin exigir nombre', async () => {
+    const dto = plainToInstance(UpdatePermisosTipoProductoDto, permisos);
+    expect(await validate(dto)).toHaveLength(0);
+  });
+  it('rechaza indicadores ausentes o que no sean booleanos', async () => {
+    for (const input of [
+      { ...permisos, permite_venta: 'true' },
+      { ...permisos, requiere_estacion: undefined },
+    ]) {
+      expect(
+        (await validate(plainToInstance(UpdatePermisosTipoProductoDto, input)))
+          .length,
       ).toBeGreaterThan(0);
     }
   });

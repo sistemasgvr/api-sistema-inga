@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { AuditoriaDto } from '../../../common/dto/auditoria.dto';
@@ -27,6 +27,11 @@ export class CreateTipoProductoDto extends AuditoriaDto {
   permite_stock_inicial!: boolean;
 }
 
+export class UpdatePermisosTipoProductoDto extends OmitType(
+  CreateTipoProductoDto,
+  ['nombre'] as const,
+) {}
+
 export interface TipoProducto {
   id: number;
   nombre: string;
@@ -34,4 +39,11 @@ export interface TipoProducto {
   requiere_receta: boolean;
   requiere_estacion: boolean;
   permite_stock_inicial: boolean;
+}
+
+export interface ImpactoTipoProducto {
+  total: number;
+  sin_receta: number;
+  sin_estacion: number;
+  en_venta: number;
 }

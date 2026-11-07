@@ -26,6 +26,8 @@ La FK `NOT VALID` permite cargar los tipos históricos antes de validar los prod
 
 - `GET /tipos-producto`: catálogo activo para usuarios autenticados, incluidos quienes operan pedidos.
 - `POST /tipos-producto`: requiere `PRODUCTOS_CREAR`; recibe nombre y los cuatro booleanos. La auditoría proviene de la sesión. Rechaza nombres vacíos o duplicados sin distinguir mayúsculas ni espacios exteriores.
+- `GET /tipos-producto/:id/impacto`: requiere `PRODUCTOS_EDITAR`; devuelve los conteos de productos activos del tipo (`total`, `sin_receta`, `sin_estacion`, `en_venta`).
+- `PATCH /tipos-producto/:id/permisos`: requiere `PRODUCTOS_EDITAR`; recibe los cuatro booleanos y actualiza solo el tipo. Los productos existentes no cambian: el modal "Permisos de tipos" de Productos usa el impacto para avisar antes de guardar. Con `requiere_receta=true`, `permite_stock_inicial` se guarda en falso.
 - Los endpoints siguen el envoltorio global de respuestas de la API.
 - `permite_venta=false`: precio cero y fuera de carta. Tampoco puede activarse mediante el toggle ni consumirse en pedidos.
 - `requiere_receta=true`: permite gestionar receta desde Productos y la exige al consumir un pedido. No exige una receta antes de crear el producto, ya que se configura después en Preparaciones.
